@@ -2,6 +2,7 @@
 ### MM - Git ignore Template template
 .idea
 Icon
+/Modeling/credentials.py
 
 ### Windows template
 
