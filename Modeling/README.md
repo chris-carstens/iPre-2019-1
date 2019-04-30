@@ -4,7 +4,7 @@
 
 | Tareas        | Asignado | Estado |
 | ------------- |:--------:| ------:|
-| Unidades mapa (x, y) | MM | <ul><li>- [x] </li></ul> |
+| Unidades mapa (x, y) | MM | <center><ul><li>- [x] </li></ul></center> |
 | 4D Matplotlib (plot3 ¿?) | FT |   INCOMPLETE |
 | Biblioteca externa para plot 4D  (Paraview Python) | -- | INCOMPLETE |
 | Entender los kernels (kde Gauss) | CC | INCOMPLETE |
