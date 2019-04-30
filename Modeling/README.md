@@ -7,4 +7,3 @@
 * Entender los kernels (kde Gauss)
 * Unidades mapa (x, y)
 * Estudiar modelo predictivo
-*
