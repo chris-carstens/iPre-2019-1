@@ -2,8 +2,10 @@
 
 ## Semana 22/04
 
-* Unidades mapa (x, y) **
-* 4D Matplotlib (plot3 ¿?)
-* Biblioteca externa para plot 4D  (Paraview Python)
-* Entender los kernels (kde Gauss)
-* Estudiar modelo predictivo (función kde del módulo scipy)
+| Tareas        | Asignado | Estado |
+| ------------- |:--------:| ------:|
+| Unidades mapa (x, y) | MM | COMPLETE |
+| 4D Matplotlib (plot3 ¿?) | FT |   INCOMPLETE |
+| Biblioteca externa para plot 4D  (Paraview Python) | -- | INCOMPLETE |
+| Entender los kernels (kde Gauss) | CC | INCOMPLETE |
+| Estudiar modelo predictivo (función kde del módulo scipy) | --  | INCOMPLETE |
