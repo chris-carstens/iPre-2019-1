@@ -2,7 +2,7 @@
 ### MM - Git ignore Template template
 .idea
 Icon
-/Modeling/credentials.py
+/Python/credentials.py
 
 ### Windows template
 
@@ -295,3 +295,4 @@ celerybeat-schedule
 Network Trash Folder
 Temporary Items
 .apd
+.Rproj.user
