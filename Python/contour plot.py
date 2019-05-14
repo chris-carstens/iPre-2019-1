@@ -8,14 +8,12 @@ import numpy as np
 import geopandas as gpd
 from shapely.geometry import Point
 
-import matplotlib as mpl
-import matplotlib.colors as mc
 import matplotlib.pyplot as plt
 
 from scipy.stats import gaussian_kde
-from database_request import df
+from Python.database_request import df
 
-dallas = gpd.read_file('Data/shapefiles/STREETS.shp')
+dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
 
 fig, ax = plt.subplots(figsize=(15, 15))
 ax.set_facecolor('xkcd:black')
