@@ -6,7 +6,7 @@
 import pandas as pd
 from sodapy import Socrata
 
-from Python import credentials as cre
+from Python.maps import credentials as cre
 
 with Socrata(cre.socrata_domain,
              cre.API_KEY_S,
