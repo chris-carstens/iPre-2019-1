@@ -1,12 +1,6 @@
 import numpy as np
-from sklearn.metrics import confusion_matrix
 from string import ascii_uppercase
-import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
-
-from sklearn import svm, datasets
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 from sklearn.utils.multiclass import unique_labels
 
@@ -17,21 +11,9 @@ y_pred = np.array([1,3,3,2])
 columnas = ['Clase %s' % (i) for i in
             list(ascii_uppercase)[0:len(np.unique(y_pred))]]
 
-'''cm = confusion_matrix(y_verd, y_pred)
-
-print(columnas)
-print(cm)
-
-df_cm = pd.DataFrame(cm,index=columnas, columns=columnas)
-
-grafica = sns.heatmap(df_cm,cmap=plt.cm.Blues, annot=True)
-
-grafica.set(xlabel = 'Verdadero', ylabel = 'Predicción')
-
-plt.show()'''
 
 
-def plot_confusion_matrix(y_true, y_pred, classes,
+def plot_confusion_matrix(y_true, y_pred,
                           normalize=False,
                           title=None,
                           cmap=plt.cm.Blues):
@@ -70,7 +52,6 @@ def plot_confusion_matrix(y_true, y_pred, classes,
            xlabel='Predicted label')
 
 
-
     # Loop over data dimensions and create text annotations.
     fmt = '.2f' if normalize else 'd'
     thresh = cm.max() / 2.
@@ -83,11 +64,11 @@ def plot_confusion_matrix(y_true, y_pred, classes,
     return ax
 
 
-plot_confusion_matrix(y_verd, y_pred, classes=columnas,
+plot_confusion_matrix(y_verd, y_pred,
                       title='Confusion matrix, without normalization')
 
 # Plot normalized confusion matrix
-plot_confusion_matrix(y_verd, y_pred, classes=columnas, normalize=True,
+plot_confusion_matrix(y_verd, y_pred, normalize=True,
                       title='Normalized confusion matrix')
 
 plt.show()
