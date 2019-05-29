@@ -11,14 +11,15 @@ from shapely.geometry import Point
 import matplotlib.pyplot as plt
 
 from scipy.stats import gaussian_kde
-from Python.database_request import df
+from database_request import df
 
-dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
+dallas = gpd.read_file('../../Data/shapefiles/STREETS.shp')
 
 fig, ax = plt.subplots(figsize=(15, 15))
 ax.set_facecolor('xkcd:black')
 
 dallas.plot(ax=ax, alpha=.4, color="gray")
+# print(dallas.crs)
 
 geometry = [Point(xy) for xy in zip(df['x'], df['y'])]
 geo_df = gpd.GeoDataFrame(df,
