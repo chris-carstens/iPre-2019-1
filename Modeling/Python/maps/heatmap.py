@@ -14,6 +14,8 @@ from scipy.stats import gaussian_kde
 
 from database_request import df
 
+df = df[['x', 'y']]
+
 dallas = gpd.read_file('../../Data/shapefiles/STREETS.shp')
 
 fig, ax = plt.subplots(figsize=(15, 15))

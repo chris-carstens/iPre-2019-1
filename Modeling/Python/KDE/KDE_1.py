@@ -21,7 +21,6 @@ dens_u = KDEMultivariate(data=[c1, c2],
 # Para obtener los bandwidths de acuerdo al método: likelihood
 # cross-validation
 
+print("hi", flush=False)
 print(dens_u)
-
-print(dens_u.bw)
-print(dens_u)
+print(f"Optimal Bandwidths: {dens_u.bw}")
