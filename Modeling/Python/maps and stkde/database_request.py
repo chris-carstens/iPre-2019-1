@@ -1,8 +1,3 @@
-# part_1:
-# - Python version: 
-# - Author: Mauro S. Mendoza Elguera
-# - Date: 2019-05-14
-
 import pandas as pd
 from datetime import datetime
 from sodapy import Socrata

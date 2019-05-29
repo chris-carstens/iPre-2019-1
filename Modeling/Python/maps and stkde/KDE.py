@@ -1,8 +1,3 @@
-# KDE:
-# - Python version: 
-# - Author: Mauro S. Mendoza Elguera
-# - Date: 2019-05-15
-
 # Data-driven bandwidth selection
 # Likelihood cross-validation method
 

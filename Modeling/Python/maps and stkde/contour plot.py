@@ -1,8 +1,3 @@
-# part_2:
-# - Python version: 
-# - Author: Mauro S. Mendoza Elguera
-# - Date: 2019-05-14
-
 import numpy as np
 
 import geopandas as gpd
