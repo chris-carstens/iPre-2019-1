@@ -16,7 +16,9 @@ fig, ax = plt.subplots(figsize=(15, 15))
 ax.set_facecolor('xkcd:black')
 
 dallas.plot(ax=ax, alpha=.4, color="gray")
-# print(dallas.crs)
+print(dallas.crs)
+
+# 0.3048 m US Survey Foot
 
 geometry = [Point(xy) for xy in zip(df['x'], df['y'])]
 geo_df = gpd.GeoDataFrame(df,

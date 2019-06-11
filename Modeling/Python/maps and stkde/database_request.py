@@ -8,12 +8,14 @@ import credentials as cre
 # pd.set_option('display.max_columns', 500)
 # pd.set_option('display.width', 1000)
 
+n = 1000
+
 with Socrata(cre.socrata_domain,
              cre.API_KEY_S,
              username=cre.USERNAME_S,
              password=cre.PASSWORD_S) as client:
     query = \
-        """
+        f"""
     select
         incidentnum,
         geocoded_column,
@@ -32,7 +34,7 @@ with Socrata(cre.socrata_domain,
         and y_cordinate is not null
     order by date1
     limit
-        1000
+        {n}
     """  #  530000 max. 11/04
 
     results = client.get(cre.socrata_dataset_identifier,
@@ -56,4 +58,4 @@ df.rename(columns={'x_coordinate': 'x',
                    'date1': 'date'},
           inplace=True)
 
-print(df)
+# print(df["date"])

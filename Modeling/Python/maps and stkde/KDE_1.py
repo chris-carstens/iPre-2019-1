@@ -1,24 +1,21 @@
-
 import pandas as pd
 import numpy as np
 
+from database_request import df
 from statsmodels.nonparametric.kernel_density import KDEMultivariate
 
-nobs = 300
-np.random.seed(1234)  # Seed random generator
+x = np.array(df[['x']])
+y = np.array(df[['y']])
+date = np.array(df[['date_ordinal']])
 
-c1 = np.random.normal(size=(nobs, 1))
-c2 = np.random.normal(2, 1, size=(nobs, 1))
-
-dens_u = KDEMultivariate(data=[c1, c2],
-                         var_type='cc',
+dens_u = KDEMultivariate(data=[x, y, date],
+                         var_type='ccc',
                          bw='cv_ml')
 
-# Para obtener los bandwidths de acuerdo al método: likelihood
-# cross-validation
+hx, hy, ht = dens_u.bw
+print(f"\nOptimal Bandwidths: \n\n"
+      f"hx = {round(hx, 3)} \n"
+      f"hy = {round(hy, 3)} \n"
+      f"ht = {round(ht, 3)}")
 
-
-print(df)
-print("hi", flush=False)
-print(dens_u)
-print(f"Optimal Bandwidths: {dens_u.bw}")
+print(sum(dens_u.pdf()))
