@@ -17,19 +17,13 @@ from sodapy import Socrata
 import credentials as cre
 
 
-# def l_cv():
-#     """Calculates the bandwidths"""
-#     pass
+# Observaciones
 #
+# 1. 3575 Incidents
+# Training data 2926 incidents (January 1st - October 31st)
+# Testing data 649 incidents (November 1st - December 31st)
 #
-# # STKDE
-#
-#
-# def stkde(hx, hy, ht, data):
-#     """Calculates the spatio-temporal kernel density estimator using the
-#     Generalized Product Kernels"""
-#     pass
-
+# 2. Se requiere que la muestra sea "estable" en el periodo analizado
 
 class STKDE:
     """STKDE class for a spatio-temporal kernel density estimation"""
@@ -55,15 +49,13 @@ class STKDE:
                 f"""
                 select
                     incidentnum,
-                    geocoded_column,
                     year1,
                     date1,
                     time1,
                     x_coordinate,
                     y_cordinate
                 where
-                    geocoded_column is not null
-                    and year1 = {self.year}
+                    year1 = {self.year}
                     and date1 is not null
                     and time1 is not null
                     and x_coordinate is not null
@@ -77,7 +69,12 @@ class STKDE:
                                  query=query,
                                  content_type='json')
 
+            pd.set_option('display.max_columns', None)
+            # pd.set_option('display.max_rows', None)
+
             df = pd.DataFrame.from_records(results)
+
+            #print(df.head())
 
             # DB Cleaning & Formatting
 
@@ -194,7 +191,7 @@ class STKDE:
 
         dallas.plot(ax=ax, alpha=.4, color="gray")
 
-        nbins = 500
+        nbins = 100
         data = np.array(df[['x', 'y']])
 
         x, y = data.T
@@ -202,6 +199,7 @@ class STKDE:
         k = gaussian_kde(data.T)
         xi, yi = np.mgrid[x.min():x.max():nbins * 1j,
                  y.min():y.max():nbins * 1j]
+
         zi = k(np.vstack([xi.flatten(), yi.flatten()]))
 
         cmap2 = mpl.cm.get_cmap("jet")
@@ -237,15 +235,15 @@ class STKDE:
 
         hx, hy, ht = dens_u.bw
 
-        print(dens_u.bw)
         print(f"\nOptimal Bandwidths: \n\n"
               f"hx = {round(hx, 3)} \n"
               f"hy = {round(hy, 3)} \n"
               f"ht = {round(ht, 3)}")
 
 
-dallas_stkde = STKDE(n=3600, year="2014")
-# dallas_stkde.data_histogram()
-# dallas_stkde.contour_plot()
-# dallas_stkde.heatmap()
+dallas_stkde = STKDE(n=1000, year="2016")
+
+dallas_stkde.contour_plot()
+dallas_stkde.heatmap()
+dallas_stkde.data_histogram()
 dallas_stkde.calculate_bandwidths()
