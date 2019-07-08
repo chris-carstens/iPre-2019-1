@@ -30,6 +30,11 @@ class STKDE:
 
     def __init__(self, n: int = 1000, year: str = "2017"):
         self.data = []
+
+        self.x = np.array(self.data[["x"]])
+        self.y = np.array(self.data[["y"]])
+        self.t = np.array(self.data[["date_ordinal"]])
+
         self.training_data = []  # 3000
         self.testing_data = []  # 600
         self.n = n
@@ -74,7 +79,7 @@ class STKDE:
 
             df = pd.DataFrame.from_records(results)
 
-            #print(df.head())
+            # print(df.head())
 
             # DB Cleaning & Formatting
 
@@ -184,7 +189,7 @@ class STKDE:
     def heatmap(self):
         df = self.data[['x', 'y']]
 
-        dallas = gpd.read_file('../../Data/shapefiles/STREETS.shp')
+        dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
 
         fig, ax = plt.subplots(figsize=(15, 15))
         ax.set_facecolor('xkcd:black')
@@ -197,8 +202,8 @@ class STKDE:
         x, y = data.T
 
         k = gaussian_kde(data.T)
-        xi, yi = np.mgrid[x.min():x.max():nbins * 1j,
-                 y.min():y.max():nbins * 1j]
+        xi, yi = np.mgrid[self.x.min():self.x.max():nbins * 1j,
+                 self.y.min():self.y.max():nbins * 1j]
 
         zi = k(np.vstack([xi.flatten(), yi.flatten()]))
 
@@ -223,13 +228,7 @@ class STKDE:
     def calculate_bandwidths(self):
         """Calculate the hx, hy and ht bandwidths"""
 
-        df = self.data
-
-        x, y, t = np.array(df[['x']]), \
-                  np.array(df[['y']]), \
-                  np.array(df[['date_ordinal']])
-
-        dens_u = KDEMultivariate(data=[x, y, t],
+        dens_u = KDEMultivariate(data=[self.x, self.y, self.t],
                                  var_type='ccc',
                                  bw='cv_ml')
 
@@ -241,9 +240,9 @@ class STKDE:
               f"ht = {round(ht, 3)}")
 
 
-dallas_stkde = STKDE(n=1000, year="2016")
+dallas_stkde = STKDE(n=3600, year="2016")
 
-dallas_stkde.contour_plot()
-dallas_stkde.heatmap()
+# dallas_stkde.contour_plot()
+# dallas_stkde.heatmap()
 dallas_stkde.data_histogram()
-dallas_stkde.calculate_bandwidths()
+# dallas_stkde.calculate_bandwidths()
