@@ -31,16 +31,16 @@ class STKDE:
     def __init__(self, n: int = 1000, year: str = "2017"):
         self.data = []
 
-        self.x = np.array(self.data[["x"]])
-        self.y = np.array(self.data[["y"]])
-        self.t = np.array(self.data[["date_ordinal"]])
-
         self.training_data = []  # 3000
         self.testing_data = []  # 600
         self.n = n
         self.year = year
 
         self.get_data()
+
+        self.x = np.array(self.data[['x']])
+        self.y = np.array(self.data[['y']])
+        self.t = np.array(self.data[['date_ordinal']])
 
     def get_data(self):
         """Requests data using the Socrata API and saves in the
@@ -145,9 +145,7 @@ class STKDE:
         ax.set_facecolor('xkcd:black')
 
         dallas.plot(ax=ax, alpha=.4, color="gray")
-        # print(dallas.crs)
-
-        # 0.3048 m US Survey Foot
+        # print(dallas.crs) # US Survey Foot: 0.3048 m
 
         geometry = [Point(xy) for xy in zip(df['x'], df['y'])]
         geo_df = gpd.GeoDataFrame(df,
@@ -168,12 +166,12 @@ class STKDE:
         x, y = data.T
 
         k = gaussian_kde(data.T)
-        xi, yi = np.mgrid[x.min():x.max():nbins * 1j,
-                 y.min():y.max():nbins * 1j]
-        zi = k(np.vstack([xi.flatten(), yi.flatten()]))
-        # zi_2 = zi * 3000 * (10 ** 6) / (.304) # P. Elwin
+        x, y = np.mgrid[x.min():x.max():nbins * 1j,
+               y.min():y.max():nbins * 1j]
+        z = k(np.vstack([x.flatten(), y.flatten()]))
+        # zi_2 = z * 3000 * (10 ** 6) / (.304) # P. Elwin
 
-        contourplot = plt.contour(xi, yi, zi.reshape(xi.shape), cmap='jet',
+        contourplot = plt.contour(x, y, z.reshape(x.shape), cmap='jet',
                                   zorder=3)
 
         plt.title(f"Dallas Incidents - Contourplot\n"
@@ -186,8 +184,8 @@ class STKDE:
         # plt.savefig("Dallas.pdf", format='pdf')
         plt.show()
 
-    def heatmap(self):
-        df = self.data[['x', 'y']]
+    def heatmap(self, bins: int, ti: int):
+        # df = self.data[['x', 'y']]
 
         dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
 
@@ -196,24 +194,30 @@ class STKDE:
 
         dallas.plot(ax=ax, alpha=.4, color="gray")
 
-        nbins = 100
-        data = np.array(df[['x', 'y']])
+        nbins = bins
+        # data = np.array(df[['x', 'y']])
 
-        x, y = data.T
+        # k = gaussian_kde(data.T)
+        k = KDEMultivariate(data=[self.x, self.y, self.t],
+                            var_type='cco',
+                            bw='cv_ml')
+        x, y = np.mgrid[
+               self.x.min():self.x.max():nbins * 1j,
+               self.y.min():self.y.max():nbins * 1j
+               ]
 
-        k = gaussian_kde(data.T)
-        xi, yi = np.mgrid[self.x.min():self.x.max():nbins * 1j,
-                 self.y.min():self.y.max():nbins * 1j]
-
-        zi = k(np.vstack([xi.flatten(), yi.flatten()]))
+        # z = k(np.vstack([x.flatten(), y.flatten()]))
+        z = k.pdf(np.vstack([x.flatten(),
+                             y.flatten(),
+                             ti * np.ones(x.size)]))
 
         cmap2 = mpl.cm.get_cmap("jet")
         cmap2.set_under("k")
 
-        heatmap = plt.pcolormesh(xi, yi, zi.reshape(xi.shape),
+        heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
                                  shading='gouraud',
-                                 cmap=cmap2,
-                                 vmin=.6e-10)
+                                 cmap=cmap2)
+                                 #vmin=.6e-10)
 
         plt.title(f"Dallas Incidents - Heatmap\n"
                   f"n = {self.n}   Year = {self.year}",
@@ -240,9 +244,9 @@ class STKDE:
               f"ht = {round(ht, 3)}")
 
 
-dallas_stkde = STKDE(n=3600, year="2016")
+dallas_stkde = STKDE(n=1000, year="2014")
+dallas_stkde.heatmap(bins=100, ti=735234)
 
 # dallas_stkde.contour_plot()
-# dallas_stkde.heatmap()
-dallas_stkde.data_histogram()
+# dallas_stkde.data_histogram()
 # dallas_stkde.calculate_bandwidths()

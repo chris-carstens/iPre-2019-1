@@ -46,10 +46,13 @@ class Prediction:
 
         dallas.plot(ax=ax, alpha=.4, color="gray")
 
-        xi, yi = np.mgrid[self.x.min():self.x.max():self.nbins * 1j,
-                 self.y.min():self.y.max():self.nbins * 1j]
+        xi, yi = np.mgrid[
+                 self.x.min():self.x.max():self.nbins * 1j,
+                 self.y.min():self.y.max():self.nbins * 1j
+                 ]
         zi = self.dens_u.pdf(
-                np.vstack([xi.flatten(), yi.flatten(),
+                np.vstack([xi.flatten(),
+                           yi.flatten(),
                            735234 * np.ones(xi.size)]))
 
         cmap2 = mpl.cm.get_cmap("jet")
@@ -57,6 +60,7 @@ class Prediction:
 
         self.heatmap = plt.pcolormesh(xi, yi, zi.reshape(xi.shape),
                                       shading='gouraud')
+
         plt.title("Dallas Incidents - Heatmap",
                   fontdict={'fontsize': 20,
                             'fontweight': 'bold'},
