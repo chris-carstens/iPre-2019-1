@@ -185,46 +185,47 @@ class STKDE:
         plt.show()
 
     def heatmap(self, bins: int, ti: int):
-        # df = self.data[['x', 'y']]
+        """Plots the heatmap associated to a given t_i"""
 
         dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
 
         fig, ax = plt.subplots(figsize=(15, 15))
         ax.set_facecolor('xkcd:black')
 
-        dallas.plot(ax=ax, alpha=.4, color="gray")
+        dallas.plot(ax=ax,
+                    alpha=.4,  # Ancho de las calles en este plot
+                    color="gray",
+                    zorder=1)
 
-        nbins = bins
-        # data = np.array(df[['x', 'y']])
-
-        # k = gaussian_kde(data.T)
         k = KDEMultivariate(data=[self.x, self.y, self.t],
-                            var_type='cco',
+                            var_type='ccc',
                             bw='cv_ml')
         x, y = np.mgrid[
-               self.x.min():self.x.max():nbins * 1j,
-               self.y.min():self.y.max():nbins * 1j
+               self.x.min():self.x.max():bins * 1j,
+               self.y.min():self.y.max():bins * 1j
                ]
 
-        # z = k(np.vstack([x.flatten(), y.flatten()]))
         z = k.pdf(np.vstack([x.flatten(),
                              y.flatten(),
                              ti * np.ones(x.size)]))
-
-        cmap2 = mpl.cm.get_cmap("jet")
-        cmap2.set_under("k")
+        z = np.ma.masked_array(z, z < .1e-11)
 
         heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
                                  shading='gouraud',
-                                 cmap=cmap2)
-                                 #vmin=.6e-10)
+                                 alpha=.2,
+                                 cmap=mpl.cm.get_cmap("jet"),
+                                 zorder=2)
 
         plt.title(f"Dallas Incidents - Heatmap\n"
                   f"n = {self.n}   Year = {self.year}",
                   fontdict={'fontsize': 15,
                             'fontweight': 'bold'},
                   pad=20)
-        plt.colorbar(heatmap, ax=ax, shrink=.4, aspect=10)
+        cbar = plt.colorbar(heatmap,
+                            ax=ax,
+                            shrink=.4,
+                            aspect=10)
+        cbar.solids.set(alpha=1)
 
         # plt.savefig("Dallas.pdf", format='pdf')
         plt.show()
@@ -244,8 +245,10 @@ class STKDE:
               f"ht = {round(ht, 3)}")
 
 
-dallas_stkde = STKDE(n=1000, year="2014")
-dallas_stkde.heatmap(bins=100, ti=735234)
+dallas_stkde = STKDE(n=100,
+                     year="2014")
+dallas_stkde.heatmap(bins=500,
+                     ti=735234)
 
 # dallas_stkde.contour_plot()
 # dallas_stkde.data_histogram()
