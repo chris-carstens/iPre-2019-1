@@ -34,6 +34,10 @@ class STKDE:
                  n: int = 1000,
                  year: str = "2017",
                  t_model: bool = False):
+        """
+        t_model: Debe ser True si se van a utilizar los métodos
+        contour_plot o heatmap (calcula los bandwidths)
+        """
         self.data = []
 
         self.training_data = []  # 3000
@@ -95,7 +99,7 @@ class STKDE:
                                  content_type='json')
 
             pd.set_option('display.max_columns', None)
-            # pd.set_option('display.max_rows', None)
+            pd.set_option('display.max_rows', None)
 
             df = pd.DataFrame.from_records(results)
 
@@ -119,10 +123,23 @@ class STKDE:
                                'date1': 'date'},
                       inplace=True)
 
-            df = df.sample(n=3600)  # Random Selection of rows
+            # I) Reducción del tamaño de la DB
+
+            df = df.sample(n=3600, replace=False)  # Random Selection of rows
             df.sort_values(by=['date'], inplace=True)
+            df.reset_index(drop=True, inplace=True)
 
             self.data = df
+
+            # II) División en training y testing data
+
+            self.training_data, self.testing_data = \
+                train_test_split(self.data,
+                                 test_size=600,
+                                 train_size=3000,
+                                 shuffle=False)
+
+            # print(self.training_data, "\n", self.testing_data)
 
             print("\n"
                   f"n = {self.n} incidents requested  Year = {self.year}"
@@ -303,10 +320,10 @@ if __name__ == "__main__":
 
     dallas_stkde = STKDE(n=150000,
                          year="2016",
-                         t_model=False)
-    dallas_stkde.data_histogram()
-    # dallas_stkde.heatmap(bins=150,
-    #                     ti=735234)
+                         t_model=True)
+    # dallas_stkde.data_histogram()
+    dallas_stkde.heatmap(bins=150,
+                         ti=735234)
     # dallas_stkde.contour_plot(bins=1000,
     #                           ti=735234)
     # dallas_stkde.calculate_bandwidths()
