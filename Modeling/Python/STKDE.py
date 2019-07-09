@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import datetime
+from sklearn.model_selection import train_test_split
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -57,7 +58,7 @@ class STKDE:
         """Requests data using the Socrata API and saves in the
         self.data variable
 
-        I) Reducción del Tamaño de la DB
+        I) Reducción del Tamaño de la DB                            √
         II) Dividir training y testing data
         III) Usar training data para los cálculos de bandwidths
         IV) Testeo.
@@ -117,6 +118,9 @@ class STKDE:
                                'y_cordinate': 'y',
                                'date1': 'date'},
                       inplace=True)
+
+            df = df.sample(n=3600)  # Random Selection of rows
+            df.sort_values(by=['date'], inplace=True)
 
             self.data = df
 
@@ -295,12 +299,14 @@ class STKDE:
 # 2018 - 98477  incidents
 # 2019 - 64380  incidents (y creciendo)
 
-dallas_stkde = STKDE(n=150000,
-                     year="2015",
-                     t_model=False)
-dallas_stkde.data_histogram()
-# dallas_stkde.heatmap(bins=150,
-#                     ti=735234)
-# dallas_stkde.contour_plot(bins=1000,
-#                           ti=735234)
-# dallas_stkde.calculate_bandwidths()
+if __name__ == "__main__":
+
+    dallas_stkde = STKDE(n=150000,
+                         year="2016",
+                         t_model=False)
+    dallas_stkde.data_histogram()
+    # dallas_stkde.heatmap(bins=150,
+    #                     ti=735234)
+    # dallas_stkde.contour_plot(bins=1000,
+    #                           ti=735234)
+    # dallas_stkde.calculate_bandwidths()
