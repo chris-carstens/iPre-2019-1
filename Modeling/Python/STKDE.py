@@ -47,7 +47,7 @@ class STKDE:
         self.t = np.array(self.data[['date_ordinal']])
 
         if t_model:
-            print("\n ")
+            print("\nCa")
 
             self.kde = KDEMultivariate(data=[self.x, self.y, self.t],
                                        var_type='ccc',
@@ -55,7 +55,13 @@ class STKDE:
 
     def get_data(self):
         """Requests data using the Socrata API and saves in the
-        self.data variable"""
+        self.data variable
+
+        I) Reducción del Tamaño de la DB
+        II) Dividir training y testing data
+        III) Usar training data para los cálculos de bandwidths
+        IV) Testeo.
+        """
 
         print("\nRequesting data...")
 
@@ -81,7 +87,7 @@ class STKDE:
                 order by date1
                 limit
                     {self.n}
-                """  #  530000 max. 11/04
+                """  #  571000 max. 09/07/2019
 
             results = client.get(cre.socrata_dataset_identifier,
                                  query=query,
@@ -91,8 +97,6 @@ class STKDE:
             # pd.set_option('display.max_rows', None)
 
             df = pd.DataFrame.from_records(results)
-
-            # print(df.head())
 
             # DB Cleaning & Formatting
 
@@ -117,11 +121,12 @@ class STKDE:
             self.data = df
 
             print("\n"
-                  f"n = {self.n}   Year = {self.year}"
+                  f"n = {self.n} incidents requested  Year = {self.year}"
                   "\n"
-                  f"{self.data.shape[0]} rows successfully retrieved")
+                  f"{self.data.shape[0]} incidents successfully retrieved")
 
-    def data_histogram(self, pdf: bool = False):
+    def data_histogram(self,
+                       pdf: bool = False):
         """Plots a histogram of the data"""
 
         df = self.data
@@ -140,16 +145,19 @@ class STKDE:
         )
 
         plt.title(f"Database Request\n"
-                  f"n = {self.n}   Year = {self.year}",
+                  f"n = {self.data.shape[0]}   Year = {self.year}",
                   fontdict={'fontsize': 15,
                             'fontweight': 'bold'},
                   pad=20)
 
         if pdf:
-            plt.savefig(f"histogram_{self.n}.pdf", format='pdf')
+            plt.savefig(f"histogram_{self.data.shape[0]}.pdf", format='pdf')
         plt.show()
 
-    def contour_plot(self, bins: int, ti: int, pdf: bool = False):
+    def contour_plot(self,
+                     bins: int,
+                     ti: int,
+                     pdf: bool = False):
         """Draw the contour lines"""
 
         print("\nPlotting Contours...")
@@ -197,7 +205,7 @@ class STKDE:
                                   zorder=3)
 
         plt.title(f"Dallas Incidents - Contourplot\n"
-                  f"n = {self.n}    Year = {self.year}",
+                  f"n = {self.data.shape[0]}    Year = {self.year}",
                   fontdict={'fontsize': 15,
                             'fontweight': 'bold'},
                   pad=20)
@@ -210,7 +218,10 @@ class STKDE:
             plt.savefig("dallas_contourplot.pdf", format='pdf')
         plt.show()
 
-    def heatmap(self, bins: int, ti: int, pdf: bool = False):
+    def heatmap(self,
+                bins: int,
+                ti: int,
+                pdf: bool = False):
         """Plots the heatmap associated to a given t_i"""
 
         print("\nPlotting Heatmap...")
@@ -242,7 +253,7 @@ class STKDE:
                                  zorder=2)
 
         plt.title(f"Dallas Incidents - Heatmap\n"
-                  f"n = {self.n}   Year = {self.year}",
+                  f"n = {self.data.shape[0]}   Year = {self.year}",
                   fontdict={'fontsize': 15,
                             'fontweight': 'bold'},
                   pad=20)
@@ -273,8 +284,19 @@ class STKDE:
               f"ht = {round(ht, 3)}")
 
 
-dallas_stkde = STKDE(n=1000,
-                     year="2014",
+# Data
+#
+# 2012 - 58     incidents
+# 2013 - 186    incidents
+# 2014 - 54985  incidents
+# 2015 - 94923  incidents   √
+# 2016 - 102132 incidents   √
+# 2017 - 96411  incidents   √
+# 2018 - 98477  incidents
+# 2019 - 64380  incidents (y creciendo)
+
+dallas_stkde = STKDE(n=150000,
+                     year="2015",
                      t_model=False)
 dallas_stkde.data_histogram()
 # dallas_stkde.heatmap(bins=150,
