@@ -29,7 +29,10 @@ import credentials as cre
 class STKDE:
     """STKDE class for a spatio-temporal kernel density estimation"""
 
-    def __init__(self, n: int = 1000, year: str = "2017"):
+    def __init__(self,
+                 n: int = 1000,
+                 year: str = "2017",
+                 t_model: bool = False):
         self.data = []
 
         self.training_data = []  # 3000
@@ -43,13 +46,18 @@ class STKDE:
         self.y = np.array(self.data[['y']])
         self.t = np.array(self.data[['date_ordinal']])
 
-        self.kde = KDEMultivariate(data=[self.x, self.y, self.t],
-                                   var_type='ccc',
-                                   bw='cv_ml')
+        if t_model:
+            print("\n ")
+
+            self.kde = KDEMultivariate(data=[self.x, self.y, self.t],
+                                       var_type='ccc',
+                                       bw='cv_ml')
 
     def get_data(self):
         """Requests data using the Socrata API and saves in the
         self.data variable"""
+
+        print("\nRequesting data...")
 
         with Socrata(cre.socrata_domain,
                      cre.API_KEY_S,
@@ -113,7 +121,7 @@ class STKDE:
                   "\n"
                   f"{self.data.shape[0]} rows successfully retrieved")
 
-    def data_histogram(self):
+    def data_histogram(self, pdf: bool = False):
         """Plots a histogram of the data"""
 
         df = self.data
@@ -128,7 +136,8 @@ class STKDE:
                 align='left')
         ax.set_xticks(bins[:-1])
         ax.set_xticklabels(
-                [datetime.date(1900, i, 1).strftime('%b') for i in bins[:-1]])
+                [datetime.date(1900, i, 1).strftime('%b') for i in bins[:-1]]
+        )
 
         plt.title(f"Database Request\n"
                   f"n = {self.n}   Year = {self.year}",
@@ -136,11 +145,14 @@ class STKDE:
                             'fontweight': 'bold'},
                   pad=20)
 
-        # plt.savefig(f"histogram_{n}.pdf", format='pdf')
+        if pdf:
+            plt.savefig(f"histogram_{self.n}.pdf", format='pdf')
         plt.show()
 
-    def contour_plot(self, bins: int, ti: int):
+    def contour_plot(self, bins: int, ti: int, pdf: bool = False):
         """Draw the contour lines"""
+
+        print("\nPlotting Contours...")
 
         df = self.data[['x', 'y']]
 
@@ -194,11 +206,14 @@ class STKDE:
                      shrink=.4,
                      aspect=10)
 
-        # plt.savefig("Dallas.pdf", format='pdf')
+        if pdf:
+            plt.savefig("dallas_contourplot.pdf", format='pdf')
         plt.show()
 
-    def heatmap(self, bins: int, ti: int):
+    def heatmap(self, bins: int, ti: int, pdf: bool = False):
         """Plots the heatmap associated to a given t_i"""
+
+        print("\nPlotting Heatmap...")
 
         dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
 
@@ -237,11 +252,14 @@ class STKDE:
                             aspect=10)
         cbar.solids.set(alpha=1)
 
-        # plt.savefig("Dallas.pdf", format='pdf')
+        if pdf:
+            plt.savefig("dallas_heatmap.pdf", format='pdf')
         plt.show()
 
     def calculate_bandwidths(self):
         """Calculate the hx, hy and ht bandwidths"""
+
+        print("\nCalculating Bandwidths...")
 
         dens_u = KDEMultivariate(data=[self.x, self.y, self.t],
                                  var_type='ccc',
@@ -256,11 +274,11 @@ class STKDE:
 
 
 dallas_stkde = STKDE(n=1000,
-                     year="2014")
+                     year="2014",
+                     t_model=False)
+dallas_stkde.data_histogram()
 # dallas_stkde.heatmap(bins=150,
 #                     ti=735234)
-
-dallas_stkde.contour_plot(bins=1000,
-                          ti=735234)
-# dallas_stkde.data_histogram()
+# dallas_stkde.contour_plot(bins=1000,
+#                           ti=735234)
 # dallas_stkde.calculate_bandwidths()
