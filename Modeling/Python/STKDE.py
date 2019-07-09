@@ -25,6 +25,7 @@ import credentials as cre
 #
 # 2. Se requiere que la muestra sea "estable" en el periodo analizado
 
+# noinspection PyTypeChecker
 class STKDE:
     """STKDE class for a spatio-temporal kernel density estimation"""
 
@@ -41,6 +42,10 @@ class STKDE:
         self.x = np.array(self.data[['x']])
         self.y = np.array(self.data[['y']])
         self.t = np.array(self.data[['date_ordinal']])
+
+        self.kde = KDEMultivariate(data=[self.x, self.y, self.t],
+                                   var_type='ccc',
+                                   bw='cv_ml')
 
     def get_data(self):
         """Requests data using the Socrata API and saves in the
@@ -134,12 +139,12 @@ class STKDE:
         # plt.savefig(f"histogram_{n}.pdf", format='pdf')
         plt.show()
 
-    def contour_plot(self):
+    def contour_plot(self, bins: int, ti: int):
         """Draw the contour lines"""
 
         df = self.data[['x', 'y']]
 
-        dallas = gpd.read_file('../../Data/shapefiles/STREETS.shp')
+        dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
 
         fig, ax = plt.subplots(figsize=(15, 15))
         ax.set_facecolor('xkcd:black')
@@ -154,24 +159,29 @@ class STKDE:
 
         ax.set_facecolor('xkcd:black')
 
-        dallas.plot(ax=ax, alpha=.4, color="gray", zorder=1)
-        geo_df.plot(ax=ax, markersize=10, color='red', marker='o',
+        dallas.plot(ax=ax,
+                    alpha=.4,
+                    color="gray",
+                    zorder=1)
+        geo_df.plot(ax=ax,
+                    markersize=10,
+                    color='red',
+                    marker='o',
                     label='Incident',
                     zorder=2)
         plt.legend(prop={'size': 15})
 
-        nbins = 100
-        data = np.array(df[['x', 'y']])
+        x, y = np.mgrid[
+               self.x.min():self.x.max():bins * 1j,
+               self.y.min():self.y.max():bins * 1j
+               ]
+        z = self.kde.pdf(np.vstack([x.flatten(),
+                                    y.flatten(),
+                                    ti * np.ones(x.size)]))
+        # z_2 = z * 3000 * (10 ** 6) / (.304) # P. Elwin
 
-        x, y = data.T
-
-        k = gaussian_kde(data.T)
-        x, y = np.mgrid[x.min():x.max():nbins * 1j,
-               y.min():y.max():nbins * 1j]
-        z = k(np.vstack([x.flatten(), y.flatten()]))
-        # zi_2 = z * 3000 * (10 ** 6) / (.304) # P. Elwin
-
-        contourplot = plt.contour(x, y, z.reshape(x.shape), cmap='jet',
+        contourplot = plt.contour(x, y, z.reshape(x.shape),
+                                  cmap='jet',
                                   zorder=3)
 
         plt.title(f"Dallas Incidents - Contourplot\n"
@@ -179,7 +189,10 @@ class STKDE:
                   fontdict={'fontsize': 15,
                             'fontweight': 'bold'},
                   pad=20)
-        plt.colorbar(contourplot, ax=ax, shrink=.4, aspect=10)
+        plt.colorbar(contourplot,
+                     ax=ax,
+                     shrink=.4,
+                     aspect=10)
 
         # plt.savefig("Dallas.pdf", format='pdf')
         plt.show()
@@ -197,17 +210,14 @@ class STKDE:
                     color="gray",
                     zorder=1)
 
-        k = KDEMultivariate(data=[self.x, self.y, self.t],
-                            var_type='ccc',
-                            bw='cv_ml')
         x, y = np.mgrid[
                self.x.min():self.x.max():bins * 1j,
                self.y.min():self.y.max():bins * 1j
                ]
 
-        z = k.pdf(np.vstack([x.flatten(),
-                             y.flatten(),
-                             ti * np.ones(x.size)]))
+        z = self.kde.pdf(np.vstack([x.flatten(),
+                                    y.flatten(),
+                                    ti * np.ones(x.size)]))
         z = np.ma.masked_array(z, z < .1e-11)
 
         heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
@@ -245,11 +255,12 @@ class STKDE:
               f"ht = {round(ht, 3)}")
 
 
-dallas_stkde = STKDE(n=100,
+dallas_stkde = STKDE(n=1000,
                      year="2014")
-dallas_stkde.heatmap(bins=500,
-                     ti=735234)
+# dallas_stkde.heatmap(bins=150,
+#                     ti=735234)
 
-# dallas_stkde.contour_plot()
+dallas_stkde.contour_plot(bins=1000,
+                          ti=735234)
 # dallas_stkde.data_histogram()
 # dallas_stkde.calculate_bandwidths()
