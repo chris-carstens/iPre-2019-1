@@ -48,14 +48,18 @@ class STKDE:
 
         self.get_data()
 
-        self.x = np.array(self.training_data[['x']])
-        self.y = np.array(self.training_data[['y']])
-        self.t = np.array(self.training_data[['date_ordinal']])
+        self.x_t = np.array(self.training_data[['x']])
+        self.y_t = np.array(self.training_data[['y']])
+        self.t_t = np.array(self.training_data[['date_ordinal']])
+
+        self.x_te = np.array(self.testing_data[['x']])
+        self.y_te = np.array(self.testing_data[['y']])
+        self.t_te = np.array(self.testing_data[['date_ordinal']])
 
         if t_model:
             print("\nBuilding KDE...")
 
-            self.kde = KDEMultivariate(data=[self.x, self.y, self.t],
+            self.kde = KDEMultivariate(data=[self.x_t, self.y_t, self.t_t],
                                        var_type='ccc',
                                        bw='cv_ml')
 
@@ -233,8 +237,8 @@ class STKDE:
         plt.legend(prop={'size': 15})
 
         x, y = np.mgrid[
-               self.x.min():self.x.max():bins * 1j,
-               self.y.min():self.y.max():bins * 1j
+               self.x_te.min():self.x_te.max():bins * 1j,
+               self.y_te.min():self.y_te.max():bins * 1j
                ]
         z = self.kde.pdf(np.vstack([x.flatten(),
                                     y.flatten(),
@@ -278,8 +282,8 @@ class STKDE:
                     zorder=1)
 
         x, y = np.mgrid[
-               self.x.min():self.x.max():bins * 1j,
-               self.y.min():self.y.max():bins * 1j
+               self.x_te.min():self.x_te.max():bins * 1j,
+               self.y_te.min():self.y_te.max():bins * 1j
                ]
 
         z = self.kde.pdf(np.vstack([x.flatten(),
@@ -326,7 +330,7 @@ if __name__ == "__main__":
                          year="2016",
                          t_model=True)
     dallas_stkde.data_barplot()
-    dallas_stkde.heatmap(bins=100,
-                         ti=735234)
     dallas_stkde.contour_plot(bins=100,
                               ti=735234)
+    dallas_stkde.heatmap(bins=100,
+                         ti=735234)
