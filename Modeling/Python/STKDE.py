@@ -52,11 +52,18 @@ class STKDE:
         self.t = np.array(self.data[['date_ordinal']])
 
         if t_model:
-            print("\nCa")
+            print("\nBuilding KDE...")
 
             self.kde = KDEMultivariate(data=[self.x, self.y, self.t],
                                        var_type='ccc',
                                        bw='cv_ml')
+
+            hx, hy, ht = self.kde.bw
+
+            print(f"\nOptimal Bandwidths: \n\n"
+                  f"hx = {round(hx, 3)} ft\n"
+                  f"hy = {round(hy, 3)} ft\n"
+                  f"ht = {round(ht, 3)} days")
 
     def get_data(self):
         """Requests data using the Socrata API and saves in the
@@ -135,8 +142,7 @@ class STKDE:
 
             self.training_data, self.testing_data = \
                 train_test_split(self.data,
-                                 test_size=600,
-                                 train_size=3000,
+                                 test_size=1 / 6,
                                  shuffle=False)
 
             # print(self.training_data, "\n", self.testing_data)
@@ -265,7 +271,7 @@ class STKDE:
         z = self.kde.pdf(np.vstack([x.flatten(),
                                     y.flatten(),
                                     ti * np.ones(x.size)]))
-        z = np.ma.masked_array(z, z < .1e-11)
+        # z = np.ma.masked_array(z, z < .1e-11)
 
         heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
                                  shading='gouraud',
@@ -288,22 +294,6 @@ class STKDE:
             plt.savefig("dallas_heatmap.pdf", format='pdf')
         plt.show()
 
-    def calculate_bandwidths(self):
-        """Calculate the hx, hy and ht bandwidths"""
-
-        print("\nCalculating Bandwidths...")
-
-        dens_u = KDEMultivariate(data=[self.x, self.y, self.t],
-                                 var_type='ccc',
-                                 bw='cv_ml')
-
-        hx, hy, ht = dens_u.bw
-
-        print(f"\nOptimal Bandwidths: \n\n"
-              f"hx = {round(hx, 3)} \n"
-              f"hy = {round(hy, 3)} \n"
-              f"ht = {round(ht, 3)}")
-
 
 # Data
 #
@@ -322,7 +312,7 @@ if __name__ == "__main__":
                          year="2016",
                          t_model=True)
     # dallas_stkde.data_histogram()
-    dallas_stkde.heatmap(bins=150,
+    dallas_stkde.heatmap(bins=100,
                          ti=735234)
     # dallas_stkde.contour_plot(bins=1000,
     #                           ti=735234)
