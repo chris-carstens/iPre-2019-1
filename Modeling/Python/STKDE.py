@@ -328,7 +328,7 @@ if __name__ == "__main__":
 
     dallas_stkde = STKDE(n=150000,
                          year="2016",
-                         t_model=False)
+                         t_model=True)
     dallas_stkde.data_barplot()
     dallas_stkde.heatmap(bins=100,
                          ti=735234)
