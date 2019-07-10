@@ -27,7 +27,7 @@ import credentials as cre
 # 2. Se requiere que la muestra sea "estable" en el periodo analizado
 
 class STKDE:
-    """STKDE class for a spatio-temporal kernel density estimation"""
+    """Class for a spatio-temporal kernel density estimation"""
 
     def __init__(self,
                  n: int = 1000,
@@ -51,8 +51,6 @@ class STKDE:
         self.t = np.array(self.training_data[['date_ordinal']])
 
         if t_model:
-            # III) Testeo
-
             print("\nBuilding KDE...")
 
             self.kde = KDEMultivariate(data=[self.x, self.y, self.t],
@@ -332,5 +330,5 @@ if __name__ == "__main__":
     dallas_stkde.data_barplot()
     # dallas_stkde.heatmap(bins=100,
     #                      ti=735234)
-    # dallas_stkde.contour_plot(bins=1000,
+    # dallas_stkde.contour_plot(bins=100,
     #                           ti=735234)
