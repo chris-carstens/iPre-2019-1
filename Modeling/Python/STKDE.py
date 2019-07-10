@@ -131,18 +131,14 @@ class STKDE:
 
             # Reducción del tamaño de la DB
 
-            for i in range(1000):
+            df = df.sample(n=3600,
+                           replace=False,
+                           random_state=250499)
 
-                df = df.sample(n=3600,
-                               replace=False,
-                               random_state=i)
+            df.sort_values(by=['date'], inplace=True)
+            df.reset_index(drop=True, inplace=True)
 
-                df.sort_values(by=['date'], inplace=True)
-                df.reset_index(drop=True, inplace=True)
-
-                self.data = df
-
-                self.data_barplot()
+            self.data = df
 
             # División en training y testing data
 
