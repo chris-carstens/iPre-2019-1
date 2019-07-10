@@ -52,6 +52,8 @@ class STKDE:
         self.t = np.array(self.data[['date_ordinal']])
 
         if t_model:
+            # III) Testeo
+
             print("\nBuilding KDE...")
 
             self.kde = KDEMultivariate(data=[self.x, self.y, self.t],
@@ -132,7 +134,9 @@ class STKDE:
 
             # I) Reducción del tamaño de la DB
 
-            df = df.sample(n=3600, replace=False)  # Random Selection of rows
+            df = df.sample(n=3600,
+                           replace=False,
+                           random_state=2504)  # Random Selection of rows
             df.sort_values(by=['date'], inplace=True)
             df.reset_index(drop=True, inplace=True)
 
@@ -311,9 +315,8 @@ if __name__ == "__main__":
     dallas_stkde = STKDE(n=150000,
                          year="2016",
                          t_model=True)
-    # dallas_stkde.data_histogram()
+    dallas_stkde.data_histogram()
     dallas_stkde.heatmap(bins=100,
                          ti=735234)
-    # dallas_stkde.contour_plot(bins=1000,
-    #                           ti=735234)
-    # dallas_stkde.calculate_bandwidths()
+    dallas_stkde.contour_plot(bins=1000,
+                              ti=735234)
