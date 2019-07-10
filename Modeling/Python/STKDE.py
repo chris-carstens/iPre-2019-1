@@ -27,7 +27,9 @@ import credentials as cre
 # 2. Se requiere que la muestra sea "estable" en el periodo analizado
 
 class STKDE:
-    """Class for a spatio-temporal kernel density estimation"""
+    """
+    Class for a spatio-temporal kernel density estimation
+    """
 
     def __init__(self,
                  n: int = 1000,
@@ -65,13 +67,9 @@ class STKDE:
                   f"ht = {round(ht, 3)} days")
 
     def get_data(self):
-        """Requests data using the Socrata API and saves in the
+        """
+        Requests data using the Socrata API and saves in the
         self.data variable
-
-        I) Reducción del Tamaño de la DB                            √
-        II) Dividir training y testing data
-        III) Usar training data para los cálculos de bandwidths
-        IV) Testeo.
         """
 
         print("\nRequesting data...")
@@ -131,18 +129,22 @@ class STKDE:
                                'date1': 'date'},
                       inplace=True)
 
-            # I) Reducción del tamaño de la DB
+            # Reducción del tamaño de la DB
 
-            df = df.sample(n=3600,
-                           replace=False,
-                           random_state=12504)  # Random Selection of rows
+            for i in range(1000):
 
-            df.sort_values(by=['date'], inplace=True)
-            df.reset_index(drop=True, inplace=True)
+                df = df.sample(n=3600,
+                               replace=False,
+                               random_state=i)
 
-            self.data = df
+                df.sort_values(by=['date'], inplace=True)
+                df.reset_index(drop=True, inplace=True)
 
-            # II) División en training y testing data
+                self.data = df
+
+                self.data_barplot()
+
+            # División en training y testing data
 
             self.training_data, self.testing_data = \
                 train_test_split(self.data,
@@ -328,7 +330,7 @@ if __name__ == "__main__":
                          year="2016",
                          t_model=False)
     dallas_stkde.data_barplot()
-    # dallas_stkde.heatmap(bins=100,
-    #                      ti=735234)
-    # dallas_stkde.contour_plot(bins=100,
-    #                           ti=735234)
+    dallas_stkde.heatmap(bins=100,
+                         ti=735234)
+    dallas_stkde.contour_plot(bins=100,
+                              ti=735234)
