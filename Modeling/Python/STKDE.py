@@ -5,13 +5,13 @@ import pandas as pd
 import datetime
 from sklearn.model_selection import train_test_split
 
+import seaborn as sb
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 import geopandas as gpd
 from shapely.geometry import Point
 
-from scipy.stats import gaussian_kde
 from statsmodels.nonparametric.kernel_density import KDEMultivariate
 
 from sodapy import Socrata
@@ -26,7 +26,6 @@ import credentials as cre
 #
 # 2. Se requiere que la muestra sea "estable" en el periodo analizado
 
-# noinspection PyTypeChecker
 class STKDE:
     """STKDE class for a spatio-temporal kernel density estimation"""
 
@@ -47,9 +46,9 @@ class STKDE:
 
         self.get_data()
 
-        self.x = np.array(self.data[['x']])
-        self.y = np.array(self.data[['y']])
-        self.t = np.array(self.data[['date_ordinal']])
+        self.x = np.array(self.training_data[['x']])
+        self.y = np.array(self.training_data[['y']])
+        self.t = np.array(self.training_data[['date_ordinal']])
 
         if t_model:
             # III) Testeo
@@ -91,13 +90,15 @@ class STKDE:
                     date1,
                     time1,
                     x_coordinate,
-                    y_cordinate
+                    y_cordinate,
+                    offincident
                 where
                     year1 = {self.year}
                     and date1 is not null
                     and time1 is not null
                     and x_coordinate is not null
                     and y_cordinate is not null
+                    and offincident = 'BURGLARY OF HABITATION - FORCED ENTRY'
                 order by date1
                 limit
                     {self.n}
@@ -136,7 +137,8 @@ class STKDE:
 
             df = df.sample(n=3600,
                            replace=False,
-                           random_state=2504)  # Random Selection of rows
+                           random_state=12504)  # Random Selection of rows
+
             df.sort_values(by=['date'], inplace=True)
             df.reset_index(drop=True, inplace=True)
 
@@ -156,33 +158,45 @@ class STKDE:
                   "\n"
                   f"{self.data.shape[0]} incidents successfully retrieved")
 
-    def data_histogram(self,
-                       pdf: bool = False):
-        """Plots a histogram of the data"""
+    def data_barplot(self,
+                     pdf: bool = False):
+        """Bar Plot"""
 
-        df = self.data
-        months = [i for i in range(1, 13)]
+        fig = plt.figure()
+        ax = fig.add_subplot()
+        ax.tick_params(axis='x', length=0)
 
-        fig, ax = plt.subplots()
-        bins = np.arange(1, 14)
+        for i in range(1, 13):
 
-        ax.hist(df["date"].apply(lambda x: x.month),
-                bins=bins,
-                edgecolor="k",
-                align='left')
-        ax.set_xticks(bins[:-1])
-        ax.set_xticklabels(
-                [datetime.date(1900, i, 1).strftime('%b') for i in bins[:-1]]
+            count = self.data[
+                (self.data["date"].apply(lambda x: x.month) == i)
+            ].shape[0]
+
+            plt.bar(x=i, height=count, width=0.25, color=["black"])
+            plt.text(x=i - 0.275, y=count + 5, s=str(count))
+
+        plt.xticks(
+                [i for i in range(1, 13)],
+                [datetime.datetime.strptime(str(i), "%m").strftime('%b')
+                 for i in range(1, 13)]
         )
 
-        plt.title(f"Database Request\n"
-                  f"n = {self.data.shape[0]}   Year = {self.year}",
-                  fontdict={'fontsize': 15,
-                            'fontweight': 'bold'},
-                  pad=20)
+        sb.despine()
+
+        plt.xlabel("Month",
+                   fontdict={'fontsize': 12.5,
+                             'fontweight': 'bold'},
+                   labelpad=10
+                   )
+        plt.ylabel("Count",
+                   fontdict={'fontsize': 12.5,
+                             'fontweight': 'bold'},
+                   labelpad=7.5
+                   )
 
         if pdf:
-            plt.savefig(f"histogram_{self.data.shape[0]}.pdf", format='pdf')
+            plt.savefig(f"barplot.pdf", format='pdf')
+
         plt.show()
 
     def contour_plot(self,
@@ -314,9 +328,9 @@ if __name__ == "__main__":
 
     dallas_stkde = STKDE(n=150000,
                          year="2016",
-                         t_model=True)
-    dallas_stkde.data_histogram()
-    dallas_stkde.heatmap(bins=100,
-                         ti=735234)
-    dallas_stkde.contour_plot(bins=1000,
-                              ti=735234)
+                         t_model=False)
+    dallas_stkde.data_barplot()
+    # dallas_stkde.heatmap(bins=100,
+    #                      ti=735234)
+    # dallas_stkde.contour_plot(bins=1000,
+    #                           ti=735234)
