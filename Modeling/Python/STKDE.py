@@ -328,9 +328,9 @@ if __name__ == "__main__":
 
     dallas_stkde = STKDE(n=150000,
                          year="2016",
-                         t_model=True)
+                         t_model=False)
     dallas_stkde.data_barplot()
-    dallas_stkde.contour_plot(bins=100,
-                              ti=735234)
-    dallas_stkde.heatmap(bins=100,
-                         ti=735234)
+    # dallas_stkde.contour_plot(bins=100,
+    #                           ti=735234)
+    # dallas_stkde.heatmap(bins=100,
+    #                      ti=735234)
