@@ -329,25 +329,12 @@ class STKDE:
                np.array(self.testing_data[['x']]).max():bins * 1j,
                np.array(self.testing_data[['y']]).min():
                np.array(self.testing_data[['y']]).max():bins * 1j
-               # np.array(self.testing_data[['y_day']]).min():
-               # np.array(self.testing_data[['y_day']]).max():bins * 1j
                ]
-        # d = self.kde.pdf(np.vstack([
-        #     x.flatten(),
-        #     y.flatten(),
-        #     t.flatten()
-        # ]))
-        #
-        # print(d)
 
         z = self.kde.pdf(np.vstack([x.flatten(),
                                     y.flatten(),
                                     ti * np.ones(x.size)]))
         # z_2 = z * 3000 * (10 ** 6) / (.304) # P. Elwin
-
-        # contourplot = plt.contour(x, y, d,
-        #                           cmap='jet',
-        #                           zorder=2)
 
         contourplot = plt.contour(x, y, z.reshape(x.shape),
                                   cmap='jet',
@@ -445,13 +432,32 @@ if __name__ == "__main__":
     dallas_stkde = STKDE(n=150000,
                          year="2016",
                          bw=params.bw)
-    dallas_stkde.data_barplot(pdf=False)
-    dallas_stkde.spatial_pattern(pdf=False)
-    dallas_stkde.contour_plot(bins=100,
-                              ti=183,
-                              pdf=False)
-    dallas_stkde.heatmap(bins=100,
-                         ti=183,
-                         pdf=False)
+    # dallas_stkde.data_barplot(pdf=False)
+    # dallas_stkde.spatial_pattern(pdf=False)
+    # dallas_stkde.contour_plot(bins=100,
+    #                           ti=183,
+    #                           pdf=False)
+    # dallas_stkde.heatmap(bins=100,
+    #                      ti=183,
+    #                      pdf=False)
+
+    bins = 100
+
+    x, y, t = np.mgrid[
+              np.array(dallas_stkde.testing_data[['x']]).min():
+              np.array(dallas_stkde.testing_data[['x']]).max():bins * 1j,
+              np.array(dallas_stkde.testing_data[['y']]).min():
+              np.array(dallas_stkde.testing_data[['y']]).max():bins * 1j,
+              np.array(dallas_stkde.testing_data[['y_day']]).min():
+              np.array(dallas_stkde.testing_data[['y_day']]).max():bins * 1j
+              ]
+
+    d = dallas_stkde.kde.pdf(np.vstack([
+        x.flatten(),
+        y.flatten(),
+        t.flatten()
+    ]))
+
+    print(d)
 
     print(f"\nTotal time: {round((time() - st) / 60, 3)} min")
