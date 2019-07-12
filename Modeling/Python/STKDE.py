@@ -56,26 +56,22 @@ class STKDE:
         """
 
         self.data = []
-
         self.training_data = []  # 3000
         self.testing_data = []  # 600
+
         self.n = n
         self.year = year
 
         self.get_data()
 
-        self.x_t = np.array(self.training_data[['x']])
-        self.y_t = np.array(self.training_data[['y']])
-        self.t_t = np.array(self.training_data[['y_day']])
-
-        self.x_te = np.array(self.testing_data[['x']])
-        self.y_te = np.array(self.testing_data[['y']])
-        self.t_te = np.array(self.testing_data[['y_day']])
-
         self.kde = ""
 
         if t_model:
-            self.train_model(self.x_t, self.y_t, self.t_t)
+            self.train_model(
+                    np.array(self.training_data[['x']]),
+                    np.array(self.training_data[['y']]),
+                    np.array(self.training_data[['y_day']])
+            )
 
     @_time
     def get_data(self):
@@ -319,10 +315,10 @@ class STKDE:
                     zorder=1)
 
         x, y = np.mgrid[
-               self.testing_data[['x']].min():
-               self.testing_data[['x']].max():bins * 1j,
-               self.testing_data[['y']].min():
-               self.testing_data[['y']].max():bins * 1j
+               np.array(self.testing_data[['x']]).min():
+               np.array(self.testing_data[['x']]).max():bins * 1j,
+               np.array(self.testing_data[['y']]).min():
+               np.array(self.testing_data[['y']]).max():bins * 1j
                ]
         z = self.kde.pdf(np.vstack([x.flatten(),
                                     y.flatten(),
@@ -375,10 +371,10 @@ class STKDE:
                     zorder=1)
 
         x, y = np.mgrid[
-               self.testing_data[['x']].min():
-               self.testing_data[['x']].max():bins * 1j,
-               self.testing_data[['y']].min():
-               self.testing_data[['y']].max():bins * 1j
+               np.array(self.testing_data[['x']]).min():
+               np.array(self.testing_data[['x']]).max():bins * 1j,
+               np.array(self.testing_data[['y']]).min():
+               np.array(self.testing_data[['y']]).max():bins * 1j
                ]
 
         z = self.kde.pdf(np.vstack([x.flatten(),
@@ -420,18 +416,18 @@ class STKDE:
 # 2019 - 64380  incidents (y creciendo)
 
 if __name__ == "__main__":
-    start = time()
+    st = time()
 
     dallas_stkde = STKDE(n=150000,
                          year="2016",
                          t_model=True)
-    dallas_stkde.data_barplot(pdf=False)
+    # dallas_stkde.data_barplot(pdf=False)
     dallas_stkde.spatial_pattern(pdf=False)
-    dallas_stkde.contour_plot(bins=100,
-                              ti=183,
-                              pdf=False)
-    dallas_stkde.heatmap(bins=100,
-                         ti=183,
-                         pdf=False)
+    # dallas_stkde.contour_plot(bins=100,
+    #                           ti=183,
+    #                           pdf=False)
+    # dallas_stkde.heatmap(bins=100,
+    #                      ti=183,
+    #                      pdf=False)
 
-    print(f"\nTotal time: {round((time() - start) / 60, 3)} min")
+    print(f"\nTotal time: {round((time() - st) / 60, 3)} min")
