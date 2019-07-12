@@ -239,7 +239,7 @@ class STKDE:
                    )
 
         if pdf:
-            plt.savefig(f"barplot.pdf", format='pdf')
+            plt.savefig(f"output/barplot.pdf", format='pdf')
 
         plt.show()
 
@@ -254,8 +254,6 @@ class STKDE:
 
         print("\nPlotting Spatial Pattern of incidents...")
 
-        df = self.testing_data[['x', 'y']]
-
         dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
 
         fig, ax = plt.subplots(figsize=(15, 15))
@@ -264,8 +262,10 @@ class STKDE:
         # US Survey Foot: 0.3048 m
         # print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")  # 2276
 
-        geometry = [Point(xy) for xy in zip(df['x'], df['y'])]
-        geo_df = gpd.GeoDataFrame(df,
+        geometry = [Point(xy) for xy in zip(self.testing_data[['x']],
+                                            self.testing_data[['y']])
+                    ]
+        geo_df = gpd.GeoDataFrame(self.testing_data,
                                   crs=dallas.crs,
                                   geometry=geometry)
 
@@ -288,7 +288,7 @@ class STKDE:
                   pad=20)
 
         if pdf:
-            plt.savefig("spatial_pattern.pdf", format='pdf')
+            plt.savefig("output/spatial_pattern.pdf", format='pdf')
         plt.show()
 
     @_time
@@ -319,8 +319,10 @@ class STKDE:
                     zorder=1)
 
         x, y = np.mgrid[
-               self.x_te.min():self.x_te.max():bins * 1j,
-               self.y_te.min():self.y_te.max():bins * 1j
+               self.testing_data[['x']].min():
+               self.testing_data[['x']].max():bins * 1j,
+               self.testing_data[['y']].min():
+               self.testing_data[['y']].max():bins * 1j
                ]
         z = self.kde.pdf(np.vstack([x.flatten(),
                                     y.flatten(),
@@ -342,7 +344,7 @@ class STKDE:
                      aspect=10)
 
         if pdf:
-            plt.savefig("dallas_contourplot.pdf", format='pdf')
+            plt.savefig("output/dallas_contourplot.pdf", format='pdf')
         plt.show()
 
     @_time
@@ -368,13 +370,15 @@ class STKDE:
         ax.set_facecolor('xkcd:black')
 
         dallas.plot(ax=ax,
-                    alpha=.4,  # Ancho de las calles en este plot
+                    alpha=.4,  # Ancho de las calles
                     color="gray",
                     zorder=1)
 
         x, y = np.mgrid[
-               self.x_te.min():self.x_te.max():bins * 1j,
-               self.y_te.min():self.y_te.max():bins * 1j
+               self.testing_data[['x']].min():
+               self.testing_data[['x']].max():bins * 1j,
+               self.testing_data[['y']].min():
+               self.testing_data[['y']].max():bins * 1j
                ]
 
         z = self.kde.pdf(np.vstack([x.flatten(),
@@ -395,12 +399,12 @@ class STKDE:
                   pad=20)
         cbar = plt.colorbar(heatmap,
                             ax=ax,
-                            shrink=.4,
+                            shrink=.5,
                             aspect=10)
         cbar.solids.set(alpha=1)
 
         if pdf:
-            plt.savefig("dallas_heatmap.pdf", format='pdf')
+            plt.savefig("output/dallas_heatmap.pdf", format='pdf')
         plt.show()
 
 
