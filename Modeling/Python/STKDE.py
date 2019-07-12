@@ -416,13 +416,18 @@ class STKDE:
 # 2019 - 64380  incidents (y creciendo)
 
 if __name__ == "__main__":
+    start = time()
 
     dallas_stkde = STKDE(n=150000,
                          year="2016",
                          t_model=True)
-    dallas_stkde.data_barplot()
-    dallas_stkde.spatial_pattern()
+    dallas_stkde.data_barplot(pdf=False)
+    dallas_stkde.spatial_pattern(pdf=False)
     dallas_stkde.contour_plot(bins=100,
-                              ti=183)
+                              ti=183,
+                              pdf=False)
     dallas_stkde.heatmap(bins=100,
-                         ti=183)
+                         ti=183,
+                         pdf=False)
+
+    print(f"\nTotal time: {round((time() - start) / 60, 3)} min")
