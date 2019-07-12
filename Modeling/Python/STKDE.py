@@ -146,12 +146,13 @@ class STKDE:
 
             # División en training y testing data
 
-            self.training_data, self.testing_data = \
-                train_test_split(self.data,
-                                 test_size=1 / 6,
-                                 shuffle=False)
+            self.training_data = self.data[
+                self.data["date"].apply(lambda x: x.month) <= 10
+                ]
 
-            # print(self.training_data, "\n", self.testing_data)
+            self.testing_data = self.data[
+                self.data["date"].apply(lambda x: x.month) > 10
+                ]
 
             print("\n"
                   f"n = {self.n} incidents requested  Year = {self.year}"
@@ -328,9 +329,9 @@ if __name__ == "__main__":
 
     dallas_stkde = STKDE(n=150000,
                          year="2016",
-                         t_model=True)
-    # dallas_stkde.data_barplot()
-    dallas_stkde.contour_plot(bins=100,
-                              ti=735234)
+                         t_model=False)
+    dallas_stkde.data_barplot()
+    # dallas_stkde.contour_plot(bins=100,
+    #                           ti=735234)
     # dallas_stkde.heatmap(bins=100,
     #                      ti=735234)
