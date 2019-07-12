@@ -314,20 +314,31 @@ class STKDE:
                     color="gray",
                     zorder=1)
 
-        x, y = np.mgrid[
-               np.array(self.testing_data[['x']]).min():
-               np.array(self.testing_data[['x']]).max():bins * 1j,
-               np.array(self.testing_data[['y']]).min():
-               np.array(self.testing_data[['y']]).max():bins * 1j
-               ]
-        z = self.kde.pdf(np.vstack([x.flatten(),
-                                    y.flatten(),
-                                    ti * np.ones(x.size)]))
+        x, y, t = np.mgrid[
+                  np.array(self.testing_data[['x']]).min():
+                  np.array(self.testing_data[['x']]).max():bins * 1j,
+                  np.array(self.testing_data[['y']]).min():
+                  np.array(self.testing_data[['y']]).max():bins * 1j,
+                  np.array(self.testing_data[['y_day']]).min():
+                  np.array(self.testing_data[['y_day']]).max():bins * 1j
+                  ]
+        d = self.kde.pdf(np.vstack([
+            x.flatten(),
+            y.flatten(),
+            t.flatten()
+        ]))
+        # z = self.kde.pdf(np.vstack([x.flatten(),
+        #                             y.flatten(),
+        #                             ti * np.ones(x.size)]))
         # z_2 = z * 3000 * (10 ** 6) / (.304) # P. Elwin
 
-        contourplot = plt.contour(x, y, z.reshape(x.shape),
+        contourplot = plt.contour(x, y, d.reshape(x.shape),
                                   cmap='jet',
                                   zorder=2)
+
+        # contourplot = plt.contour(x, y, z.reshape(x.shape),
+        #                           cmap='jet',
+        #                           zorder=2)
 
         plt.title(f"Dallas Incidents - Contourplot\n"
                   f"n = {self.data.shape[0]}    Year = {self.year}",
@@ -423,9 +434,9 @@ if __name__ == "__main__":
                          t_model=True)
     # dallas_stkde.data_barplot(pdf=False)
     dallas_stkde.spatial_pattern(pdf=False)
-    # dallas_stkde.contour_plot(bins=100,
-    #                           ti=183,
-    #                           pdf=False)
+    dallas_stkde.contour_plot(bins=100,
+                              ti=183,
+                              pdf=False)
     # dallas_stkde.heatmap(bins=100,
     #                      ti=183,
     #                      pdf=False)
