@@ -36,8 +36,12 @@ class STKDE:
                  year: str = "2017",
                  t_model: bool = False):
         """
-        t_model: Debe ser True si se van a utilizar los métodos
-        contour_plot o heatmap (calcula los bandwidths)
+        n: Número de registros que se piden a la database.
+
+        year: Año de los registros pedidos
+
+        t_model: Entrenamiento del modelo, True en caso de que se quieran
+        usar los métodos contour_plot o heatmap.
         """
         self.data = []
 
@@ -50,11 +54,11 @@ class STKDE:
 
         self.x_t = np.array(self.training_data[['x']])
         self.y_t = np.array(self.training_data[['y']])
-        self.t_t = np.array(self.training_data[['date_ordinal']])
+        self.t_t = np.array(self.training_data[['y_day']])
 
         self.x_te = np.array(self.testing_data[['x']])
         self.y_te = np.array(self.testing_data[['y']])
-        self.t_te = np.array(self.testing_data[['date_ordinal']])
+        self.t_te = np.array(self.testing_data[['y_day']])
 
         if t_model:
             print("\nBuilding KDE...")
@@ -120,13 +124,14 @@ class STKDE:
             df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
                     lambda x: float(x))
             df.loc[:, 'date1'] = df['date1'].apply(
-                    lambda x: datetime.datetime.strptime(x.split('T')[0],
-                                                         '%Y-%m-%d'))
+                    lambda x: datetime.datetime.strptime(
+                            x.split('T')[0], '%Y-%m-%d')
+            )
 
             df = df[['x_coordinate', 'y_cordinate', 'date1']]
-            df.loc[:, 'date_ordinal'] = df.apply(
-                    lambda row: row.date1.toordinal(),
-                    axis=1)
+            df.loc[:, 'y_day'] = df["date1"].apply(
+                    lambda x: x.timetuple().tm_yday
+            )
 
             df.rename(columns={'x_coordinate': 'x',
                                'y_cordinate': 'y',
@@ -154,6 +159,11 @@ class STKDE:
                 self.data["date"].apply(lambda x: x.month) > 10
                 ]
 
+            print(self.training_data.head())
+            print(self.training_data.tail())
+            print(self.testing_data.head())
+            print(self.testing_data.tail())
+
             print("\n"
                   f"n = {self.n} incidents requested  Year = {self.year}"
                   "\n"
@@ -161,7 +171,11 @@ class STKDE:
 
     def data_barplot(self,
                      pdf: bool = False):
-        """Bar Plot"""
+        """
+        Bar Plot
+
+        pdf: True si se desea guardar el plot en formato pdf
+        """
 
         fig = plt.figure()
         ax = fig.add_subplot()
@@ -200,13 +214,15 @@ class STKDE:
 
         plt.show()
 
-    def contour_plot(self,
-                     bins: int,
-                     ti: int,
-                     pdf: bool = False):
-        """Draw the contour lines"""
+    def spatial_pattern(self,
+                        pdf: bool = False):
+        """
+        Spatial pattern of incidents
 
-        print("\nPlotting Contours...")
+        pdf: True si se desea guardar el plot en formato pdf
+        """
+
+        print("\nPlotting Spatial Pattern of incidents...")
 
         df = self.testing_data[['x', 'y']]
 
@@ -215,15 +231,12 @@ class STKDE:
         fig, ax = plt.subplots(figsize=(15, 15))
         ax.set_facecolor('xkcd:black')
 
-        dallas.plot(ax=ax, alpha=.4, color="gray")
-        # print(dallas.crs) # US Survey Foot: 0.3048 m
+        print("\n", dallas.crs, "\n")  # US Survey Foot: 0.3048 m
 
         geometry = [Point(xy) for xy in zip(df['x'], df['y'])]
         geo_df = gpd.GeoDataFrame(df,
                                   crs=dallas.crs,
                                   geometry=geometry)
-
-        ax.set_facecolor('xkcd:black')
 
         dallas.plot(ax=ax,
                     alpha=.4,
@@ -237,6 +250,42 @@ class STKDE:
                     zorder=2)
         plt.legend(prop={'size': 15})
 
+        plt.title(f"Dallas Incidents - Spatial Pattern\n"
+                  f"Year = {self.year}",
+                  fontdict={'fontsize': 15,
+                            'fontweight': 'bold'},
+                  pad=20)
+
+        if pdf:
+            plt.savefig("spatial_pattern.pdf", format='pdf')
+        plt.show()
+
+    def contour_plot(self,
+                     bins: int,
+                     ti: int,
+                     pdf: bool = False):
+        """
+        Draw the contour lines
+
+        bins:
+
+        ti:
+
+        pdf: True si se desea guardar el plot en formato pdf
+        """
+
+        print("\nPlotting Contours...")
+
+        dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
+
+        fig, ax = plt.subplots(figsize=(15, 15))
+        ax.set_facecolor('xkcd:black')
+
+        dallas.plot(ax=ax,
+                    alpha=.4,
+                    color="gray",
+                    zorder=1)
+
         x, y = np.mgrid[
                self.x_te.min():self.x_te.max():bins * 1j,
                self.y_te.min():self.y_te.max():bins * 1j
@@ -248,7 +297,7 @@ class STKDE:
 
         contourplot = plt.contour(x, y, z.reshape(x.shape),
                                   cmap='jet',
-                                  zorder=3)
+                                  zorder=2)
 
         plt.title(f"Dallas Incidents - Contourplot\n"
                   f"n = {self.data.shape[0]}    Year = {self.year}",
@@ -268,7 +317,15 @@ class STKDE:
                 bins: int,
                 ti: int,
                 pdf: bool = False):
-        """Plots the heatmap associated to a given t_i"""
+        """
+        Plots the heatmap associated to a given t_i
+
+        bins:
+
+        ti:
+
+        pdf:
+        """
 
         print("\nPlotting Heatmap...")
 
@@ -329,9 +386,10 @@ if __name__ == "__main__":
 
     dallas_stkde = STKDE(n=150000,
                          year="2016",
-                         t_model=False)
+                         t_model=True)
     dallas_stkde.data_barplot()
-    # dallas_stkde.contour_plot(bins=100,
-    #                           ti=735234)
-    # dallas_stkde.heatmap(bins=100,
-    #                      ti=735234)
+    dallas_stkde.spatial_pattern()
+    dallas_stkde.contour_plot(bins=100,
+                              ti=183)
+    dallas_stkde.heatmap(bins=100,
+                         ti=183)
