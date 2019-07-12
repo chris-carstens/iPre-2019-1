@@ -159,10 +159,10 @@ class STKDE:
                 self.data["date"].apply(lambda x: x.month) > 10
                 ]
 
-            print(self.training_data.head())
-            print(self.training_data.tail())
-            print(self.testing_data.head())
-            print(self.testing_data.tail())
+            # print(self.training_data.head())
+            # print(self.training_data.tail())
+            # print(self.testing_data.head())
+            # print(self.testing_data.tail())
 
             print("\n"
                   f"n = {self.n} incidents requested  Year = {self.year}"
@@ -231,7 +231,8 @@ class STKDE:
         fig, ax = plt.subplots(figsize=(15, 15))
         ax.set_facecolor('xkcd:black')
 
-        print("\n", dallas.crs, "\n")  # US Survey Foot: 0.3048 m
+        # US Survey Foot: 0.3048 m
+        print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")
 
         geometry = [Point(xy) for xy in zip(df['x'], df['y'])]
         geo_df = gpd.GeoDataFrame(df,
