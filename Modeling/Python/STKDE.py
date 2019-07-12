@@ -204,7 +204,7 @@ class STKDE:
         pdf: True si se desea guardar el plot en formato pdf
         """
 
-        print("\nPlotting Bar Plot")
+        print("\nPlotting Bar Plot...")
 
         fig = plt.figure()
         ax = fig.add_subplot()
