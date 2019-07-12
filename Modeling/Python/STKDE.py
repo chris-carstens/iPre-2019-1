@@ -2,8 +2,8 @@
 
 import numpy as np
 import pandas as pd
+from time import time
 import datetime
-from sklearn.model_selection import train_test_split
 
 import seaborn as sb
 import matplotlib as mpl
@@ -26,6 +26,17 @@ import credentials as cre
 #
 # 2. Se requiere que la muestra sea "estable" en el periodo analizado
 
+def _time(fn):
+    def inner_1(*args, **kwargs):
+        start = time()
+
+        fn(*args, **kwargs)
+
+        print(f"\nFinished in {round(time() - start, 3)} sec")
+
+    return inner_1
+
+
 class STKDE:
     """
     Class for a spatio-temporal kernel density estimation
@@ -43,6 +54,7 @@ class STKDE:
         t_model: Entrenamiento del modelo, True en caso de que se quieran
         usar los métodos contour_plot o heatmap.
         """
+
         self.data = []
 
         self.training_data = []  # 3000
@@ -60,20 +72,12 @@ class STKDE:
         self.y_te = np.array(self.testing_data[['y']])
         self.t_te = np.array(self.testing_data[['y_day']])
 
+        self.kde = ""
+
         if t_model:
-            print("\nBuilding KDE...")
+            self.train_model(self.x_t, self.y_t, self.t_t)
 
-            self.kde = KDEMultivariate(data=[self.x_t, self.y_t, self.t_t],
-                                       var_type='ccc',
-                                       bw='cv_ml')
-
-            hx, hy, ht = self.kde.bw
-
-            print(f"\nOptimal Bandwidths: \n\n"
-                  f"hx = {round(hx, 3)} ft\n"
-                  f"hy = {round(hy, 3)} ft\n"
-                  f"ht = {round(ht, 3)} days")
-
+    @_time
     def get_data(self):
         """
         Requests data using the Socrata API and saves in the
@@ -169,6 +173,29 @@ class STKDE:
                   "\n"
                   f"{self.data.shape[0]} incidents successfully retrieved")
 
+    @_time
+    def train_model(self, x, y, t):
+        """
+        :param x:
+        :param y:
+        :param t:
+        :return:
+        """
+
+        print("\nBuilding KDE...")
+
+        self.kde = KDEMultivariate(data=[x, y, t],
+                                   var_type='ccc',
+                                   bw='cv_ml')
+
+        hx, hy, ht = self.kde.bw
+
+        print(f"\nOptimal Bandwidths: \n\n"
+              f"hx = {round(hx, 3)} ft\n"
+              f"hy = {round(hy, 3)} ft\n"
+              f"ht = {round(ht, 3)} days")
+
+    @_time
     def data_barplot(self,
                      pdf: bool = False):
         """
@@ -176,6 +203,8 @@ class STKDE:
 
         pdf: True si se desea guardar el plot en formato pdf
         """
+
+        print("\nPlotting Bar Plot")
 
         fig = plt.figure()
         ax = fig.add_subplot()
@@ -214,6 +243,7 @@ class STKDE:
 
         plt.show()
 
+    @_time
     def spatial_pattern(self,
                         pdf: bool = False):
         """
@@ -232,7 +262,7 @@ class STKDE:
         ax.set_facecolor('xkcd:black')
 
         # US Survey Foot: 0.3048 m
-        print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")
+        # print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")  # 2276
 
         geometry = [Point(xy) for xy in zip(df['x'], df['y'])]
         geo_df = gpd.GeoDataFrame(df,
@@ -261,6 +291,7 @@ class STKDE:
             plt.savefig("spatial_pattern.pdf", format='pdf')
         plt.show()
 
+    @_time
     def contour_plot(self,
                      bins: int,
                      ti: int,
@@ -314,6 +345,7 @@ class STKDE:
             plt.savefig("dallas_contourplot.pdf", format='pdf')
         plt.show()
 
+    @_time
     def heatmap(self,
                 bins: int,
                 ti: int,
