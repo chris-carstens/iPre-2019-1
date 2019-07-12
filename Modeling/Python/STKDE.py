@@ -16,6 +16,7 @@ from statsmodels.nonparametric.kernel_density import KDEMultivariate
 
 from sodapy import Socrata
 import credentials as cre
+import parameters as params
 
 
 # Observaciones
@@ -45,7 +46,7 @@ class STKDE:
     def __init__(self,
                  n: int = 1000,
                  year: str = "2017",
-                 t_model: bool = False):
+                 bw=None):
         """
         n: Número de registros que se piden a la database.
 
@@ -64,14 +65,14 @@ class STKDE:
 
         self.get_data()
 
-        self.kde = ""
+        self.kde = None
 
-        if t_model:
-            self.train_model(
-                    np.array(self.training_data[['x']]),
-                    np.array(self.training_data[['y']]),
-                    np.array(self.training_data[['y_day']])
-            )
+        self.train_model(
+                x=np.array(self.training_data[['x']]),
+                y=np.array(self.training_data[['y']]),
+                t=np.array(self.training_data[['y_day']]),
+                bw=bw
+        )
 
     @_time
     def get_data(self):
@@ -170,26 +171,34 @@ class STKDE:
                   f"{self.data.shape[0]} incidents successfully retrieved")
 
     @_time
-    def train_model(self, x, y, t):
+    def train_model(self, x, y, t, bw=None):
         """
-        :param x:
-        :param y:
-        :param t:
-        :return:
+        Entrena el modelo y genera un KDE
+
+        bw: Si es un arreglo, este debe contener los bandwidths
+        dados por el usuario
         """
 
         print("\nBuilding KDE...")
 
-        self.kde = KDEMultivariate(data=[x, y, t],
-                                   var_type='ccc',
-                                   bw='cv_ml')
+        if bw is not None:
+            self.kde = KDEMultivariate(data=[x, y, t],
+                                       var_type='ccc',
+                                       bw=bw)
+            print(f"\nGiven Bandwidths: \n\n"
+                  f"hx = {round(bw[0], 3)} ft\n"
+                  f"hy = {round(bw[1], 3)} ft\n"
+                  f"ht = {round(bw[2], 3)} days")
 
-        hx, hy, ht = self.kde.bw
+        else:
+            self.kde = KDEMultivariate(data=[x, y, t],
+                                       var_type='ccc',
+                                       bw='cv_ml')
 
-        print(f"\nOptimal Bandwidths: \n\n"
-              f"hx = {round(hx, 3)} ft\n"
-              f"hy = {round(hy, 3)} ft\n"
-              f"ht = {round(ht, 3)} days")
+            print(f"\nOptimal Bandwidths: \n\n"
+                  f"hx = {round(self.kde.bw[0], 3)} ft\n"
+                  f"hy = {round(self.kde.bw[1], 3)} ft\n"
+                  f"ht = {round(self.kde.bw[2], 3)} days")
 
     @_time
     def data_barplot(self,
@@ -258,8 +267,9 @@ class STKDE:
         # US Survey Foot: 0.3048 m
         # print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")  # 2276
 
-        geometry = [Point(xy) for xy in zip(self.testing_data[['x']],
-                                            self.testing_data[['y']])
+        geometry = [Point(xy) for xy in zip(
+                np.array(self.testing_data[['x']]),
+                np.array(self.testing_data[['y']]))
                     ]
         geo_df = gpd.GeoDataFrame(self.testing_data,
                                   crs=dallas.crs,
@@ -314,31 +324,34 @@ class STKDE:
                     color="gray",
                     zorder=1)
 
-        x, y, t = np.mgrid[
-                  np.array(self.testing_data[['x']]).min():
-                  np.array(self.testing_data[['x']]).max():bins * 1j,
-                  np.array(self.testing_data[['y']]).min():
-                  np.array(self.testing_data[['y']]).max():bins * 1j,
-                  np.array(self.testing_data[['y_day']]).min():
-                  np.array(self.testing_data[['y_day']]).max():bins * 1j
-                  ]
-        d = self.kde.pdf(np.vstack([
-            x.flatten(),
-            y.flatten(),
-            t.flatten()
-        ]))
-        # z = self.kde.pdf(np.vstack([x.flatten(),
-        #                             y.flatten(),
-        #                             ti * np.ones(x.size)]))
+        x, y = np.mgrid[
+               np.array(self.testing_data[['x']]).min():
+               np.array(self.testing_data[['x']]).max():bins * 1j,
+               np.array(self.testing_data[['y']]).min():
+               np.array(self.testing_data[['y']]).max():bins * 1j
+               # np.array(self.testing_data[['y_day']]).min():
+               # np.array(self.testing_data[['y_day']]).max():bins * 1j
+               ]
+        # d = self.kde.pdf(np.vstack([
+        #     x.flatten(),
+        #     y.flatten(),
+        #     t.flatten()
+        # ]))
+        #
+        # print(d)
+
+        z = self.kde.pdf(np.vstack([x.flatten(),
+                                    y.flatten(),
+                                    ti * np.ones(x.size)]))
         # z_2 = z * 3000 * (10 ** 6) / (.304) # P. Elwin
 
-        contourplot = plt.contour(x, y, d.reshape(x.shape),
-                                  cmap='jet',
-                                  zorder=2)
-
-        # contourplot = plt.contour(x, y, z.reshape(x.shape),
+        # contourplot = plt.contour(x, y, d,
         #                           cmap='jet',
         #                           zorder=2)
+
+        contourplot = plt.contour(x, y, z.reshape(x.shape),
+                                  cmap='jet',
+                                  zorder=2)
 
         plt.title(f"Dallas Incidents - Contourplot\n"
                   f"n = {self.data.shape[0]}    Year = {self.year}",
@@ -431,14 +444,14 @@ if __name__ == "__main__":
 
     dallas_stkde = STKDE(n=150000,
                          year="2016",
-                         t_model=True)
-    # dallas_stkde.data_barplot(pdf=False)
+                         bw=params.bw)
+    dallas_stkde.data_barplot(pdf=False)
     dallas_stkde.spatial_pattern(pdf=False)
     dallas_stkde.contour_plot(bins=100,
                               ti=183,
                               pdf=False)
-    # dallas_stkde.heatmap(bins=100,
-    #                      ti=183,
-    #                      pdf=False)
+    dallas_stkde.heatmap(bins=100,
+                         ti=183,
+                         pdf=False)
 
     print(f"\nTotal time: {round((time() - st) / 60, 3)} min")
