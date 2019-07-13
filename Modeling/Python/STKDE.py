@@ -438,26 +438,46 @@ if __name__ == "__main__":
     #                           ti=183,
     #                           pdf=False)
     # dallas_stkde.heatmap(bins=100,
-    #                      ti=183,
+    #                      ti=365,
     #                      pdf=False)
 
-    bins = 100
+    # for i in range(365):
+    #     dallas_stkde.heatmap(bins=100,
+    #                          ti=i,
+    #                          pdf=False)
 
-    x, y, t = np.mgrid[
-              np.array(dallas_stkde.testing_data[['x']]).min():
-              np.array(dallas_stkde.testing_data[['x']]).max():bins * 1j,
-              np.array(dallas_stkde.testing_data[['y']]).min():
-              np.array(dallas_stkde.testing_data[['y']]).max():bins * 1j,
-              np.array(dallas_stkde.testing_data[['y_day']]).min():
-              np.array(dallas_stkde.testing_data[['y_day']]).max():bins * 1j
-              ]
+    # bins = 100
+    #
+    #
+    # @_time
+    # def d_estimation():
+    #     print("\nCreating the 3D grid...")
+    #
+    #     x, y, t = np.mgrid[
+    #               np.array(dallas_stkde.testing_data[['x']]).min():
+    #               np.array(dallas_stkde.testing_data[['x']]).max():bins * 1j,
+    #               np.array(dallas_stkde.testing_data[['y']]).min():
+    #               np.array(dallas_stkde.testing_data[['y']]).max():bins * 1j,
+    #               np.array(dallas_stkde.testing_data[['y_day']]).min():
+    #               np.array(dallas_stkde.testing_data[['y_day']]).max():bins * 1j
+    #               ]
+    #
+    #     print("\nEstimating densities...")
+    #
+    #     d = dallas_stkde.kde.pdf(
+    #             np.vstack([
+    #                 x.flatten(),
+    #                 y.flatten(),
+    #                 t.flatten()
+    #             ]))
+    #
+    #     print("\n", len(d))
 
-    d = dallas_stkde.kde.pdf(np.vstack([
-        x.flatten(),
-        y.flatten(),
-        t.flatten()
-    ]))
+        # print("\nx\n", x)
+        # print("\ny\n", y)
+        # print("\nt\n", t)
 
-    print(d)
+
+    # d_estimation()
 
     print(f"\nTotal time: {round((time() - st) / 60, 3)} min")
