@@ -188,7 +188,7 @@ class STKDE:
             self.kde = KDEMultivariate(data=[x, y, t],
                                        var_type='ccc',
                                        bw=bw)
-            print(f"\n\tGiven Bandwidths: \n\n"
+            print(f"\n\tGiven Bandwidths: \n"
                   f"\t\thx = {round(bw[0], 3)} ft\n"
                   f"\t\thy = {round(bw[1], 3)} ft\n"
                   f"\t\tht = {round(bw[2], 3)} days")
@@ -198,7 +198,7 @@ class STKDE:
                                        var_type='ccc',
                                        bw='cv_ml')
 
-            print(f"\nOptimal Bandwidths: \n\n"
+            print(f"\n\tOptimal Bandwidths: \n"
                   f"\t\thx = {round(self.kde.bw[0], 3)} ft\n"
                   f"\t\thy = {round(self.kde.bw[1], 3)} ft\n"
                   f"\t\tht = {round(self.kde.bw[2], 3)} days")
@@ -465,8 +465,7 @@ class STKDE:
 
         # Create a new 'Render View'
         renderView1 = CreateView('RenderView')
-        # renderView1.GetRenderWindow().SetFullScreen(True)  # Para la p.
-        # completa
+        # renderView1.GetRenderWindow().SetFullScreen(True)
         renderView1.ViewSize = [1080, 720]
         renderView1.AxesGrid = 'GridAxes3DActor'
         renderView1.CenterOfRotation = [2505251.4078454673, 6981929.658190809,
@@ -516,7 +515,7 @@ class STKDE:
         print("finished!")
 
         # create a new 'GDAL Vector Reader'
-        print("\n\tLoading Dallas Street shapefile...", end=" ")
+        print("\tLoading Dallas Street shapefile...", end=" ")
 
         dallasMap = GDALVectorReader(
                 FileName='/Users/msmendozaelguera/Desktop/iPre/Modeling/Data'
@@ -525,7 +524,7 @@ class STKDE:
 
         print("finished!")
 
-        print("\n\tPlotting Contours...", end=" ")
+        print("\tPlotting Contours...", end=" ")
 
         # create a new 'Contour'
         aboveSurfaceContour = Contour(Input=densities)
@@ -559,7 +558,7 @@ class STKDE:
         # setup the visualization in view 'renderView1'
         # ----------------------------------------------------------------
 
-        print("\n\tRendering Volume...", end=" ")
+        print("\tRendering Volume...", end=" ")
 
         # show data from densities
         densitiesDisplay = Show(densities, renderView1)
@@ -625,6 +624,10 @@ class STKDE:
         densitiesDisplay.PolarAxes.PolarAxisLabelFontFile = ''
         densitiesDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
         densitiesDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
+
+        print("finished!")
+
+        print("\tMaking some adjustments...", end=" ")
 
         # show data from belowContour
         belowContourDisplay = Show(belowContour, renderView1)
@@ -790,12 +793,16 @@ class STKDE:
         SetActiveSource(None)
         # ----------------------------------------------------------------
 
+        print("finished!")
+
         if jpg:
-            print("\n\tSaving .jpg file...")
+            print("\tSaving .jpg file...", end=" ")
             SaveScreenshot('STKDE_4D.jpg')
+            print("finished!")
         if interactive:
-            print("\n\tInteractive Window Mode ON...")
+            print("\tInteractive Window Mode ON...", end=" ")
             Interact()
+            print("finished!")
 
 
 # Data
@@ -824,6 +831,6 @@ if __name__ == "__main__":
     #                      ti=365,
     #                      pdf=False)
     dallas_stkde.plot_4d(jpg=True,
-                         interactive=False)
+                         interactive=True)
 
     print(f"\nTotal time: {round((time() - st)/60, 3)} min")

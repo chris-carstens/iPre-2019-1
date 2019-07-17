@@ -11,8 +11,8 @@ materialLibrary1 = GetMaterialLibrary()
 
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
-# renderView1.ViewSize = [1031, 902]
-renderView1.GetRenderWindow().SetFullScreen(True)
+renderView1.ViewSize = [1031, 902]
+# renderView1.GetRenderWindow().SetFullScreen(True)
 renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.StereoType = 0
 renderView1.CameraPosition = [2.5690645513219206, 1.9685550853787432,
