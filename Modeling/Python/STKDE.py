@@ -822,14 +822,14 @@ if __name__ == "__main__":
     dallas_stkde = STKDE(n=150000,
                          year="2016",
                          bw=params.bw)
-    # dallas_stkde.data_barplot(pdf=False)
-    # dallas_stkde.spatial_pattern(pdf=False)
-    # dallas_stkde.contour_plot(bins=100,
-    #                           ti=183,
-    #                           pdf=False)
-    # dallas_stkde.heatmap(bins=100,
-    #                      ti=365,
-    #                      pdf=False)
+    dallas_stkde.data_barplot(pdf=False)
+    dallas_stkde.spatial_pattern(pdf=False)
+    dallas_stkde.contour_plot(bins=100,
+                              ti=183,
+                              pdf=False)
+    dallas_stkde.heatmap(bins=100,
+                         ti=365,
+                         pdf=False)
     dallas_stkde.plot_4d(jpg=True,
                          interactive=True)
 
