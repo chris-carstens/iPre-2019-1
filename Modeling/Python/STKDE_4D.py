@@ -17,6 +17,7 @@ materialLibrary1 = GetMaterialLibrary()
 
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
+renderView1.GetRenderWindow().SetFullScreen(True)  # Para la p. completa
 renderView1.ViewSize = [784, 1100]
 renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.CenterOfRotation = [2505251.4078454673, 6981929.658190809, 336000.0]
@@ -71,8 +72,8 @@ aboveContour.PointMergeMethod = 'Uniform Binning'
 
 # create a new 'GDAL Vector Reader'
 dallasMap = GDALVectorReader(
-    FileName='/Users/msmendozaelguera/Desktop/iPre/Modeling/Data/shapefiles'
-             '/STREETS.shp')
+        FileName='/Users/msmendozaelguera/Desktop/iPre/Modeling/Data/shapefiles'
+                 '/STREETS.shp')
 
 # create a new 'Contour'
 belowSurfaceContour = Contour(Input=densities)
@@ -315,3 +316,5 @@ aboveContourDisplay.SetScalarBarVisibility(renderView1, True)
 # finally, restore active source
 SetActiveSource(None)
 # ----------------------------------------------------------------
+
+Interact()
