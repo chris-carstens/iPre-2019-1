@@ -17,8 +17,8 @@ materialLibrary1 = GetMaterialLibrary()
 
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
-renderView1.GetRenderWindow().SetFullScreen(True)  # Para la p. completa
-renderView1.ViewSize = [784, 1100]
+# renderView1.GetRenderWindow().SetFullScreen(True)  # Para la p. completa
+renderView1.ViewSize = [1080, 720]
 renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.CenterOfRotation = [2505251.4078454673, 6981929.658190809, 336000.0]
 renderView1.StereoType = 0
@@ -317,4 +317,6 @@ aboveContourDisplay.SetScalarBarVisibility(renderView1, True)
 SetActiveSource(None)
 # ----------------------------------------------------------------
 
-Interact()
+SaveScreenshot('STKDE_4D.jpg')
+
+# Interact()    # Full Screen
