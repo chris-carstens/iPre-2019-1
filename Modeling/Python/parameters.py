@@ -1,5 +1,5 @@
 # parameters:
-# - Python version: 
+# - Python version: 3.7
 # - Author: Mauro S. Mendoza Elguera
 # - Date: 2019-07-12
 
@@ -58,5 +58,8 @@ for i in range(1, len(days_oct_nov_dic))[::7]:
         break
 
 if __name__ == "__main__":
-    df = pd.DataFrame([1, 2, 3, 4, 5])
-    print(df.sample(n=3, replace=False, random_state=1))
+    # df = pd.DataFrame([1, 2, 3, 4, 5])
+    # print(df.sample(n=3, replace=False, random_state=1))
+
+    for i in predict_groups:
+        print(predict_groups[i])
