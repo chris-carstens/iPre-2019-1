@@ -16,14 +16,14 @@ days_oct_nov_dic = [i for i in range(1, days_oct + 1)] + \
                    [i for i in range(1, days_dic + 1)]
 
 predict_groups = {
-    'group_1': {'t1_data': [], 't2_data': []},
-    'group_2': {'t1_data': [], 't2_data': []},
-    'group_3': {'t1_data': [], 't2_data': []},
-    'group_4': {'t1_data': [], 't2_data': []},
-    'group_5': {'t1_data': [], 't2_data': []},
-    'group_6': {'t1_data': [], 't2_data': []},
-    'group_7': {'t1_data': [], 't2_data': []},
-    'group_8': {'t1_data': [], 't2_data': []}
+    'group_1': {'t1_data': [], 't2_data': [], 'STKDE': None},
+    'group_2': {'t1_data': [], 't2_data': [], 'STKDE': None},
+    'group_3': {'t1_data': [], 't2_data': [], 'STKDE': None},
+    'group_4': {'t1_data': [], 't2_data': [], 'STKDE': None},
+    'group_5': {'t1_data': [], 't2_data': [], 'STKDE': None},
+    'group_6': {'t1_data': [], 't2_data': [], 'STKDE': None},
+    'group_7': {'t1_data': [], 't2_data': [], 'STKDE': None},
+    'group_8': {'t1_data': [], 't2_data': [], 'STKDE': None}
 }
 
 # Time 1 Data for building STKDE models : 1 Month
@@ -39,4 +39,15 @@ for i in range(1, len(days_oct_nov_dic))[::7]:
 
 # Time 2 Data for Prediction            : 1 Week
 
+group_n = 1
+for i in range(1, len(days_oct_nov_dic))[::7]:
+    predict_groups[f"group_{group_n}"]['t2_data'] = \
+        days_oct_nov_dic[i - 1 + days_oct:i - 1 + days_oct + 7]
 
+    group_n += 1
+    if group_n > 8:
+        break
+
+if __name__ == "__main__":
+    for i in  predict_groups:
+        print(predict_groups[i])
