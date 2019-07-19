@@ -15,6 +15,7 @@ from shapely.geometry import Point
 from pyevtk.hl import gridToVTK
 from paraview.simple import *
 
+from scipy import stats
 from statsmodels.nonparametric.kernel_density import KDEMultivariate
 
 from sodapy import Socrata
@@ -165,10 +166,34 @@ class STKDE:
                 self.data["date"].apply(lambda x: x.month) > 10
                 ]
 
-            # print(self.training_data.head())
-            # print(self.training_data.tail())
-            # print(self.testing_data.head())
-            # print(self.testing_data.tail())
+            # Time 1 Data for building STKDE models : 1 Month
+
+            for group in self.predict_groups:
+                self.predict_groups[group]['t1_data'] = \
+                    self.data[
+                        self.data['date'].apply(
+                                lambda x:
+                                self.predict_groups[group]['t1_data'][0]
+                                <= x.date() <=
+                                self.predict_groups[group]['t1_data'][-1]
+                        )
+                    ]
+
+            # Time 2 Data for Prediction            : 1 Week
+
+            for group in self.predict_groups:
+                self.predict_groups[group]['t2_data'] = \
+                    self.data[
+                        self.data['date'].apply(
+                                lambda x:
+                                self.predict_groups[group]['t2_data'][0]
+                                <= x.date() <=
+                                self.predict_groups[group]['t2_data'][-1]
+                        )
+                    ]
+
+            # print(self.predict_groups['group_8']['t2_data'].shape[0])
+            # print(self.predict_groups['group_8']['t2_data'].tail())
 
             print("\n"
                   f"\tn = {self.n} incidents requested  Year = {self.year}"
@@ -187,13 +212,27 @@ class STKDE:
         print("\nBuilding KDE...")
 
         if bw is not None:
-            self.kde = KDEMultivariate(data=[x, y, t],
-                                       var_type='ccc',
-                                       bw=bw)
+            # self.kde = KDEMultivariate(data=[x, y, t],
+            #                            var_type='ccc',
+            #                            bw=bw)
             print(f"\n\tGiven Bandwidths: \n"
                   f"\t\thx = {round(bw[0], 3)} ft\n"
                   f"\t\thy = {round(bw[1], 3)} ft\n"
                   f"\t\tht = {round(bw[2], 3)} days")
+
+            for group in self.predict_groups:
+                self.predict_groups[group]['STKDE'] = \
+                    KDEMultivariate(
+                            data=[
+                                np.array(self.predict_groups[group]['t1_data'][
+                                             ['x']]),
+                                np.array(self.predict_groups[group]['t1_data'][
+                                             ['y']]),
+                                np.array(self.predict_groups[group]['t1_data'][
+                                             ['y_day']])
+                            ],
+                            var_type='ccc',
+                            bw=bw)
 
         else:
             self.kde = KDEMultivariate(data=[x, y, t],
@@ -824,15 +863,34 @@ if __name__ == "__main__":
     dallas_stkde = STKDE(n=150000,
                          year="2016",
                          bw=params.bw)
-    dallas_stkde.data_barplot(pdf=False)
-    dallas_stkde.spatial_pattern(pdf=False)
-    dallas_stkde.contour_plot(bins=100,
-                              ti=183,
-                              pdf=False)
-    dallas_stkde.heatmap(bins=100,
-                         ti=365,
-                         pdf=False)
-    dallas_stkde.plot_4d(jpg=True,
-                         interactive=True)
 
-    print(f"\nTotal time: {round((time() - st)/60, 3)} min")
+    stkde_1 = dallas_stkde.predict_groups['group_1']
+
+
+    class STKDE1(stats.rv_continuous):
+        """
+        STKDE_1 Test
+        """
+
+        def _pdf(self):
+            return stkde_1.pdf()
+
+        def _cdf(self):
+            return stkde_1.cdf()
+
+    stkde1 = STKDE1()
+
+    print(stkde1.rvs(size=100))
+
+    # dallas_stkde.data_barplot(pdf=False)
+    # dallas_stkde.spatial_pattern(pdf=False)
+    # dallas_stkde.contour_plot(bins=100,
+    #                           ti=183,
+    #                           pdf=False)
+    # dallas_stkde.heatmap(bins=100,
+    #                      ti=365,
+    #                      pdf=False)
+    # dallas_stkde.plot_4d(jpg=True,
+    #                      interactive=True)
+
+    print(f"\nTotal time: {round((time() - st) / 60, 3)} min")

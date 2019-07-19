@@ -4,9 +4,9 @@
 # - Date: 2019-07-12
 
 import numpy as np
-import pandas as pd
 
 from calendar import monthrange
+from datetime import date
 
 # Optimal Bandwidths
 
@@ -20,9 +20,9 @@ w_day_oct, days_oct = monthrange(2016, 10)
 w_day_nov, days_nov = monthrange(2016, 11)
 w_day_dic, days_dic = monthrange(2016, 12)
 
-days_oct_nov_dic = [i for i in range(1, days_oct + 1)] + \
-                   [i for i in range(1, days_nov + 1)] + \
-                   [i for i in range(1, days_dic + 1)]
+days_oct_nov_dic = [date(2016, 10, i) for i in range(1, days_oct + 1)] + \
+                   [date(2016, 11, i) for i in range(1, days_nov + 1)] + \
+                   [date(2016, 12, i) for i in range(1, days_dic + 1)]
 
 predict_groups = {
     'group_1': {'t1_data': [], 't2_data': [], 'STKDE': None},
@@ -58,8 +58,5 @@ for i in range(1, len(days_oct_nov_dic))[::7]:
         break
 
 if __name__ == "__main__":
-    # df = pd.DataFrame([1, 2, 3, 4, 5])
-    # print(df.sample(n=3, replace=False, random_state=1))
-
-    for i in predict_groups:
-        print(predict_groups[i])
+    for i in predict_groups['group_2']['t1_data']:
+        print(i)
