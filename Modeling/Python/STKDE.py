@@ -16,7 +16,9 @@ from pyevtk.hl import gridToVTK
 from paraview.simple import *
 
 from scipy import stats
-from statsmodels.nonparametric.kernel_density import KDEMultivariate
+from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
+    EstimatorSettings
+from statsmodels.nonparametric import bandwidths
 
 from sodapy import Socrata
 import credentials as cre
@@ -40,6 +42,25 @@ def _time(fn):
         print(f"\nFinished in {round(time() - start, 3)} sec")
 
     return inner_1
+
+
+settings = EstimatorSettings(efficient=True,
+                             n_jobs=4)
+
+
+class MyKDEMultivariate(KDEMultivariate):
+    def resample(self, size: int):
+        print("\nResampling...", end=" ")
+
+        n, d = self.data.shape
+        indices = np.random.randint(0, n, size)
+
+        cov = np.diag(self.bw) ** 2
+        means = self.data[indices, :]
+        norm = np.random.multivariate_normal(np.zeros(d), cov, size)
+
+        print("finished!")
+        return np.transpose(means + norm)
 
 
 class STKDE:
@@ -222,7 +243,7 @@ class STKDE:
 
             for group in self.predict_groups:
                 self.predict_groups[group]['STKDE'] = \
-                    KDEMultivariate(
+                    MyKDEMultivariate(
                             data=[
                                 np.array(self.predict_groups[group]['t1_data'][
                                              ['x']]),
@@ -864,23 +885,9 @@ if __name__ == "__main__":
                          year="2016",
                          bw=params.bw)
 
-    stkde_1 = dallas_stkde.predict_groups['group_1']
+    stkde_1 = dallas_stkde.predict_groups['group_1']['STKDE']
 
-
-    class STKDE1(stats.rv_continuous):
-        """
-        STKDE_1 Test
-        """
-
-        def _pdf(self):
-            return stkde_1.pdf()
-
-        def _cdf(self):
-            return stkde_1.cdf()
-
-    stkde1 = STKDE1()
-
-    print(stkde1.rvs(size=100))
+    print("\n", stkde_1.resample(size=1000))
 
     # dallas_stkde.data_barplot(pdf=False)
     # dallas_stkde.spatial_pattern(pdf=False)
