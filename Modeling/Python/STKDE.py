@@ -8,6 +8,9 @@ import datetime
 import seaborn as sb
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import matplotlib.patches as mpatches
+from matplotlib.lines import Line2D
 
 import geopandas as gpd
 from shapely.geometry import Point
@@ -15,10 +18,8 @@ from shapely.geometry import Point
 from pyevtk.hl import gridToVTK
 from paraview.simple import *
 
-from scipy import stats
 from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
     EstimatorSettings
-from statsmodels.nonparametric import bandwidths
 
 from sodapy import Socrata
 import credentials as cre
@@ -63,7 +64,7 @@ class MyKDEMultivariate(KDEMultivariate):
         return np.transpose(means + norm)
 
 
-class STKDE:
+class Framework:
     """
     Class for a spatio-temporal kernel density estimation
     """
@@ -92,7 +93,12 @@ class STKDE:
 
         self.get_data()
 
-        self.kde = None
+        self.kde = KDEMultivariate(
+                [np.array(self.training_data[['x']]),
+                 np.array(self.training_data[['y']]),
+                 np.array(self.training_data[['y_day']])],
+                'ccc',
+                bw)
 
         self.train_model(
                 x=np.array(self.training_data[['x']]),
@@ -322,9 +328,13 @@ class STKDE:
         pdf: True si se desea guardar el plot en formato pdf
         """
 
-        print("\nPlotting Spatial Pattern of incidents...")
+        print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
 
+        print("\tReading shapefiles...", end=" ")
+        dallas_districts = gpd.GeoDataFrame.from_file(
+                "../Data/Councils/Councils.shp")
         dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
+        print("finished!")
 
         fig, ax = plt.subplots(figsize=(15, 15))
         ax.set_facecolor('xkcd:black')
@@ -340,23 +350,57 @@ class STKDE:
                                   crs=dallas.crs,
                                   geometry=geometry)
 
+        print("\tPlotting Districts...", end=" ")
+
+        handles = []
+
+        for district, data in dallas_districts.groupby('DISTRICT'):
+            data.plot(ax=ax,
+                      color=params.d_colors[district],
+                      linewidth=2.5,
+                      edgecolor="black")
+            handles.append(mpatches.Patch(color=params.d_colors[district],
+                                          label=f"Dallas District {district}"))
+
+        handles.sort(key=lambda x: int(x._label.split(' ')[2]))
+        handles = [Line2D([], [], marker='o', color='red', label='Incident',
+                          linestyle="None"),
+                   Line2D([0], [0], color="steelblue", label="Streets")] + \
+                  handles
+
+        print("finished!")
+
+        print("\tPlotting Streets...", end=" ")
         dallas.plot(ax=ax,
-                    alpha=.4,
-                    color="gray",
-                    zorder=1)
+                    alpha=0.4,
+                    color="steelblue",
+                    zorder=2,
+                    label="Streets")
+        print("finished!")
+
+        print("\tPlotting Incidents...", end=" ")
+
         geo_df.plot(ax=ax,
-                    markersize=10,
+                    markersize=17.5,
                     color='red',
                     marker='o',
-                    label='Incident',
-                    zorder=2)
-        plt.legend(prop={'size': 15})
+                    zorder=3,
+                    label="Incidents")
+
+        print("finished!")
 
         plt.title(f"Dallas Incidents - Spatial Pattern\n"
-                  f"Year = {self.year}",
-                  fontdict={'fontsize': 15,
-                            'fontweight': 'bold'},
-                  pad=20)
+                  f"{self.year}",
+                  fontdict={'fontsize': 20},
+                  pad=25)
+
+        plt.legend(loc="lower right",
+                   frameon=False,
+                   fontsize=13.5,
+                   handles=handles)
+
+        ax.set_axis_off()
+        plt.show()
 
         if pdf:
             plt.savefig("output/spatial_pattern.pdf", format='pdf')
@@ -381,7 +425,7 @@ class STKDE:
 
         dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
 
-        fig, ax = plt.subplots(figsize=(15, 15))
+        fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
 
         dallas.plot(ax=ax,
@@ -407,8 +451,7 @@ class STKDE:
 
         plt.title(f"Dallas Incidents - Contourplot\n"
                   f"n = {self.data.shape[0]}    Year = {self.year}",
-                  fontdict={'fontsize': 15,
-                            'fontweight': 'bold'},
+                  fontdict={'fontsize': 20},
                   pad=20)
         plt.colorbar(contourplot,
                      ax=ax,
@@ -438,7 +481,7 @@ class STKDE:
 
         dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
 
-        fig, ax = plt.subplots(figsize=(15, 15))
+        fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
 
         dallas.plot(ax=ax,
@@ -466,14 +509,14 @@ class STKDE:
 
         plt.title(f"Dallas Incidents - Heatmap\n"
                   f"n = {self.data.shape[0]}   Year = {self.year}",
-                  fontdict={'fontsize': 15,
-                            'fontweight': 'bold'},
+                  fontdict={'fontsize': 20},
                   pad=20)
         cbar = plt.colorbar(heatmap,
                             ax=ax,
                             shrink=.5,
                             aspect=10)
         cbar.solids.set(alpha=1)
+        # ax.set_axis_off()
 
         if pdf:
             plt.savefig("output/dallas_heatmap.pdf", format='pdf')
@@ -495,6 +538,8 @@ class STKDE:
                   np.array(self.testing_data[['y_day']]).min():
                   np.array(self.testing_data[['y_day']]).max():60 * 1j
                   ]
+
+        print(x.shape)
 
         print("\n\tEstimating densities...")
 
@@ -858,8 +903,18 @@ class STKDE:
         print("finished!")
 
         if jpg:
-            print("\tSaving .jpg file...", end=" ")
-            SaveScreenshot('STKDE_4D.jpg')
+            print("\tSaving .png file...", end=" ")
+
+            SaveScreenshot('STKDE_4D.png', ImageResolution=(1080, 720))
+
+            plt.subplots(figsize=(10.80, 7.2))
+
+            img = mpimg.imread('STKDE_4D.png')
+            plt.imshow(img)
+
+            plt.axis('off')
+            plt.show()
+
             print("finished!")
         if interactive:
             print("\tInteractive Window Mode ON...", end=" ")
@@ -881,23 +936,25 @@ class STKDE:
 if __name__ == "__main__":
     st = time()
 
-    dallas_stkde = STKDE(n=150000,
-                         year="2016",
-                         bw=params.bw)
+    # %%
+    dallas_stkde = Framework(n=150000,
+                             year="2016",
+                             bw=params.bw)
 
-    stkde_1 = dallas_stkde.predict_groups['group_1']['STKDE']
-
-    print("\n", stkde_1.resample(size=1000))
-
-    # dallas_stkde.data_barplot(pdf=False)
-    # dallas_stkde.spatial_pattern(pdf=False)
-    # dallas_stkde.contour_plot(bins=100,
-    #                           ti=183,
-    #                           pdf=False)
-    # dallas_stkde.heatmap(bins=100,
-    #                      ti=365,
-    #                      pdf=False)
-    # dallas_stkde.plot_4d(jpg=True,
-    #                      interactive=True)
+    # %%
+    dallas_stkde.data_barplot(pdf=False)
+    # %%
+    dallas_stkde.spatial_pattern(pdf=False)
+    # %%
+    dallas_stkde.contour_plot(bins=100,
+                              ti=183,
+                              pdf=False)
+    # %%
+    dallas_stkde.heatmap(bins=100,
+                         ti=365,
+                         pdf=False)
+    # %%
+    dallas_stkde.plot_4d(jpg=True,
+                         interactive=False)
 
     print(f"\nTotal time: {round((time() - st) / 60, 3)} min")

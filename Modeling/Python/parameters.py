@@ -8,6 +8,21 @@ import numpy as np
 from calendar import monthrange
 from datetime import date
 
+d_colors = {"1": "darksalmon",
+            "2": "royalblue",
+            "3": "mediumpurple",
+            "4": "green",
+            "5": "tan",
+            "6": "brown",
+            "7": "pink",
+            "8": "olive",
+            "9": "peru",
+            "10": "orange",
+            "11": "darkkhaki",
+            "12": "cadetblue",
+            "13": "crimson",
+            "14": "thistle"}
+
 # Optimal Bandwidths
 
 bw = np.array([1577.681, 1167.16, 35.549])
@@ -56,6 +71,8 @@ for i in range(1, len(days_oct_nov_dic))[::7]:
     group_n += 1
     if group_n > 8:
         break
+
+# ------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     for i in predict_groups['group_2']['t1_data']:
