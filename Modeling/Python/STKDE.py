@@ -903,9 +903,9 @@ class Framework:
         print("finished!")
 
         if jpg:
-            print("\tSaving .png file...", end=" ")
+            print("\tSaving .jpg file...", end=" ")
 
-            SaveScreenshot('STKDE_4D.png', ImageResolution=(1080, 720))
+            SaveScreenshot('STKDE_4D.jpg', ImageResolution=(1080, 720))
 
             plt.subplots(figsize=(10.80, 7.2))
 
@@ -941,20 +941,28 @@ if __name__ == "__main__":
                              year="2016",
                              bw=params.bw)
 
+    # # %%
+    # dallas_stkde.data_barplot(pdf=False)
     # %%
-    dallas_stkde.data_barplot(pdf=False)
-    # %%
-    dallas_stkde.spatial_pattern(pdf=False)
-    # %%
-    dallas_stkde.contour_plot(bins=100,
-                              ti=183,
-                              pdf=False)
-    # %%
-    dallas_stkde.heatmap(bins=100,
-                         ti=365,
-                         pdf=False)
-    # %%
-    dallas_stkde.plot_4d(jpg=True,
-                         interactive=False)
+    # dallas_stkde.spatial_pattern(pdf=False)
+    # # %%
+    # dallas_stkde.contour_plot(bins=100,
+    #                           ti=183,
+    #                           pdf=False)
+    # # %%
+    # dallas_stkde.heatmap(bins=100,
+    #                      ti=365,
+    #                      pdf=False)
+    # # %%
+    # dallas_stkde.plot_4d(jpg=True,
+    #                      interactive=False)
+
+    # Testeando el resample() del predict_group 1...
 
     print(f"\nTotal time: {round((time() - st) / 60, 3)} min")
+
+    # %%
+
+    test = dallas_stkde.predict_groups['group_1']['STKDE'].resample(size=1)
+    x, y, t = test
+
