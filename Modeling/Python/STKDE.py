@@ -13,7 +13,8 @@ import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
 
 import geopandas as gpd
-from shapely.geometry import Point
+from shapely.geometry import Point, shape
+import fiona
 
 from pyevtk.hl import gridToVTK
 from paraview.simple import *
@@ -45,6 +46,37 @@ def _time(fn):
     return inner_1
 
 
+def checked_points(points):
+    dallas_shp = gpd.read_file('../Data/Councils/Councils.shp')
+
+    df_points = pd.DataFrame(
+            {'x': points[0, :], 'y': points[1, :], 't': points[2, :]}
+    )
+
+    inc_points = df_points[['x', 'y']].apply(lambda row:
+                                             Point(row['x'], row['y']),
+                                             axis=1)
+    geo_inc = gpd.GeoDataFrame({'geometry': inc_points, 'day': df_points['t']})
+
+    # Para borrar el warning asociado a != epsg distintos
+    geo_inc.crs = {'init': 'epsg:2276'}
+
+    valid_inc = gpd.tools.sjoin(geo_inc,
+                                dallas_shp,
+                                how='inner',
+                                op='intersects').reset_index()
+
+    valid_inc_2 = valid_inc[['geometry', 'day']]
+
+    x = valid_inc_2['geometry'].apply(lambda row: row.x)
+    y = valid_inc_2['geometry'].apply(lambda row: row.y)
+    t = valid_inc_2['day']
+
+    v_points = np.array([x, y, t])
+
+    return v_points
+
+
 settings = EstimatorSettings(efficient=True,
                              n_jobs=4)
 
@@ -60,8 +92,19 @@ class MyKDEMultivariate(KDEMultivariate):
         means = self.data[indices, :]
         norm = np.random.multivariate_normal(np.zeros(d), cov, size)
 
-        print("finished!")
-        return np.transpose(means + norm)
+        # simulated and checked points
+        s_points = np.transpose(means + norm)
+        c_points = checked_points(s_points)
+
+        print(f"\n{size - c_points.shape[1]} invalid points found")
+
+        if size == c_points.shape[1]:
+            print("\nfinished!")
+            return s_points
+
+        a_points = self.resample(size - c_points.shape[1])
+
+        return np.hstack((c_points, a_points))
 
 
 class Framework:
@@ -239,9 +282,6 @@ class Framework:
         print("\nBuilding KDE...")
 
         if bw is not None:
-            # self.kde = KDEMultivariate(data=[x, y, t],
-            #                            var_type='ccc',
-            #                            bw=bw)
             print(f"\n\tGiven Bandwidths: \n"
                   f"\t\thx = {round(bw[0], 3)} ft\n"
                   f"\t\thy = {round(bw[1], 3)} ft\n"
@@ -937,11 +977,13 @@ if __name__ == "__main__":
     st = time()
 
     # %%
+
     dallas_stkde = Framework(n=150000,
                              year="2016",
                              bw=params.bw)
 
     # # %%
+
     # dallas_stkde.data_barplot(pdf=False)
     # %%
     # dallas_stkde.spatial_pattern(pdf=False)
@@ -963,6 +1005,91 @@ if __name__ == "__main__":
 
     # %%
 
-    test = dallas_stkde.predict_groups['group_1']['STKDE'].resample(size=1)
-    x, y, t = test
+    # s_points = dallas_stkde.predict_groups['group_1']['STKDE'] \
+    #     .resample(size=1000)
 
+    # %%
+
+    # def significance(data, stkde, sig):
+    #     all = []
+    #     for i, incident in data.iterrows():
+    #         p = stkde.pdf((incident["x"], incident["y"],
+    #                        incident["date"].timetuple().tm_yday))
+    #         all.append(p)
+    #     all.sort(reverse=True)
+    #     lim = int(len(all) * sig / 100)
+    #     max_s = all[: lim]
+    #     return max_s
+    #
+    #
+    # significance = 2
+    # test = dallas_stkde.predict_groups['group_1']['STKDE'].resample(size=1000)
+    # pdfs = []
+    # x, y, t = test
+    # for i, j, k in zip(x, y, t):
+    #     p = dallas_stkde.kde.pdf((i, j, k))
+    #     pdfs.append(p)
+    # max_pdfs = sorted(pdfs, reverse=True)[:int(len(pdfs) * significance /
+    #                                            100)]
+    # test = list(zip(x, y, t, max_pdfs))
+
+    # %%
+
+    # def calculate_hr(x, y, t, d, stkde):
+    #
+    #     c = max([i for i in d]) / 2
+    #     hot_spots = [i for i in all if i >= c]
+    #
+    #     return len(hot_spots) / len(d)
+
+    # %%
+
+    # stkde = dallas_stkde.predict_groups['group_1']['STKDE']
+    #
+    # x, y, t = \
+    #     np.array(dallas_stkde.predict_groups['group_1']['t2_data']['x']), \
+    #     np.array(dallas_stkde.predict_groups['group_1']['t2_data']['y']), \
+    #     np.array(dallas_stkde.predict_groups['group_1']['t2_data']['y_day'])
+    #
+    # ans = stkde.pdf([x, y, t])
+    # c = np.linspace(0, ans.max(), 100)  # debe ser el mismo q el de abajo
+    # h = []
+    #
+    # for i in range(c.size):
+    #     h.append(np.sum(ans > c[i]))
+    #
+    # plt.plot(c, h)
+    # plt.show()
+    #
+    x, y, t = np.mgrid[
+              np.array(dallas_stkde.training_data[['x']]).min():
+              np.array(dallas_stkde.training_data[['x']]).max():100 * 1j,
+              np.array(dallas_stkde.training_data[['y']]).min():
+              np.array(dallas_stkde.training_data[['y']]).max():100 * 1j,
+              np.array(dallas_stkde.predict_groups['group_1']['t2_data'][
+                           ['y_day']]).min():
+              np.array(dallas_stkde.predict_groups['group_1']['t2_data'][
+                           ['y_day']]).max():1 * 1j
+              ]
+
+    # p = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
+    # c = np.linspace(0, p.max(), 100)
+    # a = []
+    #
+    # for i in range(c.size):
+    #     a.append(np.sum(p > c[i]))
+    #
+    # plt.plot(a, h)
+    # plt.show()
+    #
+    # plt.plot(a, h / a)
+    # PAI = [float(h[i]) / float(a[i]) for i in range(len(h) - 1)]
+    # plt.plot(a[:-1], PAI)
+    # plt.xlim([0, 200])
+
+
+
+    c_points = \
+        checked_points(np.array([x.flatten(), y.flatten(), t.flatten()]))
+
+    plt.plot(c_points[0,:], c_points[1,:], '.')
