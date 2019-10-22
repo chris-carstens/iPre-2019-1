@@ -262,9 +262,6 @@ class Framework:
                         )
                     ]
 
-            # print(self.predict_groups['group_8']['t2_data'].shape[0])
-            # print(self.predict_groups['group_8']['t2_data'].tail())
-
             print("\n"
                   f"\tn = {self.n} incidents requested  Year = {self.year}"
                   "\n"
@@ -578,8 +575,6 @@ class Framework:
                   np.array(self.testing_data[['y_day']]).min():
                   np.array(self.testing_data[['y_day']]).max():60 * 1j
                   ]
-
-        print(x.shape)
 
         print("\n\tEstimating densities...")
 
@@ -982,6 +977,8 @@ if __name__ == "__main__":
                              year="2016",
                              bw=params.bw)
 
+
+
     # # %%
 
     # dallas_stkde.data_barplot(pdf=False)
@@ -1061,35 +1058,35 @@ if __name__ == "__main__":
     # plt.plot(c, h)
     # plt.show()
     #
-    x, y, t = np.mgrid[
-              np.array(dallas_stkde.training_data[['x']]).min():
-              np.array(dallas_stkde.training_data[['x']]).max():100 * 1j,
-              np.array(dallas_stkde.training_data[['y']]).min():
-              np.array(dallas_stkde.training_data[['y']]).max():100 * 1j,
-              np.array(dallas_stkde.predict_groups['group_1']['t2_data'][
-                           ['y_day']]).min():
-              np.array(dallas_stkde.predict_groups['group_1']['t2_data'][
-                           ['y_day']]).max():1 * 1j
-              ]
-
-    # p = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
-    # c = np.linspace(0, p.max(), 100)
-    # a = []
+    # x, y, t = np.mgrid[
+    #           np.array(dallas_stkde.training_data[['x']]).min():
+    #           np.array(dallas_stkde.training_data[['x']]).max():100 * 1j,
+    #           np.array(dallas_stkde.training_data[['y']]).min():
+    #           np.array(dallas_stkde.training_data[['y']]).max():100 * 1j,
+    #           np.array(dallas_stkde.predict_groups['group_1']['t2_data'][
+    #                        ['y_day']]).min():
+    #           np.array(dallas_stkde.predict_groups['group_1']['t2_data'][
+    #                        ['y_day']]).max():1 * 1j
+    #           ]
     #
-    # for i in range(c.size):
-    #     a.append(np.sum(p > c[i]))
+    # # p = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
+    # # c = np.linspace(0, p.max(), 100)
+    # # a = []
+    # #
+    # # for i in range(c.size):
+    # #     a.append(np.sum(p > c[i]))
+    # #
+    # # plt.plot(a, h)
+    # # plt.show()
+    # #
+    # # plt.plot(a, h / a)
+    # # PAI = [float(h[i]) / float(a[i]) for i in range(len(h) - 1)]
+    # # plt.plot(a[:-1], PAI)
+    # # plt.xlim([0, 200])
     #
-    # plt.plot(a, h)
-    # plt.show()
     #
-    # plt.plot(a, h / a)
-    # PAI = [float(h[i]) / float(a[i]) for i in range(len(h) - 1)]
-    # plt.plot(a[:-1], PAI)
-    # plt.xlim([0, 200])
-
-
-
-    c_points = \
-        checked_points(np.array([x.flatten(), y.flatten(), t.flatten()]))
-
-    plt.plot(c_points[0,:], c_points[1,:], '.')
+    #
+    # c_points = \
+    #     checked_points(np.array([x.flatten(), y.flatten(), t.flatten()]))
+    #
+    # plt.plot(c_points[0,:], c_points[1,:], '.')
