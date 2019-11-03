@@ -11,14 +11,14 @@ from calendar import month_name
 
 import geopandas as gpd
 from shapely.geometry import Point
-import matplotlib.pyplot as plt
 
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix
 
 from sodapy import Socrata
 import credentials as cre
 
-from aux_functions import n_i, id_i, nc_incidents, to_df_col
+from aux_functions import n_i, nc_incidents, to_df_col, filter_cells
 from parameters import dallas_limits
 
 pd.set_option('display.max_columns', None)
@@ -129,7 +129,11 @@ class Framework:
         :return: Pandas Dataframe con la información
         """
 
+        print("\nGenerating dataframe...\n")
+
         # Creación de la malla
+
+        print("\tCreating mgrid...")
 
         x_bins = abs(dallas_limits['x_max'] - dallas_limits['x_min']) / 100
         y_bins = abs(dallas_limits['y_max'] - dallas_limits['y_min']) / 100
@@ -143,6 +147,8 @@ class Framework:
 
         # Creación del esqueleto del dataframe
 
+        print("\tCreating dataframe columns...")
+
         months = [month_name[i] for i in range(1, 13)]
         cols = pd.MultiIndex.from_product(
                 [['Incidents', 'NC Incidents'], months]
@@ -151,6 +157,8 @@ class Framework:
         self.df = pd.DataFrame(columns=cols)
 
         # Creación de los parámetros para el cálculo de los índices
+
+        print("\tFilling the df...")
 
         self.nx = self.x.shape[0] - 1
         self.ny = self.y.shape[1] - 1
@@ -168,7 +176,7 @@ class Framework:
         self.data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
                                      crs=2276,
                                      geometry=geometry)
-        self.data.to_crs(epsg=3857, inplace=True)  # Cambio del m. de referencia
+        self.data.to_crs(epsg=3857, inplace=True)
 
         # Nro. incidentes en la celda(i, j) + Nro. incidentes en celdas vecinas
 
@@ -193,7 +201,25 @@ class Framework:
             # Actualización del pandas dataframe
 
             self.df.loc[:, ('Incidents', month)] = to_df_col(D)
-            self.df.loc[:, ('NC Incidents', month)] = to_df_col(D)
+            self.df.loc[:, ('NC Incidents', month)] = to_df_col(nc_incidents(D))
+
+        # Adición de las columnas 'geometry' e 'in_dallas' al df
+
+        print("\tPreparing df for filtering...")
+
+        self.df['geometry'] = [Point(i) for i in
+                               zip(self.x[:-1, :-1].flatten(),
+                                   self.y[:-1, :-1].flatten())]
+        self.df['in_dallas'] = 0
+
+        # Llenado de la columna 'in_dallas'
+
+        # print([self.df.columns])
+        self.df = filter_cells(self.df)
+
+        # Garbage recollection
+
+        del self.data, self.incidents, self.x, self.y
 
     def ml_p_algorithm(self):
         """
@@ -203,37 +229,43 @@ class Framework:
         :return:
         """
 
-        pass
+        # Preparación de los input para el algoritmo
+
+        x_ft = self.df.loc[:,
+               [('Incidents', month_name[i]) for i in range(1, 10)] +
+               [('NC Incidents', month_name[i]) for i in range(1, 10)]
+               ]
+
+        x_lbl = self.df.loc[:,
+                [('Incidents', 'October')] + [('NC Incidents', 'October')]
+                ]
+
+        y_ft = self.df.loc[:,
+               [('Incidents', month_name[i]) for i in range(2, 11)] +
+               [('NC Incidents', month_name[i]) for i in range(2, 11)]
+               ]
+        y_lbl = self.df.loc[:,
+                [('Incidents', 'November')] + [('NC Incidents', 'November')]
+                ]
+
+        # Algoritmo
+
+        clf = RandomForestClassifier(n_estimators=100)
+        clf = clf.fit(x_ft, x_lbl)
+
+        x_predict = clf.predict(x_ft)
+        y_predict = clf.predict(y_ft)
+
+        # Confusion Matrix
+
+        c_matrix_x = confusion_matrix(
+                x_lbl['Incidents'], x_predict[:, 0]
+        )
+
+        c_matrix_y = confusion_matrix(
+                y_lbl['Incidents'], y_predict[:, 0]
+        )
 
 
 if __name__ == "__main__":
-    #%%
     fwork = Framework(n=150000, year="2017")
-
-    # Preparación de los input para el algoritmo
-
-    x_ft = fwork.df.loc[:,
-           [('Incidents', month_name[i]) for i in range(1, 10)] +
-           [('NC Incidents', month_name[i]) for i in range(1, 10)]
-           ]
-
-    x_lbl = fwork.df.loc[:,
-            [('Incidents', 'October')] + [('NC Incidents', 'October')]
-            ]
-
-    y_ft = fwork.df.loc[:,
-           [('Incidents', month_name[i]) for i in range(2, 11)] +
-           [('NC Incidents', month_name[i]) for i in range(2, 11)]
-           ]
-    y_lbl = fwork.df.loc[:,
-            [('Incidents', 'November')] + [('NC Incidents', 'November')]
-            ]
-
-    #%%
-    # Algoritmo
-
-    clf = RandomForestClassifier(n_estimators=100)
-    clf = clf.fit(x_ft, x_lbl)
-
-    x_predict = clf.predict(x_ft)
-    y_predict = clf.predict(y_ft)

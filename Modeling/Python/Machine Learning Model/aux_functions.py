@@ -5,7 +5,11 @@
 # - Date: 2019-09-16
 
 import numpy as np
+import pandas as pd
+
 from math import floor
+
+import geopandas as gpd
 
 
 def n_i(xi, x_min, hx):
@@ -97,12 +101,56 @@ def nc_incidents(D):
 
 def to_df_col(D):
     """
+    Transforma el array para su inclusión directa como una columna de un
+    Pandas Dataframe
 
     :param D:
     :return:
     """
 
     return np.flipud(np.flipud(D.T)).flatten().tolist()
+
+
+def filter_cells(df):
+    """
+    Completa la columna "in_dallas" del dataframe, explicitando cuales de las
+    celdas se encuentran dentro de Dallas.
+
+    :param df: Pandas dataframe
+    :return: Pandas Dataframe
+    """
+
+    print('\n\tFiltering points...\n')
+
+    print('\t\tLoading shapefile...')
+    dallas_shp = gpd.read_file("../../Data/Councils/Councils.shp")
+    dallas_shp.to_crs(epsg=3857, inplace=True)
+
+    print('\t\tCreating GeoDataframe...')
+    # Trans. a gpd para usar el sjoin()
+
+    # print(df[[('geometry', ''), ('in_dallas', '')]].head())
+    geo_pd = gpd.GeoDataFrame(df[[('geometry', ''), ('in_dallas', '')]])
+    geo_pd.crs = dallas_shp.crs  # Mismo crs que el shp para evitar warnings
+
+    # Borramos el segundo nivel ''.
+    geo_pd = geo_pd.T.reset_index(level=1, drop=True).T
+
+    print('\t\tFiltering...k')
+    geo_pd = gpd.tools.sjoin(geo_pd, dallas_shp,
+                             how='left',  # left para conservar indices
+                             op='intersects')[['in_dallas',
+                                               'index_right']]
+
+    print('\t\tUpdating dataframe... ', end='')
+    geo_pd.fillna(value={'index_right': 0}, inplace=True)  # para filtrar
+    geo_pd.loc[geo_pd['index_right'] != 0, 'in_dallas'] = 1
+
+    df[[('in_dallas', '')]] = geo_pd[['in_dallas']]
+
+    print('finished!')
+
+    return df
 
 
 if __name__ == '__main__':

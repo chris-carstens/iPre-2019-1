@@ -977,8 +977,6 @@ if __name__ == "__main__":
                              year="2016",
                              bw=params.bw)
 
-
-
     # # %%
 
     # dallas_stkde.data_barplot(pdf=False)
@@ -1058,16 +1056,16 @@ if __name__ == "__main__":
     # plt.plot(c, h)
     # plt.show()
     #
-    # x, y, t = np.mgrid[
-    #           np.array(dallas_stkde.training_data[['x']]).min():
-    #           np.array(dallas_stkde.training_data[['x']]).max():100 * 1j,
-    #           np.array(dallas_stkde.training_data[['y']]).min():
-    #           np.array(dallas_stkde.training_data[['y']]).max():100 * 1j,
-    #           np.array(dallas_stkde.predict_groups['group_1']['t2_data'][
-    #                        ['y_day']]).min():
-    #           np.array(dallas_stkde.predict_groups['group_1']['t2_data'][
-    #                        ['y_day']]).max():1 * 1j
-    #           ]
+    x, y, t = np.mgrid[
+              np.array(dallas_stkde.training_data[['x']]).min():
+              np.array(dallas_stkde.training_data[['x']]).max():100 * 1j,
+              np.array(dallas_stkde.training_data[['y']]).min():
+              np.array(dallas_stkde.training_data[['y']]).max():100 * 1j,
+              np.array(dallas_stkde.predict_groups['group_1']['t2_data'][
+                           ['y_day']]).min():
+              np.array(dallas_stkde.predict_groups['group_1']['t2_data'][
+                           ['y_day']]).max():1 * 1j
+              ]
     #
     # # p = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
     # # c = np.linspace(0, p.max(), 100)
@@ -1084,9 +1082,8 @@ if __name__ == "__main__":
     # # plt.plot(a[:-1], PAI)
     # # plt.xlim([0, 200])
     #
-    #
-    #
-    # c_points = \
-    #     checked_points(np.array([x.flatten(), y.flatten(), t.flatten()]))
-    #
-    # plt.plot(c_points[0,:], c_points[1,:], '.')
+    c_points = checked_points(
+            np.array([x.flatten(), y.flatten(), t.flatten()])
+    )
+
+    plt.plot(c_points[0, :], c_points[1, :], '.')
