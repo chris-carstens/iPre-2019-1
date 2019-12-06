@@ -13,6 +13,9 @@ import geopandas as gpd
 from shapely.geometry import Point
 
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.gaussian_process import GaussianProcessClassifier
+from sklearn.gaussian_process.kernels import RBF
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import confusion_matrix
 
 from sodapy import Socrata
@@ -85,15 +88,15 @@ class Framework:
             # DB Cleaning & Formatting
 
             df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
-                    lambda x: float(x))
+                lambda x: float(x))
             df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
-                    lambda x: float(x))
+                lambda x: float(x))
             df.loc[:, 'date1'] = df['date1'].apply(
-                    lambda x: datetime.datetime.strptime(
-                            x.split('T')[0], '%Y-%m-%d')
+                lambda x: datetime.datetime.strptime(
+                    x.split('T')[0], '%Y-%m-%d')
             )
             df.loc[:, 'y_day'] = df["date1"].apply(
-                    lambda x: x.timetuple().tm_yday
+                lambda x: x.timetuple().tm_yday
             )
 
             df.rename(columns={'x_coordinate': 'x',
@@ -151,14 +154,14 @@ class Framework:
 
         months = [month_name[i] for i in range(1, 13)]
         cols = pd.MultiIndex.from_product(
-                [['Incidents', 'NC Incidents'], months]
+            [['Incidents', 'NC Incidents'], months]
         )
 
         self.df = pd.DataFrame(columns=cols)
 
         # Creación de los parámetros para el cálculo de los índices
 
-        print("\tFilling the df...")
+        print("\tFilling df...")
 
         self.nx = self.x.shape[0] - 1
         self.ny = self.y.shape[1] - 1
@@ -170,8 +173,8 @@ class Framework:
         # y realizar Feature Engineering
 
         geometry = [Point(xy) for xy in zip(
-                np.array(self.data[['x']]),
-                np.array(self.data[['y']]))
+            np.array(self.data[['x']]),
+            np.array(self.data[['y']]))
                     ]
         self.data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
                                      crs=2276,
@@ -201,7 +204,8 @@ class Framework:
             # Actualización del pandas dataframe
 
             self.df.loc[:, ('Incidents', month)] = to_df_col(D)
-            self.df.loc[:, ('NC Incidents', month)] = to_df_col(nc_incidents(D))
+            self.df.loc[:, ('NC Incidents', month)] = to_df_col(
+                nc_incidents(D))
 
         # Adición de las columnas 'geometry' e 'in_dallas' al df
 
@@ -214,8 +218,11 @@ class Framework:
 
         # Llenado de la columna 'in_dallas'
 
-        # print([self.df.columns])
         self.df = filter_cells(self.df)
+
+        # Binary Classification
+
+        self.df[('Risky', '')] = 0
 
         # Garbage recollection
 
@@ -224,7 +231,8 @@ class Framework:
     def ml_p_algorithm(self):
         """
         Produce la predicción de acuerdo a los datos entregados, utilizando
-        un approach de machine learning con clasificador RandomForest
+        un approach de machine learning con clasificador RandomForest y
+        entrega el output asociado a la matriz de confusión.
 
         :return:
         """
@@ -236,25 +244,32 @@ class Framework:
                [('NC Incidents', month_name[i]) for i in range(1, 10)]
                ]
 
-        x_lbl = self.df.loc[:,
-                [('Incidents', 'October')] + [('NC Incidents', 'October')]
+        x_lbl = aux_df.loc[:,
+                [('Incidents', 'October'), ('NC Incidents', 'October')]
                 ]
+        x_lbl[('Insecure', '')] = ((x_lbl[('Incidents', 'October')] == 1) |
+                                   (x_lbl[('NC Incidents', 'October')] == 1)) \
+            .astype(int)
+        x_lbl.drop([('Incidents', 'October'), ('NC Incidents', 'October')],
+                   axis=1, inplace=True)
 
-        y_ft = self.df.loc[:,
+        y_ft = aux_df.loc[:,
                [('Incidents', month_name[i]) for i in range(2, 11)] +
                [('NC Incidents', month_name[i]) for i in range(2, 11)]
                ]
-        y_lbl = self.df.loc[:,
+
+        y_lbl = aux_df.loc[:,
                 [('Incidents', 'November')] + [('NC Incidents', 'November')]
                 ]
+        y_lbl[('Insecure', '')] = ((y_lbl[('Incidents', 'November')] == 1) |
+                                   (y_lbl[('NC Incidents', 'November')] == 1)) \
+            .astype(int)
+        y_lbl.drop([('Incidents', 'November'), ('NC Incidents', 'November')],
+                   axis=1, inplace=True)
 
         # Algoritmo
 
-        clf = RandomForestClassifier(n_estimators=100)
-        clf = clf.fit(x_ft, x_lbl)
-
-        x_predict = clf.predict(x_ft)
-        y_predict = clf.predict(y_ft)
+        print("\tCorriendo el algoritmo...")
 
         # Confusion Matrix
 
