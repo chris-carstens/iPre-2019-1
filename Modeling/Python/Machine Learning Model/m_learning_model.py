@@ -12,11 +12,12 @@ from calendar import month_name
 import geopandas as gpd
 from shapely.geometry import Point
 
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.gaussian_process import GaussianProcessClassifier
-from sklearn.gaussian_process.kernels import RBF
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import confusion_matrix
+from sklearn.svm import SVC
+from sklearn.metrics import precision_score, recall_score
+
+# from sklearn.metrics import confusion_matrix
 
 from sodapy import Socrata
 import credentials as cre
@@ -179,6 +180,11 @@ class Framework:
         self.data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
                                      crs=2276,
                                      geometry=geometry)
+
+        # TODO  Investigar para eliminar el warning
+        #       FutureWarning: '+init=<authority>:<code>' syntax is deprecated.
+        #       '<authority>:<code>' is the preferred initialization method.
+        #       return _prepare_from_string(" ".join(pjargs))
         self.data.to_crs(epsg=3857, inplace=True)
 
         # Nro. incidentes en la celda(i, j) + Nro. incidentes en celdas vecinas
@@ -222,7 +228,11 @@ class Framework:
 
         # Binary Classification
 
-        self.df[('Risky', '')] = 0
+        # self.df[('Risky', '')] = 0
+
+        # Multinominal Classification
+
+        # self.df[('Risky', '')] = 0
 
         # Garbage recollection
 
@@ -247,10 +257,11 @@ class Framework:
         x_lbl = aux_df.loc[:,
                 [('Incidents', 'October'), ('NC Incidents', 'October')]
                 ]
-        x_lbl[('Insecure', '')] = ((x_lbl[('Incidents', 'October')] == 1) |
-                                   (x_lbl[('NC Incidents', 'October')] == 1)) \
+        x_lbl[('Insecure', '')] = ((x_lbl[('Incidents', 'October')] != 0) |
+                                   (x_lbl[('NC Incidents', 'October')] != 0)) \
             .astype(int)
-        x_lbl.drop([('Incidents', 'October'), ('NC Incidents', 'October')],
+        x_lbl.drop([('Incidents', 'October'),
+                    ('NC Incidents', 'October')],
                    axis=1, inplace=True)
 
         y_ft = aux_df.loc[:,
@@ -271,16 +282,42 @@ class Framework:
 
         print("\tCorriendo el algoritmo...")
 
-        # Confusion Matrix
-
-        c_matrix_x = confusion_matrix(
-                x_lbl['Incidents'], x_predict[:, 0]
-        )
-
-        c_matrix_y = confusion_matrix(
-                y_lbl['Incidents'], y_predict[:, 0]
-        )
+        # clf = RandomForestClassifier(n_estimators=100)
+        # clf = GaussianProcessClassifier(1.0 * RBF(1.0), n_jobs=8)
+        # clf = KNeighborsClassifier()
+        # clf = clf.fit(x_ft, x_lbl)
+        #
+        # x_predict = clf.predict(x_ft)
+        # y_predict = clf.predict(y_ft)
+        #
+        # # Confusion Matrix
+        #
+        # print("\tComputando matrices de confusión...", end="\n\n")
+        #
+        # c_matrix_x = confusion_matrix(
+        #         x_lbl[('Insecure', '')], x_predict[:, 0]
+        # )
+        #
+        # print(clf.score(x_ft, x_lbl))
+        # print(c_matrix_x, end="\n\n")
+        #
+        # c_matrix_y = confusion_matrix(
+        #         y_lbl[('Insecure', '')], y_predict[:, 0]
+        # )
+        #
+        # print(clf.score(y_ft, y_lbl))
+        # print(c_matrix_y)
 
 
 if __name__ == "__main__":
+    # TODO  - Implementación de otros modelos ML
+    #       - Precision/Recall/AUC
+    #       - Pensar implementación de HR/PAI
+    #       - Comparación de rendimiento Bin. Class vs Multi. Class
+    #       - Comparar 0s entre xy_predicted
+    #       - Aumentar las capas de NC_incidentes
+    #       -
+
     fwork = Framework(n=150000, year="2017")
+
+    print("\n\tPreparando el input...")
