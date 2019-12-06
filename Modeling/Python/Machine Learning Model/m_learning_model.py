@@ -316,7 +316,7 @@ if __name__ == "__main__":
     #       - Comparación de rendimiento Bin. Class vs Multi. Class
     #       - Comparar 0s entre xy_predicted
     #       - Aumentar las capas de NC_incidentes
-    #       -
+    #       - Comparar entre etiqueta 1 y 3
 
     fwork = Framework(n=150000, year="2017")
 
