@@ -19,8 +19,10 @@ from fiona.crs import from_epsg
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
-from sklearn.metrics import precision_score, recall_score
 
+from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier
+
+from sklearn.metrics import precision_score, recall_score
 # from sklearn.metrics import confusion_matrix
 
 from sodapy import Socrata
@@ -34,7 +36,7 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.width', 1000)
 
 
-def _time(fn):
+def timer(fn):
     def inner_1(*args, **kwargs):
         st = time()
 
@@ -71,7 +73,7 @@ class Framework:
             self.data = self.get_data()
             self.generate_df()
 
-    @_time
+    @timer
     def get_data(self):
         """
         Obtención de datos a partir de la Socrata API.
@@ -134,7 +136,7 @@ class Framework:
 
             return df
 
-    @_time
+    @timer
     def generate_df(self):
         """
         La malla se genera de la esquina inf-izquierda a la esquina sup-derecha,
@@ -264,7 +266,7 @@ class Framework:
         print(f"{time() - st:3.2f} sec")
 
     @staticmethod
-    @_time
+    @timer
     def ml_p_algorithm():
         """
         Produce la predicción de acuerdo a los datos entregados, utilizando
@@ -304,7 +306,7 @@ class Framework:
 
         print("\tRunning algorithms...")
 
-        rfc = RandomForestClassifier()
+        rfc = RandomForestClassifier(n_jobs=8)
         dtc = DecisionTreeClassifier()
         rbf_svm = SVC()
 
@@ -344,9 +346,6 @@ class Framework:
     rbf_svm precision   {rbf_svm_precision:1.3f}
     rbf_svm recall      {rbf_svm_recall:1.3f}
             """
-                # .format(rfc_score, rfc_precision, rfc_recall,
-                #        dtc_score, dtc_precision, dtc_recall,
-                #        rbf_svm_score, rbf_svm_precision, rbf_svm_recall)
         )
 
         print("\n\ty\n")
@@ -394,9 +393,6 @@ class Framework:
     rbf_svm precision   {rbf_svm_precision:1.3f}
     rbf_svm recall      {rbf_svm_recall:1.3f}
             """
-                # .format(rfc_score, rfc_precision, rfc_recall,
-                #        dtc_score, dtc_precision, dtc_recall,
-                #        rbf_svm_score, rbf_svm_precision, rbf_svm_recall)t
         )
 
         # Confusion Matrix
@@ -427,4 +423,44 @@ if __name__ == "__main__":
 
     fwork = Framework(n=150000, year="2017", read_df=True)
 
-    fwork.ml_p_algorithm()
+    aux_df = fwork.df
+
+    X_1 = aux_df.loc[:,
+          [('Incidents', month_name[i]) for i in range(1, 10)] +
+          [('NC Incidents', month_name[i]) for i in range(1, 10)]
+          ].to_numpy()
+
+    y_1 = aux_df.loc[:,
+          [('Incidents', 'October'), ('NC Incidents', 'October')]
+          ]
+
+    y_1[('Insecure', '')] = ((y_1[('Incidents', 'October')] != 0) |
+                             (y_1[('NC Incidents', 'October')] != 0)) \
+        .astype(int)
+    y_1.drop([('Incidents', 'October'), ('NC Incidents', 'October')],
+             axis=1,
+             inplace=True)
+
+    y_1 = y_1.to_numpy()
+
+    bc = BaggingClassifier(RandomForestClassifier(n_jobs=8), n_jobs=8)
+    bc.fit(X_1, y_1)
+
+    print(
+        f"""
+    bc score           {bc.score(X_1, y_1):1.3f}
+    bc precision       {precision_score(y_1, bc.predict(X_1)):1.3f}
+    bc recall          {recall_score(y_1, bc.predict(X_1)):1.3f}
+            """
+    )
+
+    abc = AdaBoostClassifier()
+    abc.fit(X_1, y_1)
+
+    print(
+        f"""
+    abc score           {abc.score(X_1, y_1):1.3f}
+    abc precision       {precision_score(y_1, abc.predict(X_1)):1.3f}
+    abc recall          {recall_score(y_1, abc.predict(X_1)):1.3f}
+        """
+    )

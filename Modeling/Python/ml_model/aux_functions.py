@@ -159,6 +159,8 @@ def filter_cells(df):
 
 
 if __name__ == '__main__':
-    m = np.ndarray(shape=(2, 3),
-                   dtype=int,
-                   buffer=np.array([[1, 2, 3], [4, 5, 6]]))
+    pass
+
+    # m = np.ndarray(shape=(2, 3),
+    #                dtype=int,
+    #                buffer=np.array([[1, 2, 3], [4, 5, 6]]))

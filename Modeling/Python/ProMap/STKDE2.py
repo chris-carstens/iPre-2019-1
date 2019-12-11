@@ -355,7 +355,7 @@ class Framework:
 
         plt.show()
 
-    # @_time
+    # @timer
     # def spatial_pattern(self,
     #                     pdf: bool = False):
     #     """
@@ -442,7 +442,7 @@ class Framework:
     #         plt.savefig("output/spatial_pattern.pdf", format='pdf')
     #     plt.show()
 
-    # @_time
+    # @timer
     # def contour_plot(self,
     #                  bins: int,
     #                  ti: int,
@@ -498,7 +498,7 @@ class Framework:
     #         plt.savefig("output/dallas_contourplot.pdf", format='pdf')
     #     plt.show()
     #
-    # @_time
+    # @timer
     # def heatmap(self,
     #             bins: int,
     #             ti: int,
@@ -593,7 +593,7 @@ class Framework:
                   pointData={"density": d,
                              "y_day": t})
 
-    # @_time
+    # @timer
     # def plot_4d(self,
     #             jpg: bool = False,
     #             interactive: bool = False):
