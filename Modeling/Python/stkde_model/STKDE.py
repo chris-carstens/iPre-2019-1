@@ -35,7 +35,7 @@ import parameters as params
 #
 # 2. Se requiere que la muestra sea "estable" en el periodo analizado
 
-def _time(fn):
+def timer(fn):
     def inner_1(*args, **kwargs):
         st = time()
 
@@ -150,7 +150,7 @@ class Framework:
             bw=bw
         )
 
-    @_time
+    @timer
     def get_data(self):
         """
         Requests data using the Socrata API and saves in the
@@ -267,7 +267,7 @@ class Framework:
                   "\n"
                   f"\t{self.data.shape[0]} incidents successfully retrieved!")
 
-    @_time
+    @timer
     def train_model(self, x, y, t, bw=None):
         """
         Entrena el modelo y genera un KDE
@@ -308,7 +308,7 @@ class Framework:
                   f"\t\thy = {round(self.kde.bw[1], 3)} ft\n"
                   f"\t\tht = {round(self.kde.bw[2], 3)} days")
 
-    @_time
+    @timer
     def data_barplot(self,
                      pdf: bool = False):
         """
@@ -355,7 +355,7 @@ class Framework:
 
         plt.show()
 
-    @_time
+    @timer
     def spatial_pattern(self,
                         pdf: bool = False):
         """
@@ -442,7 +442,7 @@ class Framework:
             plt.savefig("output/spatial_pattern.pdf", format='pdf')
         plt.show()
 
-    @_time
+    @timer
     def contour_plot(self,
                      bins: int,
                      ti: int,
@@ -498,7 +498,7 @@ class Framework:
             plt.savefig("output/dallas_contourplot.pdf", format='pdf')
         plt.show()
 
-    @_time
+    @timer
     def heatmap(self,
                 bins: int,
                 ti: int,
@@ -558,7 +558,7 @@ class Framework:
             plt.savefig("output/dallas_heatmap.pdf", format='pdf')
         plt.show()
 
-    @_time
+    @timer
     def generate_grid(self,
                       bins: int = 100):
         """
@@ -591,7 +591,7 @@ class Framework:
                   pointData={"density": d,
                              "y_day": t})
 
-    @_time
+    @timer
     def plot_4d(self,
                 jpg: bool = False,
                 interactive: bool = False):

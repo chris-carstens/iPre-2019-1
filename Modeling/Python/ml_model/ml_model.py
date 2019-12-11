@@ -334,17 +334,17 @@ class Framework:
 
         print(
             f"""
-    rfc score           {rfc_score:1.3f}
-    rfc precision       {rfc_precision:1.3f}
-    rfc recall          {rfc_recall:1.3f}
+    rfc score           {rfc_score:1.9f}
+    rfc precision       {rfc_precision:1.9f}
+    rfc recall          {rfc_recall:1.9f}
 
-    dtc score           {dtc_score:1.3f}
-    dtc precision       {dtc_precision:1.3f}
-    dtc recall          {dtc_recall:1.3f}
+    dtc score           {dtc_score:1.9f}
+    dtc precision       {dtc_precision:1.9f}
+    dtc recall          {dtc_recall:1.9f}
 
-    rbf_svm score       {rbf_svm_score:1.3f}
-    rbf_svm precision   {rbf_svm_precision:1.3f}
-    rbf_svm recall      {rbf_svm_recall:1.3f}
+    rbf_svm score       {rbf_svm_score:1.9f}
+    rbf_svm precision   {rbf_svm_precision:1.9f}
+    rbf_svm recall      {rbf_svm_recall:1.9f}
             """
         )
 
@@ -423,44 +423,62 @@ if __name__ == "__main__":
 
     fwork = Framework(n=150000, year="2017", read_df=True)
 
+    # fwork.ml_p_algorithm()
+
     aux_df = fwork.df
 
-    X_1 = aux_df.loc[:,
+    X1 = aux_df.loc[:,
           [('Incidents', month_name[i]) for i in range(1, 10)] +
           [('NC Incidents', month_name[i]) for i in range(1, 10)]
-          ].to_numpy()
+         ].to_numpy()
 
-    y_1 = aux_df.loc[:,
+    y1 = aux_df.loc[:,
           [('Incidents', 'October'), ('NC Incidents', 'October')]
-          ]
+         ]
 
-    y_1[('Insecure', '')] = ((y_1[('Incidents', 'October')] != 0) |
-                             (y_1[('NC Incidents', 'October')] != 0)) \
+    y1[('Insecure', '')] = ((y1[('Incidents', 'October')] != 0) |
+                            (y1[('NC Incidents', 'October')] != 0)) \
         .astype(int)
-    y_1.drop([('Incidents', 'October'), ('NC Incidents', 'October')],
-             axis=1,
-             inplace=True)
+    y1.drop([('Incidents', 'October'), ('NC Incidents', 'October')],
+            axis=1,
+            inplace=True)
 
-    y_1 = y_1.to_numpy()
+    y1 = y1.to_numpy().ravel()
 
     bc = BaggingClassifier(RandomForestClassifier(n_jobs=8), n_jobs=8)
-    bc.fit(X_1, y_1)
+    # bc.fit(X1, y1)
 
-    print(
-        f"""
-    bc score           {bc.score(X_1, y_1):1.3f}
-    bc precision       {precision_score(y_1, bc.predict(X_1)):1.3f}
-    bc recall          {recall_score(y_1, bc.predict(X_1)):1.3f}
-            """
-    )
-
+    # print(
+    #     f"""
+    # bc score           {bc.score(X1, y1):1.3f}
+    # bc precision       {precision_score(y1, bc.predict(X1)):1.3f}
+    # bc recall          {recall_score(y1, bc.predict(X1)):1.3f}
+    #         """
+    # )
+    #
     abc = AdaBoostClassifier()
-    abc.fit(X_1, y_1)
+    # abc.fit(X1, y1)
+    #
+    # print(
+    #     f"""
+    # abc score           {abc.score(X1, y1):1.3f}
+    # abc precision       {precision_score(y1, abc.predict(X1)):1.3f}
+    # abc recall          {recall_score(y1, abc.predict(X1)):1.3f}
+    #     """
+    # )
 
-    print(
-        f"""
-    abc score           {abc.score(X_1, y_1):1.3f}
-    abc precision       {precision_score(y_1, abc.predict(X_1)):1.3f}
-    abc recall          {recall_score(y_1, abc.predict(X_1)):1.3f}
-        """
-    )
+    X2 = aux_df.loc[:,
+           [('Incidents', month_name[i]) for i in range(2, 11)] +
+           [('NC Incidents', month_name[i]) for i in range(2, 11)]
+         ].to_numpy()
+
+    y2 = aux_df.loc[:,
+            [('Incidents', 'November')] + [('NC Incidents', 'November')]]
+    y2[('Insecure', '')] = \
+        ((y2[('Incidents', 'November')] != 0) |
+         (y2[('NC Incidents', 'November')] != 0)).astype(int)
+    y2.drop([('Incidents', 'November'), ('NC Incidents', 'November')],
+            axis=1, inplace=True)
+
+    y2 = y2.to_numpy().ravel()
+
