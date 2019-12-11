@@ -37,11 +37,11 @@ import parameters as params
 
 def _time(fn):
     def inner_1(*args, **kwargs):
-        start = time()
+        st = time()
 
         fn(*args, **kwargs)
 
-        print(f"\nFinished in {round(time() - start, 3)} sec")
+        print(f"\nFinished! ({time() - st:3.1f} sec)")
 
     return inner_1
 

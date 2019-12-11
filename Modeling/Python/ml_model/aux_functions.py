@@ -131,6 +131,7 @@ def filter_cells(df):
 
     # print(df[[('geometry', ''), ('in_dallas', '')]].head())
     geo_pd = gpd.GeoDataFrame(df[[('geometry', ''), ('in_dallas', '')]])
+
     geo_pd.crs = dallas_shp.crs  # Mismo crs que el shp para evitar warnings
 
     # Borramos el segundo nivel ''.
