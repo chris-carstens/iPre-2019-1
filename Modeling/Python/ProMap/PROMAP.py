@@ -131,8 +131,6 @@ class Promap:
         self.training_data = []  # 3000
         self.testing_data = []  # 600
 
-        self.total_dias = 400
-
         self.bw_x = params.bw['x']
         self.bw_y = params.bw['y']
 
@@ -219,15 +217,14 @@ class Promap:
 
             # Reducción del tamaño de la DB
 
-            # df = df.sample(n=1000,
-            #                replace=False,
-            #                random_state=250499)
+            df = df.sample(n=3600,
+                           replace=False,
+                           random_state=250499)
 
             df.sort_values(by=['date'], inplace=True)
             df.reset_index(drop=True, inplace=True)
 
             self.data = df
-
 
             # Hasta este punto tenemos los datos en un formato que no nos
             # srve, ahora se pasaran a un formato (X,Y)
@@ -238,30 +235,27 @@ class Promap:
                         ]
 
             self.geo_data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
-                                         crs=2276,
-                                         geometry=geometry)
+                                             crs=2276,
+                                             geometry=geometry)
 
             self.geo_data.to_crs(epsg=3857, inplace=True)
 
-            print(self.geo_data.geometry)
+            # print(self.geo_data.geometry)
 
             # Ahora debemos juntar los datos del geo data y los day_y
 
             data = defaultdict(list)
 
             for i in range(len(self.data)):
-                data['x'].append(self.geo_data.geometry[0].x)
-                data['y'].append(self.geo_data.geometry[0].y)
+                data['x'].append(self.geo_data.geometry[i].x)
+                data['y'].append(self.geo_data.geometry[i].y)
                 data['date'].append(self.data['date'][i])
                 data['y_day'].append(self.data['y_day'][i])
 
-
-
-            self.data_ok = pd.DataFrame(data = data)
-
+            self.data_ok = pd.DataFrame(data=data)
 
             self.data = self.data_ok
-            print('self.data',self.data)
+            print('--- DATA ---\n', self.data)
 
 
             # División en training y testing data
@@ -270,9 +264,13 @@ class Promap:
                 self.data["date"].apply(lambda x: x.month) <= 10
                 ]
 
+            print('--- Training Data ---\n', self.training_data)
+
             self.testing_data = self.data[
                 self.data["date"].apply(lambda x: x.month) > 10
                 ]
+
+            print('--- Testing Data ---\n', self.testing_data)
 
             # Time 1 Data for building STKDE models : 1 Month
 
@@ -397,34 +395,37 @@ class Promap:
 
         plt.show()
 
-<<<<<<< HEAD:Modeling/Python/ProMap/PROMAP.py
     @_time
     def calcular_densidades(self):
 
+        celdas_pintadas = 0
+        delitos = 0
 
-
-        xx, yy = np.mgrid[self.x_min + self.hx / 2:self.x_max - self.hx /
-                                                   2:self.bins *
-                                                     1j,
-                 self.y_min + self.hy / 2:self.y_max - self.hy / 2:self.bins *
-                                                                   1j]
+        # xx, yy = np.mgrid[self.x_min + self.hx / 2:self.x_max - self.hx /
+        #                                            2:self.bins *
+        #                                              1j,
+        #          self.y_min + self.hy / 2:self.y_max - self.hy / 2:self.bins *
+        #                                                            1j]
 
         matriz_con_ceros = np.zeros((self.bins, self.bins))
 
         for k in range(len(self.training_data)):
+            delitos += 1
+            print('N =', delitos)
             x, y, t = self.training_data['x'][k], self.training_data['y'][k], \
                       self.training_data['y_day'][k]
             for i in range(self.bins):
                 for j in range(self.bins):
-                    elemento_x = xx[i][0]
-                    elemento_y = yy[0][j]
-                    print(f'Punto Actual x: {elemento_x}, y: {elemento_y}')
+                    elemento_x = self.x[i][0]
+                    elemento_y = self.y[0][j]
+                    # print(f'Punto Actual x: {elemento_x}, y: {elemento_y}')
                     time_weight = 1 / aux.n_semanas(self.total_dias, t)
                     if aux.linear_distance(elemento_x, x) > self.bw_x or \
                             aux.linear_distance(
                                 elemento_y, y) > self.bw_y:
-                        print(
-                            'Esta celda está fuera del limite del ancho de banda')
+                        # print(
+                        #    'Esta celda está fuera del limite del ancho de
+                        #    banda')
                         cell_weight = 0
                         pass
                     else:
@@ -432,10 +433,15 @@ class Promap:
                                                              elemento_y,
                                                              self.hx,
                                                              self.hy)
-                    print('CELL WIGHT: ', cell_weight)
-                    print()
+                        celdas_pintadas += 1
+
+                        # print('SUMANDO PESO')
+                    # print('CELL WIGHT: ', cell_weight)
+                    # print()
                     matriz_con_ceros[i][j] += time_weight * cell_weight
 
+        print('- CELDAS PINTADAS:', celdas_pintadas)
+        print('- DIAS TOTALES DE TRAINING:', self.total_dias)
         plt.imshow(np.flipud(matriz_con_ceros.T),
                    extent=[self.x_min, self.x_max, self.y_min, self.y_max])
         plt.colorbar()
@@ -451,37 +457,49 @@ class Promap:
         self.x_max = params.dallas_limits['x_max']
         self.y_min = params.dallas_limits['y_min']
         self.y_max = params.dallas_limits['y_max']
+        #
+        # self.x_min = self.training_data['x'].min()
+        # self.x_max = self.training_data['x'].max()
+        # self.y_min = self.training_data['y'].min()
+        # self.y_max = self.training_data['y'].max()
+
+        print('valores', self.x_min, self.x_max, self.y_min, self.y_max)
 
         self.bins = params.bins
 
-        self.hx = abs(self.x_max - self.x_min) / params.bins
-        self.hy = abs(self.y_max - self.y_min) / params.bins
+        self.hx = abs(self.x_max - self.x_min) / self.bins
+        self.hy = abs(self.y_max - self.y_min) / self.bins
+
+        print('xmax', self.x_max)
+        print('xmin', self.x_min)
+
+        print('hx', abs(self.x_max - self.x_min))
+        print('hy', self.hy)
 
         self.x, self.y = np.mgrid[self.x_min + self.hx / 2:self.x_max -
                                                            self.hx /
-                                                   2:self.bins *
-                                                     1j,
-                 self.y_min + self.hy / 2:self.y_max - self.hy / 2:self.bins *
-                                                                   1j]
+                                                           2:self.bins *
+                                                             1j,
+                         self.y_min + self.hy / 2:self.y_max - self.hy / 2:self.bins *
+                                                                           1j]
 
-        geometry = [Point(xy) for xy in zip(
-            np.array(self.data[['x']]),
-            np.array(self.data[['y']]))
-                    ]
-        self.data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
-                                     crs=2276,
-                                     geometry=geometry)
+        self.total_dias = self.training_data['y_day'].max()
 
 
-        self.data.to_crs(epsg=3857, inplace=True)
-
-
-
+        # geometry = [Point(xy) for xy in zip(
+        #     np.array(self.data[['x']]),
+        #     np.array(self.data[['y']]))
+        #             ]
+        # self.data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
+        #                              crs=2276,
+        #                              geometry=geometry)
+        #
+        # self.data.to_crs(epsg=3857, inplace=True)
 
     # @_time
-=======
+
     # @timer
->>>>>>> 37d289500e29937cf05acf071b7cec8b92f09910:Modeling/Python/ProMap/STKDE2.py
+
     # def spatial_pattern(self,
     #                     pdf: bool = False):
     #     """
