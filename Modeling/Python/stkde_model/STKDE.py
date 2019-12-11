@@ -19,8 +19,8 @@ import fiona
 from pyevtk.hl import gridToVTK
 from paraview.simple import *
 
-from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
-    EstimatorSettings
+from statsmodels.nonparametric.kernel_density \
+    import KDEMultivariate, EstimatorSettings
 
 from sodapy import Socrata
 import credentials as cre
@@ -50,7 +50,7 @@ def checked_points(points):
     dallas_shp = gpd.read_file('../../Data/Councils/Councils.shp')
 
     df_points = pd.DataFrame(
-            {'x': points[0, :], 'y': points[1, :], 't': points[2, :]}
+        {'x': points[0, :], 'y': points[1, :], 't': points[2, :]}
     )
 
     inc_points = df_points[['x', 'y']].apply(lambda row:
@@ -78,7 +78,7 @@ def checked_points(points):
 
 
 settings = EstimatorSettings(efficient=True,
-                             n_jobs=4)
+                             n_jobs=8)
 
 
 class MyKDEMultivariate(KDEMultivariate):
@@ -137,17 +137,17 @@ class Framework:
         self.get_data()
 
         self.kde = KDEMultivariate(
-                [np.array(self.training_data[['x']]),
-                 np.array(self.training_data[['y']]),
-                 np.array(self.training_data[['y_day']])],
-                'ccc',
-                bw)
+            [np.array(self.training_data[['x']]),
+             np.array(self.training_data[['y']]),
+             np.array(self.training_data[['y_day']])],
+            'ccc',
+            bw)
 
         self.train_model(
-                x=np.array(self.training_data[['x']]),
-                y=np.array(self.training_data[['y']]),
-                t=np.array(self.training_data[['y_day']]),
-                bw=bw
+            x=np.array(self.training_data[['x']]),
+            y=np.array(self.training_data[['y']]),
+            t=np.array(self.training_data[['y_day']]),
+            bw=bw
         )
 
     @_time
@@ -197,17 +197,17 @@ class Framework:
             # DB Cleaning & Formatting
 
             df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
-                    lambda x: float(x))
+                lambda x: float(x))
             df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
-                    lambda x: float(x))
+                lambda x: float(x))
             df.loc[:, 'date1'] = df['date1'].apply(
-                    lambda x: datetime.datetime.strptime(
-                            x.split('T')[0], '%Y-%m-%d')
+                lambda x: datetime.datetime.strptime(
+                    x.split('T')[0], '%Y-%m-%d')
             )
 
             df = df[['x_coordinate', 'y_cordinate', 'date1']]
             df.loc[:, 'y_day'] = df["date1"].apply(
-                    lambda x: x.timetuple().tm_yday
+                lambda x: x.timetuple().tm_yday
             )
 
             df.rename(columns={'x_coordinate': 'x',
@@ -242,10 +242,10 @@ class Framework:
                 self.predict_groups[group]['t1_data'] = \
                     self.data[
                         self.data['date'].apply(
-                                lambda x:
-                                self.predict_groups[group]['t1_data'][0]
-                                <= x.date() <=
-                                self.predict_groups[group]['t1_data'][-1]
+                            lambda x:
+                            self.predict_groups[group]['t1_data'][0]
+                            <= x.date() <=
+                            self.predict_groups[group]['t1_data'][-1]
                         )
                     ]
 
@@ -255,10 +255,10 @@ class Framework:
                 self.predict_groups[group]['t2_data'] = \
                     self.data[
                         self.data['date'].apply(
-                                lambda x:
-                                self.predict_groups[group]['t2_data'][0]
-                                <= x.date() <=
-                                self.predict_groups[group]['t2_data'][-1]
+                            lambda x:
+                            self.predict_groups[group]['t2_data'][0]
+                            <= x.date() <=
+                            self.predict_groups[group]['t2_data'][-1]
                         )
                     ]
 
@@ -287,16 +287,16 @@ class Framework:
             for group in self.predict_groups:
                 self.predict_groups[group]['STKDE'] = \
                     MyKDEMultivariate(
-                            data=[
-                                np.array(self.predict_groups[group]['t1_data'][
-                                             ['x']]),
-                                np.array(self.predict_groups[group]['t1_data'][
-                                             ['y']]),
-                                np.array(self.predict_groups[group]['t1_data'][
-                                             ['y_day']])
-                            ],
-                            var_type='ccc',
-                            bw=bw)
+                        data=[
+                            np.array(self.predict_groups[group]['t1_data'][
+                                         ['x']]),
+                            np.array(self.predict_groups[group]['t1_data'][
+                                         ['y']]),
+                            np.array(self.predict_groups[group]['t1_data'][
+                                         ['y_day']])
+                        ],
+                        var_type='ccc',
+                        bw=bw)
 
         else:
             self.kde = KDEMultivariate(data=[x, y, t],
@@ -324,7 +324,6 @@ class Framework:
         ax.tick_params(axis='x', length=0)
 
         for i in range(1, 13):
-
             count = self.data[
                 (self.data["date"].apply(lambda x: x.month) == i)
             ].shape[0]
@@ -333,9 +332,9 @@ class Framework:
             plt.text(x=i - 0.275, y=count + 5, s=str(count))
 
         plt.xticks(
-                [i for i in range(1, 13)],
-                [datetime.datetime.strptime(str(i), "%m").strftime('%b')
-                 for i in range(1, 13)]
+            [i for i in range(1, 13)],
+            [datetime.datetime.strptime(str(i), "%m").strftime('%b')
+             for i in range(1, 13)]
         )
 
         sb.despine()
@@ -369,7 +368,7 @@ class Framework:
 
         print("\tReading shapefiles...", end=" ")
         dallas_districts = gpd.GeoDataFrame.from_file(
-                "../Data/Councils/Councils.shp")
+            "../Data/Councils/Councils.shp")
         dallas = gpd.read_file('../../Data/shapefiles/STREETS.shp')
         print("finished!")
 
@@ -380,8 +379,8 @@ class Framework:
         # print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")  # 2276
 
         geometry = [Point(xy) for xy in zip(
-                np.array(self.testing_data[['x']]),
-                np.array(self.testing_data[['y']]))
+            np.array(self.testing_data[['x']]),
+            np.array(self.testing_data[['y']]))
                     ]
         geo_df = gpd.GeoDataFrame(self.testing_data,
                                   crs=dallas.crs,
@@ -579,11 +578,11 @@ class Framework:
         print("\n\tEstimating densities...")
 
         d = dallas_stkde.kde.pdf(
-                np.vstack([
-                    x.flatten(),
-                    y.flatten(),
-                    t.flatten()
-                ])).reshape((100, 100, 60))
+            np.vstack([
+                x.flatten(),
+                y.flatten(),
+                t.flatten()
+            ])).reshape((100, 100, 60))
 
         print("\nExporting 3D grid...")
 
@@ -660,8 +659,8 @@ class Framework:
         print("\tLoading Dallas Street shapefile...", end=" ")
 
         dallasMap = GDALVectorReader(
-                FileName='/Users/msmendoza/Desktop/iPre/Modeling/Data'
-                         '/shapefiles/STREETS.shp')
+            FileName='/Users/msmendoza/Desktop/iPre/Modeling/Data'
+                     '/shapefiles/STREETS.shp')
 
         print("finished!")
 
@@ -708,13 +707,16 @@ class Framework:
         densityLUT = GetColorTransferFunction('density')
         densityLUT.RGBPoints = [0.0, 0.278431372549, 0.278431372549,
                                 0.858823529412,
-                                5.418939399286293e-13, 0.0, 0.0, 0.360784313725,
+                                5.418939399286293e-13, 0.0, 0.0,
+                                0.360784313725,
                                 1.0799984117458697e-12, 0.0, 1.0, 1.0,
-                                1.625681819785888e-12, 0.0, 0.501960784314, 0.0,
+                                1.625681819785888e-12, 0.0, 0.501960784314,
+                                0.0,
                                 2.1637862916031283e-12, 1.0, 1.0, 0.0,
                                 2.7056802315317578e-12, 1.0, 0.380392156863,
                                 0.0,
-                                3.247574171460387e-12, 0.419607843137, 0.0, 0.0,
+                                3.247574171460387e-12, 0.419607843137, 0.0,
+                                0.0,
                                 3.7894681113890166e-12, 0.878431372549,
                                 0.301960784314,
                                 0.301960784314]
@@ -857,10 +859,12 @@ class Framework:
 
         # trace defaults for the display properties.
         dallasMapDisplay.Representation = 'Wireframe'
-        dallasMapDisplay.AmbientColor = [0.5019607843137255, 0.5019607843137255,
+        dallasMapDisplay.AmbientColor = [0.5019607843137255,
+                                         0.5019607843137255,
                                          0.5019607843137255]
         dallasMapDisplay.ColorArrayName = ['POINTS', '']
-        dallasMapDisplay.DiffuseColor = [0.7137254901960784, 0.7137254901960784,
+        dallasMapDisplay.DiffuseColor = [0.7137254901960784,
+                                         0.7137254901960784,
                                          0.7137254901960784]
         dallasMapDisplay.MapScalars = 0
         dallasMapDisplay.InterpolateScalarsBeforeMapping = 0
@@ -905,7 +909,8 @@ class Framework:
         # get color legend/bar for densityLUT in view renderView1
         densityLUTColorBar = GetScalarBar(densityLUT, renderView1)
         densityLUTColorBar.WindowLocation = 'AnyLocation'
-        densityLUTColorBar.Position = [0.031037827352085365, 0.6636363636363637]
+        densityLUTColorBar.Position = [0.031037827352085365,
+                                       0.6636363636363637]
         densityLUTColorBar.Title = 'density'
         densityLUTColorBar.ComponentTitle = ''
         densityLUTColorBar.TitleFontFile = ''
@@ -1065,22 +1070,22 @@ if __name__ == "__main__":
     #           np.array(dallas_stkde.predict_groups['group_1']['t2_data'][
     #                        ['y_day']]).max():1 * 1j
     #           ]
-    # #
-    # # # p = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
-    # # # c = np.linspace(0, p.max(), 100)
-    # # # a = []
-    # # #
-    # # # for i in range(c.size):
-    # # #     a.append(np.sum(p > c[i]))
-    # # #
-    # # # plt.plot(a, h)
-    # # # plt.show()
-    # # #
-    # # # plt.plot(a, h / a)
-    # # # PAI = [float(h[i]) / float(a[i]) for i in range(len(h) - 1)]
-    # # # plt.plot(a[:-1], PAI)
-    # # # plt.xlim([0, 200])
-    # #
+    #
+    # p = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
+    # c = np.linspace(0, p.max(), 100)
+    # a = []
+    #
+    # for i in range(c.size):
+    #     a.append(np.sum(p > c[i]))
+    #
+    # plt.plot(a, h)
+    # plt.show()
+    #
+    # plt.plot(a, h / a)
+    # PAI = [float(h[i]) / float(a[i]) for i in range(len(h) - 1)]
+    # plt.plot(a[:-1], PAI)
+    # plt.xlim([0, 200])
+    #
     # c_points = checked_points(
     #         np.array([x.flatten(), y.flatten(), t.flatten()])
     # )
