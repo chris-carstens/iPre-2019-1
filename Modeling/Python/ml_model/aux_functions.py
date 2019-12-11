@@ -120,7 +120,7 @@ def filter_cells(df):
     :return: Pandas Dataframe
     """
 
-    print('\n\tFiltering points...\n')
+    print('\tFiltering cells...')
 
     print('\t\tLoading shapefile...')
     dallas_shp = gpd.read_file("../../Data/Councils/Councils.shp")
@@ -137,7 +137,7 @@ def filter_cells(df):
     # Borramos el segundo nivel ''.
     geo_pd = geo_pd.T.reset_index(level=1, drop=True).T
 
-    print('\t\tFiltering...k')
+    print('\t\tFiltering...')
     geo_pd = gpd.tools.sjoin(geo_pd, dallas_shp,
                              how='left',  # left para conservar indices
                              op='intersects')[['in_dallas',
@@ -147,9 +147,13 @@ def filter_cells(df):
     geo_pd.fillna(value={'index_right': 0}, inplace=True)  # para filtrar
     geo_pd.loc[geo_pd['index_right'] != 0, 'in_dallas'] = 1
 
+    # Añadimos la columna del gpd al df inicial
     df[[('in_dallas', '')]] = geo_pd[['in_dallas']]
 
-    print('finished!')
+    # Filtramos el df inicial con la columna añadida
+    df = df[df[('in_dallas', '')] == 1]
+
+    print(f'finished!', end=" ")
 
     return df
 

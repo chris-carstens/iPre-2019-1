@@ -47,7 +47,7 @@ def _time(fn):
 
 
 def checked_points(points):
-    dallas_shp = gpd.read_file('../Data/Councils/Councils.shp')
+    dallas_shp = gpd.read_file('../../Data/Councils/Councils.shp')
 
     df_points = pd.DataFrame(
             {'x': points[0, :], 'y': points[1, :], 't': points[2, :]}
@@ -370,7 +370,7 @@ class Framework:
         print("\tReading shapefiles...", end=" ")
         dallas_districts = gpd.GeoDataFrame.from_file(
                 "../Data/Councils/Councils.shp")
-        dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
+        dallas = gpd.read_file('../../Data/shapefiles/STREETS.shp')
         print("finished!")
 
         fig, ax = plt.subplots(figsize=(15, 15))
@@ -460,7 +460,7 @@ class Framework:
 
         print("\nPlotting Contours...")
 
-        dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
+        dallas = gpd.read_file('../../Data/shapefiles/STREETS.shp')
 
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
@@ -516,7 +516,7 @@ class Framework:
 
         print("\nPlotting Heatmap...")
 
-        dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
+        dallas = gpd.read_file('../../Data/shapefiles/STREETS.shp')
 
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
@@ -650,7 +650,7 @@ class Framework:
         print("\n\tLoading 3D grid...", end=" ")
 
         densities = XMLStructuredGridReader(FileName=[
-            '/Users/msmendozaelguera/Desktop/iPre/Modeling/Python/STKDE '
+            '/Users/msmendoza/Desktop/iPre/Modeling/Python/stkde_model/STKDE '
             'grid.vts'])
         densities.PointArrayStatus = ['density', 'y_day']
 
@@ -660,9 +660,8 @@ class Framework:
         print("\tLoading Dallas Street shapefile...", end=" ")
 
         dallasMap = GDALVectorReader(
-                FileName='/Users/msmendozaelguera/Desktop/iPre/Modeling/Data'
-                         '/shapefiles'
-                         '/STREETS.shp')
+                FileName='/Users/msmendoza/Desktop/iPre/Modeling/Data'
+                         '/shapefiles/STREETS.shp')
 
         print("finished!")
 
@@ -991,8 +990,8 @@ if __name__ == "__main__":
     #                      ti=365,
     #                      pdf=False)
     # # %%
-    # dallas_stkde.plot_4d(jpg=True,
-    #                      interactive=False)
+    dallas_stkde.plot_4d(jpg=False,
+                         interactive=True)
 
     # Testeando el resample() del predict_group 1...
 
@@ -1056,34 +1055,34 @@ if __name__ == "__main__":
     # plt.plot(c, h)
     # plt.show()
     #
-    x, y, t = np.mgrid[
-              np.array(dallas_stkde.training_data[['x']]).min():
-              np.array(dallas_stkde.training_data[['x']]).max():100 * 1j,
-              np.array(dallas_stkde.training_data[['y']]).min():
-              np.array(dallas_stkde.training_data[['y']]).max():100 * 1j,
-              np.array(dallas_stkde.predict_groups['group_1']['t2_data'][
-                           ['y_day']]).min():
-              np.array(dallas_stkde.predict_groups['group_1']['t2_data'][
-                           ['y_day']]).max():1 * 1j
-              ]
+    # x, y, t = np.mgrid[
+    #           np.array(dallas_stkde.training_data[['x']]).min():
+    #           np.array(dallas_stkde.training_data[['x']]).max():100 * 1j,
+    #           np.array(dallas_stkde.training_data[['y']]).min():
+    #           np.array(dallas_stkde.training_data[['y']]).max():100 * 1j,
+    #           np.array(dallas_stkde.predict_groups['group_1']['t2_data'][
+    #                        ['y_day']]).min():
+    #           np.array(dallas_stkde.predict_groups['group_1']['t2_data'][
+    #                        ['y_day']]).max():1 * 1j
+    #           ]
+    # #
+    # # # p = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
+    # # # c = np.linspace(0, p.max(), 100)
+    # # # a = []
+    # # #
+    # # # for i in range(c.size):
+    # # #     a.append(np.sum(p > c[i]))
+    # # #
+    # # # plt.plot(a, h)
+    # # # plt.show()
+    # # #
+    # # # plt.plot(a, h / a)
+    # # # PAI = [float(h[i]) / float(a[i]) for i in range(len(h) - 1)]
+    # # # plt.plot(a[:-1], PAI)
+    # # # plt.xlim([0, 200])
+    # #
+    # c_points = checked_points(
+    #         np.array([x.flatten(), y.flatten(), t.flatten()])
+    # )
     #
-    # # p = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
-    # # c = np.linspace(0, p.max(), 100)
-    # # a = []
-    # #
-    # # for i in range(c.size):
-    # #     a.append(np.sum(p > c[i]))
-    # #
-    # # plt.plot(a, h)
-    # # plt.show()
-    # #
-    # # plt.plot(a, h / a)
-    # # PAI = [float(h[i]) / float(a[i]) for i in range(len(h) - 1)]
-    # # plt.plot(a[:-1], PAI)
-    # # plt.xlim([0, 200])
-    #
-    c_points = checked_points(
-            np.array([x.flatten(), y.flatten(), t.flatten()])
-    )
-
-    plt.plot(c_points[0, :], c_points[1, :], '.')
+    # plt.plot(c_points[0, :], c_points[1, :], '.')
