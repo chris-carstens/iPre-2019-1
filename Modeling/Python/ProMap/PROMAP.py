@@ -397,6 +397,7 @@ class Promap:
 
         plt.show()
 
+<<<<<<< HEAD:Modeling/Python/ProMap/PROMAP.py
     @_time
     def calcular_densidades(self):
 
@@ -478,6 +479,9 @@ class Promap:
 
 
     # @_time
+=======
+    # @timer
+>>>>>>> 37d289500e29937cf05acf071b7cec8b92f09910:Modeling/Python/ProMap/STKDE2.py
     # def spatial_pattern(self,
     #                     pdf: bool = False):
     #     """
@@ -564,7 +568,7 @@ class Promap:
     #         plt.savefig("output/spatial_pattern.pdf", format='pdf')
     #     plt.show()
 
-    # @_time
+    # @timer
     # def contour_plot(self,
     #                  bins: int,
     #                  ti: int,
@@ -620,7 +624,7 @@ class Promap:
     #         plt.savefig("output/dallas_contourplot.pdf", format='pdf')
     #     plt.show()
     #
-    # @_time
+    # @timer
     # def heatmap(self,
     #             bins: int,
     #             ti: int,
@@ -715,7 +719,7 @@ class Promap:
         #           pointData={"density": d,
         #                      "y_day": t})
 
-    # @_time
+    # @timer
     # def plot_4d(self,
     #             jpg: bool = False,
     #             interactive: bool = False):
