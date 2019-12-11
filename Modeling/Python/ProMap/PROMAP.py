@@ -1,4 +1,4 @@
-"""STKDE"""
+"""PROMAP"""
 
 import numpy as np
 import pandas as pd
@@ -16,15 +16,17 @@ import geopandas as gpd
 from shapely.geometry import Point, shape
 import fiona
 
-#from pyevtk.hl import gridToVTK
-#from paraview.simple import *
+# from pyevtk.hl import gridToVTK
+# from paraview.simple import *
 
 from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
     EstimatorSettings
 
 from sodapy import Socrata
 import credentials as cre
-import parameters as params
+import params
+import auxiliar_functions as aux
+from collections import defaultdict
 
 
 # Observaciones
@@ -50,7 +52,7 @@ def checked_points(points):
     dallas_shp = gpd.read_file('../../Data/Councils/Councils.shp')
 
     df_points = pd.DataFrame(
-            {'x': points[0, :], 'y': points[1, :], 't': points[2, :]}
+        {'x': points[0, :], 'y': points[1, :], 't': points[2, :]}
     )
 
     inc_points = df_points[['x', 'y']].apply(lambda row:
@@ -77,8 +79,8 @@ def checked_points(points):
     return v_points
 
 
-settings = EstimatorSettings(efficient=True,
-                             n_jobs=4)
+# settings = EstimatorSettings(efficient=True,
+#                              n_jobs=4)
 
 
 class MyKDEMultivariate(KDEMultivariate):
@@ -107,9 +109,9 @@ class MyKDEMultivariate(KDEMultivariate):
         return np.hstack((c_points, a_points))
 
 
-class Framework:
+class Promap:
     """
-    Class for a spatio-temporal kernel density estimation
+    Class for a spatio-temporal PROMAP density estimation
     """
 
     def __init__(self,
@@ -129,21 +131,26 @@ class Framework:
         self.training_data = []  # 3000
         self.testing_data = []  # 600
 
-        self.predict_groups = params.predict_groups
+        self.total_dias = 400
+
+        self.bw_x = params.bw['x']
+        self.bw_y = params.bw['y']
+
+        # self.predict_groups = params.predict_groups
 
         self.n = n
         self.year = year
 
         self.get_data()
-        #esto le pasa los datos al KDE
-        self.kde = KDEMultivariate(
-                [np.array(self.training_data[['x']]),
-                 np.array(self.training_data[['y']]),
-                 np.array(self.training_data[['y_day']])],
-                'ccc')
+
+        # esto le pasa los datos al KDE
+        # self.kde = KDEMultivariate(
+        #         [np.array(self.training_data[['x']]),
+        #          np.array(self.training_data[['y']]),
+        #          np.array(self.training_data[['y_day']])],
+        #         'ccc')
 
         # print(f'\n SELF TRAINING DATA {self.training_data}')
-
 
     @_time
     def get_data(self):
@@ -192,17 +199,17 @@ class Framework:
             # DB Cleaning & Formatting
 
             df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
-                    lambda x: float(x))
+                lambda x: float(x))
             df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
-                    lambda x: float(x))
+                lambda x: float(x))
             df.loc[:, 'date1'] = df['date1'].apply(
-                    lambda x: datetime.datetime.strptime(
-                            x.split('T')[0], '%Y-%m-%d')
+                lambda x: datetime.datetime.strptime(
+                    x.split('T')[0], '%Y-%m-%d')
             )
 
             df = df[['x_coordinate', 'y_cordinate', 'date1']]
             df.loc[:, 'y_day'] = df["date1"].apply(
-                    lambda x: x.timetuple().tm_yday
+                lambda x: x.timetuple().tm_yday
             )
 
             df.rename(columns={'x_coordinate': 'x',
@@ -212,14 +219,50 @@ class Framework:
 
             # Reducción del tamaño de la DB
 
-            df = df.sample(n=3600,
-                           replace=False,
-                           random_state=250499)
+            # df = df.sample(n=1000,
+            #                replace=False,
+            #                random_state=250499)
 
             df.sort_values(by=['date'], inplace=True)
             df.reset_index(drop=True, inplace=True)
 
             self.data = df
+
+
+            # Hasta este punto tenemos los datos en un formato que no nos
+            # srve, ahora se pasaran a un formato (X,Y)
+
+            geometry = [Point(xy) for xy in zip(
+                np.array(self.data[['x']]),
+                np.array(self.data[['y']]))
+                        ]
+
+            self.geo_data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
+                                         crs=2276,
+                                         geometry=geometry)
+
+            self.geo_data.to_crs(epsg=3857, inplace=True)
+
+            print(self.geo_data.geometry)
+
+            # Ahora debemos juntar los datos del geo data y los day_y
+
+            data = defaultdict(list)
+
+            for i in range(len(self.data)):
+                data['x'].append(self.geo_data.geometry[0].x)
+                data['y'].append(self.geo_data.geometry[0].y)
+                data['date'].append(self.data['date'][i])
+                data['y_day'].append(self.data['y_day'][i])
+
+
+
+            self.data_ok = pd.DataFrame(data = data)
+
+
+            self.data = self.data_ok
+            print('self.data',self.data)
+
 
             # División en training y testing data
 
@@ -233,29 +276,29 @@ class Framework:
 
             # Time 1 Data for building STKDE models : 1 Month
 
-            for group in self.predict_groups:
-                self.predict_groups[group]['t1_data'] = \
-                    self.data[
-                        self.data['date'].apply(
-                                lambda x:
-                                self.predict_groups[group]['t1_data'][0]
-                                <= x.date() <=
-                                self.predict_groups[group]['t1_data'][-1]
-                        )
-                    ]
-
-            # Time 2 Data for Prediction            : 1 Week
-
-            for group in self.predict_groups:
-                self.predict_groups[group]['t2_data'] = \
-                    self.data[
-                        self.data['date'].apply(
-                                lambda x:
-                                self.predict_groups[group]['t2_data'][0]
-                                <= x.date() <=
-                                self.predict_groups[group]['t2_data'][-1]
-                        )
-                    ]
+            # for group in self.predict_groups:
+            #     self.predict_groups[group]['t1_data'] = \
+            #         self.data[
+            #             self.data['date'].apply(
+            #                     lambda x:
+            #                     self.predict_groups[group]['t1_data'][0]
+            #                     <= x.date() <=
+            #                     self.predict_groups[group]['t1_data'][-1]
+            #             )
+            #         ]
+            #
+            # # Time 2 Data for Prediction            : 1 Week
+            #
+            # for group in self.predict_groups:
+            #     self.predict_groups[group]['t2_data'] = \
+            #         self.data[
+            #             self.data['date'].apply(
+            #                     lambda x:
+            #                     self.predict_groups[group]['t2_data'][0]
+            #                     <= x.date() <=
+            #                     self.predict_groups[group]['t2_data'][-1]
+            #             )
+            #         ]
 
             # print(self.predict_groups['group_8']['t2_data'].shape[0])
             # print(self.predict_groups['group_8']['t2_data'].tail())
@@ -285,16 +328,16 @@ class Framework:
             for group in self.predict_groups:
                 self.predict_groups[group]['STKDE'] = \
                     MyKDEMultivariate(
-                            data=[
-                                np.array(self.predict_groups[group]['t1_data'][
-                                             ['x']]),
-                                np.array(self.predict_groups[group]['t1_data'][
-                                             ['y']]),
-                                np.array(self.predict_groups[group]['t1_data'][
-                                             ['y_day']])
-                            ],
-                            var_type='ccc',
-                            bw=bw)
+                        data=[
+                            np.array(self.predict_groups[group]['t1_data'][
+                                         ['x']]),
+                            np.array(self.predict_groups[group]['t1_data'][
+                                         ['y']]),
+                            np.array(self.predict_groups[group]['t1_data'][
+                                         ['y_day']])
+                        ],
+                        var_type='ccc',
+                        bw=bw)
 
         else:
             print(2222)
@@ -323,7 +366,6 @@ class Framework:
         ax.tick_params(axis='x', length=0)
 
         for i in range(1, 13):
-
             count = self.data[
                 (self.data["date"].apply(lambda x: x.month) == i)
             ].shape[0]
@@ -332,9 +374,9 @@ class Framework:
             plt.text(x=i - 0.275, y=count + 5, s=str(count))
 
         plt.xticks(
-                [i for i in range(1, 13)],
-                [datetime.datetime.strptime(str(i), "%m").strftime('%b')
-                 for i in range(1, 13)]
+            [i for i in range(1, 13)],
+            [datetime.datetime.strptime(str(i), "%m").strftime('%b')
+             for i in range(1, 13)]
         )
 
         sb.despine()
@@ -354,6 +396,86 @@ class Framework:
             plt.savefig(f"output/barplot.pdf", format='pdf')
 
         plt.show()
+
+    @_time
+    def calcular_densidades(self):
+
+
+
+        xx, yy = np.mgrid[self.x_min + self.hx / 2:self.x_max - self.hx /
+                                                   2:self.bins *
+                                                     1j,
+                 self.y_min + self.hy / 2:self.y_max - self.hy / 2:self.bins *
+                                                                   1j]
+
+        matriz_con_ceros = np.zeros((self.bins, self.bins))
+
+        for k in range(len(self.training_data)):
+            x, y, t = self.training_data['x'][k], self.training_data['y'][k], \
+                      self.training_data['y_day'][k]
+            for i in range(self.bins):
+                for j in range(self.bins):
+                    elemento_x = xx[i][0]
+                    elemento_y = yy[0][j]
+                    print(f'Punto Actual x: {elemento_x}, y: {elemento_y}')
+                    time_weight = 1 / aux.n_semanas(self.total_dias, t)
+                    if aux.linear_distance(elemento_x, x) > self.bw_x or \
+                            aux.linear_distance(
+                                elemento_y, y) > self.bw_y:
+                        print(
+                            'Esta celda está fuera del limite del ancho de banda')
+                        cell_weight = 0
+                        pass
+                    else:
+                        cell_weight = 1 / aux.cells_distance(x, y, elemento_x,
+                                                             elemento_y,
+                                                             self.hx,
+                                                             self.hy)
+                    print('CELL WIGHT: ', cell_weight)
+                    print()
+                    matriz_con_ceros[i][j] += time_weight * cell_weight
+
+        plt.imshow(np.flipud(matriz_con_ceros.T),
+                   extent=[self.x_min, self.x_max, self.y_min, self.y_max])
+        plt.colorbar()
+        plt.show()
+
+    def generar_df(self):
+
+        print("\nGenerando dataframe...\n")
+
+        print("\tCreando Mgrid...")
+
+        self.x_min = params.dallas_limits['x_min']
+        self.x_max = params.dallas_limits['x_max']
+        self.y_min = params.dallas_limits['y_min']
+        self.y_max = params.dallas_limits['y_max']
+
+        self.bins = params.bins
+
+        self.hx = abs(self.x_max - self.x_min) / params.bins
+        self.hy = abs(self.y_max - self.y_min) / params.bins
+
+        self.x, self.y = np.mgrid[self.x_min + self.hx / 2:self.x_max -
+                                                           self.hx /
+                                                   2:self.bins *
+                                                     1j,
+                 self.y_min + self.hy / 2:self.y_max - self.hy / 2:self.bins *
+                                                                   1j]
+
+        geometry = [Point(xy) for xy in zip(
+            np.array(self.data[['x']]),
+            np.array(self.data[['y']]))
+                    ]
+        self.data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
+                                     crs=2276,
+                                     geometry=geometry)
+
+
+        self.data.to_crs(epsg=3857, inplace=True)
+
+
+
 
     # @_time
     # def spatial_pattern(self,
@@ -580,18 +702,18 @@ class Framework:
         print("\n\tEstimating densities...")
 
         d = dallas_stkde.kde.pdf(
-                np.vstack([
-                    x.flatten(),
-                    y.flatten(),
-                    t.flatten()
-                ])).reshape((100, 100, 60))
+            np.vstack([
+                x.flatten(),
+                y.flatten(),
+                t.flatten()
+            ])).reshape((100, 100, 60))
 
         print("\nExporting 3D grid...")
 
-        gridToVTK("STKDE grid",
-                  x, y, t,
-                  pointData={"density": d,
-                             "y_day": t})
+        # gridToVTK("STKDE grid",
+        #           x, y, t,
+        #           pointData={"density": d,
+        #                      "y_day": t})
 
     # @_time
     # def plot_4d(self,
@@ -967,15 +1089,28 @@ class Framework:
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['y_day'])
 
             if i == 1:
-                x_training = pd.Series(self.training_data["x"]).tolist() + pd.Series(self.predict_groups[f'group_{i}']['t1_data']['x']).tolist()
-                y_training = pd.Series(self.training_data["y"]).tolist() + pd.Series(self.predict_groups[f'group_{i}']['t1_data']['y']).tolist()
-                t_training = pd.Series(self.training_data["y_day"]).tolist() + pd.Series(self.predict_groups[f'group_{i}']['t1_data']['y_day']).tolist()
+                x_training = pd.Series(
+                    self.training_data["x"]).tolist() + pd.Series(
+                    self.predict_groups[f'group_{i}']['t1_data']['x']).tolist()
+                y_training = pd.Series(
+                    self.training_data["y"]).tolist() + pd.Series(
+                    self.predict_groups[f'group_{i}']['t1_data']['y']).tolist()
+                t_training = pd.Series(
+                    self.training_data["y_day"]).tolist() + pd.Series(
+                    self.predict_groups[f'group_{i}']['t1_data'][
+                        'y_day']).tolist()
 
             else:
                 for j in range(1, i):
-                    x_training += pd.Series(self.predict_groups[f'group_{j}']['t2_data']['x']).tolist()
-                    y_training += pd.Series(self.predict_groups[f'group_{j}']['t2_data']['y']).tolist()
-                    t_training += pd.Series(self.predict_groups[f'group_{j}']['t2_data']['y_day']).tolist()
+                    x_training += pd.Series(
+                        self.predict_groups[f'group_{j}']['t2_data'][
+                            'x']).tolist()
+                    y_training += pd.Series(
+                        self.predict_groups[f'group_{j}']['t2_data'][
+                            'y']).tolist()
+                    t_training += pd.Series(
+                        self.predict_groups[f'group_{j}']['t2_data'][
+                            'y_day']).tolist()
 
             self.kde = MyKDEMultivariate(
                 [np.array(x_training),
@@ -985,16 +1120,14 @@ class Framework:
 
             self.kde.resample(len(x_training))
 
-           # self.train_model(
+            # self.train_model(
             #    x=np.array(self.training_data[['x']]),
-             #   y=np.array(self.training_data[['y']]),
-              #  t=np.array(self.training_data[['y_day']]))
+            #   y=np.array(self.training_data[['y']]),
+            #  t=np.array(self.training_data[['y_day']]))
 
             stkde = self.kde
 
             f_delitos = stkde.pdf([x, y, t])
-
-
 
             x, y, t = np.mgrid[
                       np.array(x_training).min():
@@ -1004,18 +1137,14 @@ class Framework:
                       np.array(t_training).max():
                       np.array(t_training).max():1 * 1j
                       ]
-            #print(t)
-            #print(t.max())
-            #print(t.min())
-
-
-
+            # print(t)
+            # print(t.max())
+            # print(t.min())
 
             f_nodos = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
 
-            #c = np.linspace(0, max(f_delitos.max(), f_nodos.max()), 100)
-            c = np.linspace(0,  f_nodos.max(), 100)
-
+            # c = np.linspace(0, max(f_delitos.max(), f_nodos.max()), 100)
+            c = np.linspace(0, f_nodos.max(), 100)
 
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
 
@@ -1023,7 +1152,8 @@ class Framework:
 
             HR = [i / len(f_delitos) for i in hits]
             area_percentaje = [i / len(f_nodos) for i in area_h]
-            PAI = [float(HR[i]) / float(area_percentaje[i]) for i in range(len(HR))]
+            PAI = [float(HR[i]) / float(area_percentaje[i]) for i in
+                   range(len(HR))]
 
             HRs[i] = [HR, area_percentaje, c]
             PAIs[i] = [PAI, area_percentaje]
@@ -1051,7 +1181,7 @@ class Framework:
             PAIs, area_percentaje = results[i][0], results[i][1]
             plt.plot(area_percentaje, PAIs, label=f'group {i}')
         plt.legend()
-        #plt.show()
+        # plt.show()
         plt.savefig("PAIvsArea")
 
 # Data
@@ -1065,133 +1195,130 @@ class Framework:
 # 2018 - 98477  incidents
 # 2019 - 64380  incidents (y creciendo)
 
-if __name__ == "__main__":
-    st = time()
+# if __name__ == "__main__":
+#     st = time()
+#
+#     # %%
+#
+#     dallas_stkde = Framework(n=150000,
+#                              year="2016")
+#
+#     print(dallas_stkde.training_data['x'])
 
-    # %%
+# dallas_stkde.plot_HR()
+# dallas_stkde.plot_PAI()
 
-    dallas_stkde = Framework(n=150000,
-                             year="2016")
+# # %%
 
-    print(dallas_stkde.training_data['x'])
+# dallas_stkde.data_barplot(pdf=False)
+# %%
+# dallas_stkde.spatial_pattern(pdf=False)
+# # %%
+# dallas_stkde.contour_plot(bins=100,
+#                           ti=183,
+#                           pdf=False)
+# # %%
+# dallas_stkde.heatmap(bins=100,
+#                      ti=365,
+#                      pdf=False)
+# # %%
+# dallas_stkde.plot_4d(jpg=True,
+#                      interactive=False)
 
+# Testeando el resample() del predict_group 1...
 
-    #dallas_stkde.plot_HR()
-    #dallas_stkde.plot_PAI()
+# print(f"\nTotal time: {round((time() - st) / 60, 3)} min")
 
+# %%
 
-    # # %%
+# s_points = dallas_stkde.predict_groups['group_1']['STKDE'] \
+#     .resample(size=1000)
 
-    # dallas_stkde.data_barplot(pdf=False)
-    # %%
-    # dallas_stkde.spatial_pattern(pdf=False)
-    # # %%
-    # dallas_stkde.contour_plot(bins=100,
-    #                           ti=183,
-    #                           pdf=False)
-    # # %%
-    # dallas_stkde.heatmap(bins=100,
-    #                      ti=365,
-    #                      pdf=False)
-    # # %%
-    # dallas_stkde.plot_4d(jpg=True,
-    #                      interactive=False)
+# %%
 
-    # Testeando el resample() del predict_group 1...
+# def significance(data, stkde, sig):
+#     all = []
+#     for i, incident in data.iterrows():
+#         p = stkde.pdf((incident["x"], incident["y"],
+#                        incident["date"].timetuple().tm_yday))
+#         all.append(p)
+#     all.sort(reverse=True)
+#     lim = int(len(all) * sig / 100)
+#     max_s = all[: lim]
+#     return max_s
+#
+#
+# significance = 2
+# test = dallas_stkde.predict_groups['group_1']['STKDE'].resample(size=1000)
+# pdfs = []
+# x, y, t = test
+# for i, j, k in zip(x, y, t):
+#     p = dallas_stkde.kde.pdf((i, j, k))
+#     pdfs.append(p)
+# max_pdfs = sorted(pdfs, reverse=True)[:int(len(pdfs) * significance /
+#                                            100)]
+# test = list(zip(x, y, t, max_pdfs))
 
-    print(f"\nTotal time: {round((time() - st) / 60, 3)} min")
+# %%
 
-    # %%
+# def calculate_hr(x, y, t, d, stkde):
+#
+#     c = max([i for i in d]) / 2
+#     hot_spots = [i for i in all if i >= c]
+#
+#     return len(hot_spots) / len(d)
 
-    # s_points = dallas_stkde.predict_groups['group_1']['STKDE'] \
-    #     .resample(size=1000)
+# %%
 
-    # %%
+#
+# stkde = dallas_stkde.predict_groups['group_1']['STKDE']
+#
+# #Simulación para modelo:
+# for i in range(1, 9):
+#     x, y, t = \
+#         np.array(dallas_stkde.predict_groups[f'group_{i}']['t2_data']['x']), \
+#         np.array(dallas_stkde.predict_groups[f'group_{i}']['t2_data']['y']), \
+#         np.array(dallas_stkde.predict_groups[f'group_{i}']['t2_data']['y_day'])
+#
+#     f_delitos = stkde.pdf([x, y, t])
+#
+#     x, y, t = np.mgrid[
+#               np.array(dallas_stkde.predict_groups[f"group_{i}"]["t1_data"]['x']).min():
+#               np.array(dallas_stkde.predict_groups[f"group_{i}"]["t1_data"][['x']]).max():100 * 1j,
+#               np.array(dallas_stkde.predict_groups[f"group_{i}"]["t1_data"][['y']]).min():
+#               np.array(dallas_stkde.predict_groups[f"group_{i}"]["t1_data"][['y']]).max():100 * 1j,
+#               np.array(dallas_stkde.predict_groups[f"group_{i}"]["t1_data"][
+#                            ['y_day']]).min():
+#               np.array(dallas_stkde.predict_groups[f"group_{i}"]["t1_data"][
+#                            ['y_day']]).max():1 * 1j
+#               ]
+#
+#
+#
+#     f_nodos = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
+#
+#     c = np.linspace(0, max(f_delitos.max(), f_nodos.max()), 100)
+#
+#     hits = [np.sum(f_delitos > c[i]) for i in range(c.size)]
+#
+#     area_h = [np.sum(f_nodos > c[i]) for i in range(c.size)]
+#
+#     HR = [i / len(f_delitos) for i in hits]
+#     area_percentaje = [i / len(f_nodos) for i in area_h]
+#     PAI = [float(HR[i]) / float(area_percentaje[i]) for i in range(len(HR) - 1)]
 
-    # def significance(data, stkde, sig):
-    #     all = []
-    #     for i, incident in data.iterrows():
-    #         p = stkde.pdf((incident["x"], incident["y"],
-    #                        incident["date"].timetuple().tm_yday))
-    #         all.append(p)
-    #     all.sort(reverse=True)
-    #     lim = int(len(all) * sig / 100)
-    #     max_s = all[: lim]
-    #     return max_s
-    #
-    #
-    # significance = 2
-    # test = dallas_stkde.predict_groups['group_1']['STKDE'].resample(size=1000)
-    # pdfs = []
-    # x, y, t = test
-    # for i, j, k in zip(x, y, t):
-    #     p = dallas_stkde.kde.pdf((i, j, k))
-    #     pdfs.append(p)
-    # max_pdfs = sorted(pdfs, reverse=True)[:int(len(pdfs) * significance /
-    #                                            100)]
-    # test = list(zip(x, y, t, max_pdfs))
+# plt.plot(c, HR)
+# plt.xlabel('c')
+# plt.ylabel('HR')
+# plt.title("HR vs c")
+# plt.show()
+# plt.plot(c, HR, label=f'group {i}')
+# plt.plot(c, area_percentaje, label=f'group {i}')
+# plt.plot(area_percentaje, HR, label=f'group {i}')
+# plt.show()
+# plt.plot(area_percentaje[:-1], PAI, label=f'group {i}')
+# plt.xlim([0, 0.2])
+# plt.show()
 
-    # %%
-
-    # def calculate_hr(x, y, t, d, stkde):
-    #
-    #     c = max([i for i in d]) / 2
-    #     hot_spots = [i for i in all if i >= c]
-    #
-    #     return len(hot_spots) / len(d)
-
-    # %%
-
-    #
-    # stkde = dallas_stkde.predict_groups['group_1']['STKDE']
-    #
-    # #Simulación para modelo:
-    # for i in range(1, 9):
-    #     x, y, t = \
-    #         np.array(dallas_stkde.predict_groups[f'group_{i}']['t2_data']['x']), \
-    #         np.array(dallas_stkde.predict_groups[f'group_{i}']['t2_data']['y']), \
-    #         np.array(dallas_stkde.predict_groups[f'group_{i}']['t2_data']['y_day'])
-    #
-    #     f_delitos = stkde.pdf([x, y, t])
-    #
-    #     x, y, t = np.mgrid[
-    #               np.array(dallas_stkde.predict_groups[f"group_{i}"]["t1_data"]['x']).min():
-    #               np.array(dallas_stkde.predict_groups[f"group_{i}"]["t1_data"][['x']]).max():100 * 1j,
-    #               np.array(dallas_stkde.predict_groups[f"group_{i}"]["t1_data"][['y']]).min():
-    #               np.array(dallas_stkde.predict_groups[f"group_{i}"]["t1_data"][['y']]).max():100 * 1j,
-    #               np.array(dallas_stkde.predict_groups[f"group_{i}"]["t1_data"][
-    #                            ['y_day']]).min():
-    #               np.array(dallas_stkde.predict_groups[f"group_{i}"]["t1_data"][
-    #                            ['y_day']]).max():1 * 1j
-    #               ]
-    #
-    #
-    #
-    #     f_nodos = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
-    #
-    #     c = np.linspace(0, max(f_delitos.max(), f_nodos.max()), 100)
-    #
-    #     hits = [np.sum(f_delitos > c[i]) for i in range(c.size)]
-    #
-    #     area_h = [np.sum(f_nodos > c[i]) for i in range(c.size)]
-    #
-    #     HR = [i / len(f_delitos) for i in hits]
-    #     area_percentaje = [i / len(f_nodos) for i in area_h]
-    #     PAI = [float(HR[i]) / float(area_percentaje[i]) for i in range(len(HR) - 1)]
-
-        #plt.plot(c, HR)
-        #plt.xlabel('c')
-        #plt.ylabel('HR')
-        #plt.title("HR vs c")
-        #plt.show()
-        #plt.plot(c, HR, label=f'group {i}')
-        #plt.plot(c, area_percentaje, label=f'group {i}')
-        #plt.plot(area_percentaje, HR, label=f'group {i}')
-        #plt.show()
-        #plt.plot(area_percentaje[:-1], PAI, label=f'group {i}')
-        #plt.xlim([0, 0.2])
-        #plt.show()
-
-
-    #plt.legend()
-    #plt.savefig(f"all_groups.pdf", format='pdf')
+# plt.legend()
+# plt.savefig(f"all_groups.pdf", format='pdf')

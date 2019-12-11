@@ -1,4 +1,4 @@
-# parameters.py:
+# params.py:
 # - Python version: 3.7.1
 # - Author: Mauro S. Mendoza Elguera
 # - Institution: Pontifical Catholic University of Chile
