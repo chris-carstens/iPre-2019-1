@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 
 total_dias = 30
-bins = 10
+bins = 100
 bw_x = 6  # metros
 bw_y = 6
 
