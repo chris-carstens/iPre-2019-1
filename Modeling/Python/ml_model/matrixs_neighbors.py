@@ -1,17 +1,16 @@
 import numpy as np
-
 from scipy.signal import convolve2d
 
 
-def diamond(dim=3):
+def diamond(d=3):
     """
     Entrega la matriz diamante con 1s en el límite y 0s en su interior.
 
-    :param dim: Dimensión del diamante, número impar mayor a 3
-    :return: ndarray con la matriz diamate
+    :param d: Dimensión del diamante, número impar mayor a 3
+    :return: ndarray con la matriz diamante
     """
 
-    t = np.zeros((dim, dim), dtype=int)
+    t = np.zeros(shape=(d, d), dtype=int)
 
     l = np.eye(*t.shape, k=t.shape[0] // 2, dtype=int) + \
         np.eye(*t.shape, k=(t.shape[0] // 2) * -1, dtype=int)
@@ -36,16 +35,20 @@ def il_neighbors(matrix, i=1):
     :param matrix: ndarray con la cantidad de incidentes ocurridos en
         cada celda de la malla
     :param i: int que indica la i-ésima considerada
-    :return: ndarray con la suma
+    :return: ndarray con la suma de incidentes de la capa i-ésima para
         cada celda
     """
 
-    kernel = diamond(2*i + 1)
+    kernel = diamond(d=2 * i + 1)
 
-    return convolve2d(matrix, kernel, mode='same')
+    return convolve2d(in1=matrix, in2=kernel, mode='same')
 
 
 if __name__ == '__main__':
-    D = np.random.randint(low=0, high=10, size=(10, 10), dtype=int)
+    dim = int(input("Dimension (nxn): "))
+    layer = int(input("i-th layer: "))
 
-    print(D, il_neighbors(matrix=D, i=1), sep='\n' * 2)
+    D = np.random.randint(low=0, high=10, size=(dim, dim), dtype=int)
+
+    print()
+    print(D, il_neighbors(matrix=D, i=layer), sep='\n' * 2)
