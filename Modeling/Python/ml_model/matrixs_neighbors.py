@@ -1,9 +1,6 @@
 import numpy as np
-from math import ceil
 
-from scipy.signal import convolve, convolve2d
-
-D = np.random.randint(low=0, high=10, size=(10, 10), dtype=int)
+from scipy.signal import convolve2d
 
 
 def diamond(dim=3):
@@ -49,4 +46,6 @@ def il_neighbors(matrix, i=1):
 
 
 if __name__ == '__main__':
+    D = np.random.randint(low=0, high=10, size=(10, 10), dtype=int)
+
     print(D, il_neighbors(matrix=D, i=1), sep='\n' * 2)
