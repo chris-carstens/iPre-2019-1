@@ -50,5 +50,4 @@ if __name__ == '__main__':
 
     D = np.random.randint(low=0, high=10, size=(dim, dim), dtype=int)
 
-    print()
     print(D, il_neighbors(matrix=D, i=layer), sep='\n' * 2)
