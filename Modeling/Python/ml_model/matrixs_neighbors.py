@@ -1,25 +1,59 @@
 import numpy as np
+from math import ceil
 
 from scipy.signal import convolve, convolve2d
 
-D = np.random.randint(low=0, high=10, size=(3, 3), dtype=int)
+D = np.random.randint(low=0, high=10, size=(10, 10), dtype=int)
 
 
-def li_neighbors(matrix, i=1):
+def il_neighbors(matrix, i=1):
     """
-    Calcula la cantidad de incidentes en la i-ésima capa (capa tipo
-    ProMap).
+    Calcula la cantidad de incidentes en la i-ésima capa (tipo
+    ProMap) para cada una de las celdas en el arreglo matrix.
 
     :type matrix: np.ndarray
-    :param matrix:
-    :param i: int que indica la i-ésima capa a calcular
-    :return: ndarray con la suma de incidentes de la i-ésima capa en
-    cada celda
+    :param matrix: ndarray con la cantidad de incidentes ocurridos en
+        cada celda de la malla
+    :param i: int que indica la i-ésima considerada
+    :return: ndarray con la suma
+        cada celda
     """
 
-    ker = np.ones(shape=matrix.shape, dtype=int)
+    ker1 = np.array(
+        [[0, 1, 0],
+         [1, 0, 1],
+         [0, 1, 0]]
+    )
 
-    return convolve2d(matrix, ker, mode='same')
+    ker2 = np.array(
+        [[0, 0, 1, 0, 0],
+         [0, 1, 0, 1, 0],
+         [1, 0, 0, 0, 1],
+         [0, 1, 0, 1, 0],
+         [0, 0, 1, 0, 0]]
+    )
+
+    ker3 = np.array(
+        [[0, 0, 0, 1, 0, 0, 0],
+         [0, 0, 1, 0, 1, 0, 0],
+         [0, 1, 0, 0, 0, 1, 0],
+         [1, 0, 0, 0, 0, 0, 1],
+         [0, 1, 0, 0, 0, 1, 0],
+         [0, 0, 1, 0, 1, 0, 0],
+         [0, 0, 0, 1, 0, 0, 0]]
+    )
+
+    kernels = [ker1, ker2, ker3]
+
+    return convolve2d(matrix, kernels[i - 1], mode='same')
 
 
-print(D, li_neighbors(D) - D, sep='\n' * 2)
+if __name__ == '__main__':
+    # print(D, il_neighbors(matrix=D, i=3), sep='\n' * 2)
+
+    t = np.zeros((3, 3), dtype=int)
+    l = np.eye(*t.shape, k=t.shape[0] // 2, dtype=int) + \
+        np.eye(*t.shape, k=(t.shape[0] // 2) * -1, dtype=int)
+    l = l + np.fliplr(l)
+
+    print(l)
