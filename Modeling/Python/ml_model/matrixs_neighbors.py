@@ -40,7 +40,7 @@ def il_neighbors(matrix, i=1):
         cada celda
     """
 
-    kernel = diamond()
+    kernel = diamond(2*i + 1)
 
     return convolve2d(matrix, kernel, mode='same')
 
