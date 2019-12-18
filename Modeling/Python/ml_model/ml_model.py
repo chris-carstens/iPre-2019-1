@@ -10,8 +10,6 @@ import datetime
 from calendar import month_name
 from time import time
 
-import pickle
-
 import geopandas as gpd
 from shapely.geometry import Point
 from fiona.crs import from_epsg
@@ -441,7 +439,6 @@ class Framework:
 
 if __name__ == "__main__":
     # TODO
-    #       - Aumentar las capas de NC_incidents
     #       - Comparar entre etiqueta 1 y 3
     #       - Mejorar feature engineering con medidas del modelo ProMap
     #       - Pensar implementación de HR/PAI
