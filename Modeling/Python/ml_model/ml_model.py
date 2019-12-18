@@ -28,7 +28,8 @@ from sklearn.metrics import precision_score, recall_score
 from sodapy import Socrata
 import credentials as cre
 
-from aux_functions import n_i, nc_incidents, to_df_col, filter_cells
+from aux_functions import n_i, nc_incidents, to_df_col, filter_cells, \
+    il_neighbors
 from parameters import dallas_limits
 
 pd.set_option('display.max_columns', None)
@@ -52,6 +53,7 @@ class Framework:
     def __init__(self, n=1000, year="2017", read_df=True):
         self.n, self.year = n, year
 
+        self.data = None
         self.df = None
 
         self.x, self.y = None, None
@@ -60,7 +62,13 @@ class Framework:
         m_dict = {month_name[i]: None for i in range(1, 13)}
         self.incidents = {
             'Incidents': m_dict,
-            'NC Incidents': m_dict
+            'NC Incidents_1': m_dict,
+            'NC Incidents_2': m_dict,
+            'NC Incidents_3': m_dict,
+            'NC Incidents_4': m_dict,
+            'NC Incidents_5': m_dict,
+            'NC Incidents_6': m_dict,
+            'NC Incidents_7': m_dict,
         }
 
         if read_df:
@@ -70,7 +78,7 @@ class Framework:
             self.df = pd.read_pickle('df_pickle')
             print(f"finished! ({time() - st:3.1f} sec)")
         else:
-            self.data = self.get_data()
+            self.get_data()
             self.generate_df()
 
     @timer
@@ -134,7 +142,7 @@ class Framework:
             df.sort_values(by=['date'], inplace=True)
             df.reset_index(drop=True, inplace=True)
 
-            return df
+            self.data = df
 
     @timer
     def generate_df(self):
@@ -184,7 +192,10 @@ class Framework:
 
         months = [month_name[i] for i in range(1, 13)]
         cols = pd.MultiIndex.from_product(
-            [['Incidents', 'NC Incidents'], months]
+            [['Incidents',
+              'NC Incidents_1', 'NC Incidents_2', 'NC Incidents_3',
+              'NC Incidents_4', 'NC Incidents_5', 'NC Incidents_6',
+              'NC Incidents_7'], months]
         )
 
         self.df = pd.DataFrame(columns=cols)
@@ -215,6 +226,8 @@ class Framework:
         # Nro. incidentes en la celda(i, j) + Nro. incidentes en celdas vecinas
 
         for month in [month_name[i] for i in range(1, 13)]:
+            print(f"\t\t{month}... ", end=' ')
+
             fil_incidents = self.data[self.data.month1 == month]
 
             D = np.zeros((self.nx, self.ny), dtype=int)
@@ -229,14 +242,28 @@ class Framework:
 
             # Actualización del diccionario con las matrices
 
-            self.incidents['Incidents'][month] = D
-            self.incidents['NC Incidents'][month] = nc_incidents(D)
+            # self.incidents['Incidents'][month] = D
+            # self.incidents['NC Incidents'][month] = nc_incidents(D)
 
             # Actualización del pandas dataframe
 
             self.df.loc[:, ('Incidents', month)] = to_df_col(D)
-            self.df.loc[:, ('NC Incidents', month)] = to_df_col(
-                nc_incidents(D))
+            self.df.loc[:, ('NC Incidents_1', month)] = \
+                to_df_col(il_neighbors(matrix=D, i=1))
+            self.df.loc[:, ('NC Incidents_2', month)] = \
+                to_df_col(il_neighbors(matrix=D, i=2))
+            self.df.loc[:, ('NC Incidents_3', month)] = \
+                to_df_col(il_neighbors(matrix=D, i=3))
+            self.df.loc[:, ('NC Incidents_4', month)] = \
+                to_df_col(il_neighbors(matrix=D, i=4))
+            self.df.loc[:, ('NC Incidents_5', month)] = \
+                to_df_col(il_neighbors(matrix=D, i=5))
+            self.df.loc[:, ('NC Incidents_6', month)] = \
+                to_df_col(il_neighbors(matrix=D, i=6))
+            self.df.loc[:, ('NC Incidents_7', month)] = \
+                to_df_col(il_neighbors(matrix=D, i=7))
+
+            print('finished!')
 
         # Adición de las columnas 'geometry' e 'in_dallas' al df
 
@@ -425,27 +452,27 @@ if __name__ == "__main__":
 
     # fwork.ml_p_algorithm()
 
-    aux_df = fwork.df
+    # aux_df = fwork.df
+    #
+    # X1 = aux_df.loc[:,
+    #       [('Incidents', month_name[i]) for i in range(1, 10)] +
+    #       [('NC Incidents', month_name[i]) for i in range(1, 10)]
+    #      ].to_numpy()
+    #
+    # y1 = aux_df.loc[:,
+    #       [('Incidents', 'October'), ('NC Incidents', 'October')]
+    #      ]
+    #
+    # y1[('Insecure', '')] = ((y1[('Incidents', 'October')] != 0) |
+    #                         (y1[('NC Incidents', 'October')] != 0)) \
+    #     .astype(int)
+    # y1.drop([('Incidents', 'October'), ('NC Incidents', 'October')],
+    #         axis=1,
+    #         inplace=True)
+    #
+    # y1 = y1.to_numpy().ravel()
 
-    X1 = aux_df.loc[:,
-          [('Incidents', month_name[i]) for i in range(1, 10)] +
-          [('NC Incidents', month_name[i]) for i in range(1, 10)]
-         ].to_numpy()
-
-    y1 = aux_df.loc[:,
-          [('Incidents', 'October'), ('NC Incidents', 'October')]
-         ]
-
-    y1[('Insecure', '')] = ((y1[('Incidents', 'October')] != 0) |
-                            (y1[('NC Incidents', 'October')] != 0)) \
-        .astype(int)
-    y1.drop([('Incidents', 'October'), ('NC Incidents', 'October')],
-            axis=1,
-            inplace=True)
-
-    y1 = y1.to_numpy().ravel()
-
-    bc = BaggingClassifier(RandomForestClassifier(n_jobs=8), n_jobs=8)
+    # bc = BaggingClassifier(RandomForestClassifier(n_jobs=8), n_jobs=8)
     # bc.fit(X1, y1)
 
     # print(
@@ -456,7 +483,7 @@ if __name__ == "__main__":
     #         """
     # )
     #
-    abc = AdaBoostClassifier()
+    # abc = AdaBoostClassifier()
     # abc.fit(X1, y1)
     #
     # print(
@@ -467,18 +494,17 @@ if __name__ == "__main__":
     #     """
     # )
 
-    X2 = aux_df.loc[:,
-           [('Incidents', month_name[i]) for i in range(2, 11)] +
-           [('NC Incidents', month_name[i]) for i in range(2, 11)]
-         ].to_numpy()
-
-    y2 = aux_df.loc[:,
-            [('Incidents', 'November')] + [('NC Incidents', 'November')]]
-    y2[('Insecure', '')] = \
-        ((y2[('Incidents', 'November')] != 0) |
-         (y2[('NC Incidents', 'November')] != 0)).astype(int)
-    y2.drop([('Incidents', 'November'), ('NC Incidents', 'November')],
-            axis=1, inplace=True)
-
-    y2 = y2.to_numpy().ravel()
-
+    # X2 = aux_df.loc[:,
+    #        [('Incidents', month_name[i]) for i in range(2, 11)] +
+    #        [('NC Incidents', month_name[i]) for i in range(2, 11)]
+    #      ].to_numpy()
+    #
+    # y2 = aux_df.loc[:,
+    #         [('Incidents', 'November')] + [('NC Incidents', 'November')]]
+    # y2[('Insecure', '')] = \
+    #     ((y2[('Incidents', 'November')] != 0) |
+    #      (y2[('NC Incidents', 'November')] != 0)).astype(int)
+    # y2.drop([('Incidents', 'November'), ('NC Incidents', 'November')],
+    #         axis=1, inplace=True)
+    #
+    # y2 = y2.to_numpy().ravel()
