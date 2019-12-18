@@ -190,10 +190,9 @@ class Framework:
 
         months = [month_name[i] for i in range(1, 13)]
         cols = pd.MultiIndex.from_product(
-            [['Incidents',
-              'NC Incidents_1', 'NC Incidents_2', 'NC Incidents_3',
-              'NC Incidents_4', 'NC Incidents_5', 'NC Incidents_6',
-              'NC Incidents_7'], months]
+            [['Incidents_0', 'Incidents_1', 'Incidents_2', 'Incidents_3',
+              'Incidents_4', 'Incidents_5', 'Incidents_6', 'Incidents_7'],
+             months]
         )
 
         self.df = pd.DataFrame(columns=cols)
@@ -245,20 +244,20 @@ class Framework:
 
             # Actualización del pandas dataframe
 
-            self.df.loc[:, ('Incidents', month)] = to_df_col(D)
-            self.df.loc[:, ('NC Incidents_1', month)] = \
+            self.df.loc[:, ('Incidents_0', month)] = to_df_col(D)
+            self.df.loc[:, ('Incidents_1', month)] = \
                 to_df_col(il_neighbors(matrix=D, i=1))
-            self.df.loc[:, ('NC Incidents_2', month)] = \
+            self.df.loc[:, ('Incidents_2', month)] = \
                 to_df_col(il_neighbors(matrix=D, i=2))
-            self.df.loc[:, ('NC Incidents_3', month)] = \
+            self.df.loc[:, ('Incidents_3', month)] = \
                 to_df_col(il_neighbors(matrix=D, i=3))
-            self.df.loc[:, ('NC Incidents_4', month)] = \
+            self.df.loc[:, ('Incidents_4', month)] = \
                 to_df_col(il_neighbors(matrix=D, i=4))
-            self.df.loc[:, ('NC Incidents_5', month)] = \
+            self.df.loc[:, ('Incidents_5', month)] = \
                 to_df_col(il_neighbors(matrix=D, i=5))
-            self.df.loc[:, ('NC Incidents_6', month)] = \
+            self.df.loc[:, ('Incidents_6', month)] = \
                 to_df_col(il_neighbors(matrix=D, i=6))
-            self.df.loc[:, ('NC Incidents_7', month)] = \
+            self.df.loc[:, ('Incidents_7', month)] = \
                 to_df_col(il_neighbors(matrix=D, i=7))
 
             print('finished!')
@@ -310,22 +309,24 @@ class Framework:
         aux_df = fwork.df
 
         x_ft = aux_df.loc[:,
-               [('Incidents', month_name[i]) for i in range(1, 10)] +
-               [('NC Incidents', month_name[i]) for i in range(1, 10)]
+               [('Incidents_0', month_name[i]) for i in range(1, 10)] +
+               [('Incidents_1', month_name[i]) for i in range(1, 10)] +
+               [('Incidents_2', month_name[i]) for i in range(1, 10)] +
+               [('Incidents_3', month_name[i]) for i in range(1, 10)] +
+               [('Incidents_4', month_name[i]) for i in range(1, 10)] +
+               [('Incidents_5', month_name[i]) for i in range(1, 10)] +
+               [('Incidents_6', month_name[i]) for i in range(1, 10)] +
+               [('Incidents_7', month_name[i]) for i in range(1, 10)]
                ]
 
         x_lbl = aux_df.loc[:,
-                [('Incidents', 'October'), ('NC Incidents', 'October')]
+                [('Incidents_0', 'October'), ('Incidents_1', 'October'),
+                 ('Incidents_2', 'October'), ('Incidents_3', 'October'),
+                 ('Incidents_4', 'October'), ('Incidents_5', 'October'),
+                 ('Incidents_6', 'October'), ('Incidents_7', 'October')]
                 ]
-        x_lbl[('Insecure', '')] = ((x_lbl[('Incidents', 'October')] != 0) |
-                                   (x_lbl[('NC Incidents', 'October')] != 0)) \
-            .astype(int)
-        x_lbl.drop([('Incidents', 'October'), ('NC Incidents', 'October')],
-                   axis=1,
-                   inplace=True)
-
-        x_ft = x_ft.to_numpy()
-        x_lbl = x_lbl.to_numpy().ravel()
+        x_lbl[('Insecure', '')] = x_lbl.T.any().astype(int)
+        x_lbl = x_lbl[('Insecure', '')]
 
         # Algoritmo
 
@@ -333,76 +334,95 @@ class Framework:
 
         rfc = RandomForestClassifier(n_jobs=8)
         dtc = DecisionTreeClassifier()
-        rbf_svm = SVC()
+        # rbf_svm = SVC()
 
-        rfc.fit(x_ft, x_lbl)
-        dtc.fit(x_ft, x_lbl)
-        rbf_svm.fit(x_ft, x_lbl)
+        rfc.fit(x_ft, x_lbl.to_numpy().ravel())
+        dtc.fit(x_ft, x_lbl.to_numpy().ravel())
+        # rbf_svm.fit(x_ft, x_lbl)
+
+        cols = pd.Index(['features', 'r_importance'])
+        rfc_fi_df = pd.DataFrame(columns=cols)
+        rfc_fi_df['features'] = x_ft.columns.to_numpy()
+        rfc_fi_df['r_importance'] = rfc.feature_importances_
+        rfc_fi_df.sort_values(by=['r_importance'],
+                              ascending=False,
+                              inplace=True)
+        rfc_fi_df.reset_index(drop=True, inplace=True)
 
         x_pred_rfc = rfc.predict(x_ft)
         x_pred_dtc = dtc.predict(x_ft)
-        x_pred_rbf_svm = rbf_svm.predict(x_ft)
+        # x_pred_rbf_svm = rbf_svm.predict(x_ft)
 
         print("\n\tx\n")
 
         rfc_score = rfc.score(x_ft, x_lbl)
         dtc_score = dtc.score(x_ft, x_lbl)
-        rbf_svm_score = rbf_svm.score(x_ft, x_lbl)
+        # rbf_svm_score = rbf_svm.score(x_ft, x_lbl)
 
         rfc_precision = precision_score(x_lbl, x_pred_rfc)
         dtc_precision = precision_score(x_lbl, x_pred_dtc)
-        rbf_svm_precision = precision_score(x_lbl, x_pred_rbf_svm)
+        # rbf_svm_precision = precision_score(x_lbl, x_pred_rbf_svm)
 
         rfc_recall = recall_score(x_lbl, x_pred_rfc)
         dtc_recall = recall_score(x_lbl, x_pred_dtc)
-        rbf_svm_recall = recall_score(x_lbl, x_pred_rbf_svm)
+        # rbf_svm_recall = recall_score(x_lbl, x_pred_rbf_svm)
 
         print(
             f"""
-    rfc score           {rfc_score:1.9f}
-    rfc precision       {rfc_precision:1.9f}
-    rfc recall          {rfc_recall:1.9f}
-
-    dtc score           {dtc_score:1.9f}
-    dtc precision       {dtc_precision:1.9f}
-    dtc recall          {dtc_recall:1.9f}
-
-    rbf_svm score       {rbf_svm_score:1.9f}
-    rbf_svm precision   {rbf_svm_precision:1.9f}
-    rbf_svm recall      {rbf_svm_recall:1.9f}
-            """
+    rfc score           {rfc_score:1.3f}
+    rfc precision       {rfc_precision:1.3f}
+    rfc recall          {rfc_recall:1.3f}
+    
+    dtc score           {dtc_score:1.3f}
+    dtc precision       {dtc_precision:1.3f}
+    dtc recall          {dtc_recall:1.3f}
+"""
+            # rbf_svm score       {rbf_svm_score:1.9f}
+            # rbf_svm precision   {rbf_svm_precision:1.9f}
+            # rbf_svm recall      {rbf_svm_recall:1.9f}
+            #         """
         )
 
         print("\n\ty\n")
 
         y_ft = aux_df.loc[:,
-               [('Incidents', month_name[i]) for i in range(2, 11)] +
-               [('NC Incidents', month_name[i]) for i in range(2, 11)]
+               [('Incidents_0', month_name[i]) for i in range(2, 11)] +
+               [('Incidents_1', month_name[i]) for i in range(2, 11)] +
+               [('Incidents_2', month_name[i]) for i in range(2, 11)] +
+               [('Incidents_3', month_name[i]) for i in range(2, 11)] +
+               [('Incidents_4', month_name[i]) for i in range(2, 11)] +
+               [('Incidents_5', month_name[i]) for i in range(2, 11)] +
+               [('Incidents_6', month_name[i]) for i in range(2, 11)] +
+               [('Incidents_7', month_name[i]) for i in range(2, 11)]
                ]
 
         y_lbl = aux_df.loc[:,
-                [('Incidents', 'November')] + [('NC Incidents', 'November')]]
-        y_lbl[('Insecure', '')] = \
-            ((y_lbl[('Incidents', 'November')] != 0) |
-             (y_lbl[('NC Incidents', 'November')] != 0)).astype(int)
-        y_lbl.drop([('Incidents', 'November'), ('NC Incidents', 'November')],
-                   axis=1, inplace=True)
+                [('Incidents_0', 'November'), ('Incidents_1', 'November'),
+                 ('Incidents_2', 'November'), ('Incidents_3', 'November'),
+                 ('Incidents_4', 'November'), ('Incidents_5', 'November'),
+                 ('Incidents_6', 'November'), ('Incidents_7', 'November')]
+                ]
+        y_lbl[('Insecure', '')] = y_lbl.T.any().astype(int)
+        y_lbl = y_lbl[('Insecure', '')]
+
+        # print(y_lbl.sum())
+        # print(y_lbl.shape)
 
         y_pred_rfc = rfc.predict(y_ft)
         y_pred_dtc = dtc.predict(y_ft)
-        y_pred_rbf_svm = rbf_svm.predict(y_ft)
+        # y_pred_rbf_svm = rbf_svm.predict(y_ft)
 
-        rfc_score = rfc.score(y_ft, y_lbl)
-        dtc_score = dtc.score(y_ft, y_lbl)
-        rbf_svm_score = rbf_svm.score(y_ft, y_lbl)
+        rfc_score = rfc.score(y_ft, y_lbl.to_numpy().ravel())
+        dtc_score = dtc.score(y_ft, y_lbl.to_numpy().ravel())
+        # rbf_svm_score = rbf_svm.score(y_ft, y_lbl)
 
         rfc_precision = precision_score(y_lbl, y_pred_rfc)
         dtc_precision = precision_score(y_lbl, y_pred_dtc)
-        rbf_svm_precision = precision_score(y_lbl, y_pred_rbf_svm)
+        # rbf_svm_precision = precision_score(y_lbl, y_pred_rbf_svm)
 
         rfc_recall = recall_score(y_lbl, y_pred_rfc)
         dtc_recall = recall_score(y_lbl, y_pred_dtc)
-        rbf_svm_recall = recall_score(y_lbl, y_pred_rbf_svm)
+        # rbf_svm_recall = recall_score(y_lbl, y_pred_rbf_svm)
 
         print(
             f"""
@@ -413,11 +433,11 @@ class Framework:
     dtc score           {dtc_score:1.3f}
     dtc precision       {dtc_precision:1.3f}
     dtc recall          {dtc_recall:1.3f}
-
-    rbf_svm score       {rbf_svm_score:1.3f}
-    rbf_svm precision   {rbf_svm_precision:1.3f}
-    rbf_svm recall      {rbf_svm_recall:1.3f}
-            """
+"""
+            # rbf_svm score       {rbf_svm_score:1.3f}
+            # rbf_svm precision   {rbf_svm_precision:1.3f}
+            # rbf_svm recall      {rbf_svm_recall:1.3f}
+            #         """
         )
 
         # Confusion Matrix
@@ -446,8 +466,8 @@ if __name__ == "__main__":
     #       - Comparar 0s entre xy_predicted
 
     fwork = Framework(n=150000, year="2017", read_df=True)
-
-    # fwork.ml_p_algorithm()
+    # fwork.df.to_pickle('df_pickle')
+    fwork.ml_p_algorithm()
 
     # aux_df = fwork.df
     #

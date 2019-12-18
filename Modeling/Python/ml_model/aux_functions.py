@@ -204,8 +204,8 @@ def filter_cells(df):
 
 
 if __name__ == '__main__':
-    dim = 4
-    layer = 1
+    dim = 6
+    layer = 2
 
     D = np.random.randint(low=0, high=10, size=(dim, dim), dtype=int)
 
