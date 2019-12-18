@@ -48,7 +48,7 @@ def timer(fn):
 
 # noinspection DuplicatedCode
 class Framework:
-    def __init__(self, n=1000, year="2017", read_df=True):
+    def __init__(self, n=1000, year="2017", read_df=True, pickle=False):
         self.n, self.year = n, year
 
         self.data = None
@@ -78,6 +78,9 @@ class Framework:
         else:
             self.get_data()
             self.generate_df()
+
+            if pickle:
+                self.df.to_picle('df_pickle')
 
     @timer
     def get_data(self):
@@ -333,11 +336,11 @@ class Framework:
         print("\tRunning algorithms...")
 
         rfc = RandomForestClassifier(n_jobs=8)
-        dtc = DecisionTreeClassifier()
+        # dtc = DecisionTreeClassifier()
         # rbf_svm = SVC()
 
         rfc.fit(x_ft, x_lbl.to_numpy().ravel())
-        dtc.fit(x_ft, x_lbl.to_numpy().ravel())
+        # dtc.fit(x_ft, x_lbl.to_numpy().ravel())
         # rbf_svm.fit(x_ft, x_lbl)
 
         cols = pd.Index(['features', 'r_importance'])
@@ -350,21 +353,21 @@ class Framework:
         rfc_fi_df.reset_index(drop=True, inplace=True)
 
         x_pred_rfc = rfc.predict(x_ft)
-        x_pred_dtc = dtc.predict(x_ft)
+        # x_pred_dtc = dtc.predict(x_ft)
         # x_pred_rbf_svm = rbf_svm.predict(x_ft)
 
         print("\n\tx\n")
 
         rfc_score = rfc.score(x_ft, x_lbl)
-        dtc_score = dtc.score(x_ft, x_lbl)
+        # dtc_score = dtc.score(x_ft, x_lbl)
         # rbf_svm_score = rbf_svm.score(x_ft, x_lbl)
 
         rfc_precision = precision_score(x_lbl, x_pred_rfc)
-        dtc_precision = precision_score(x_lbl, x_pred_dtc)
+        # dtc_precision = precision_score(x_lbl, x_pred_dtc)
         # rbf_svm_precision = precision_score(x_lbl, x_pred_rbf_svm)
 
         rfc_recall = recall_score(x_lbl, x_pred_rfc)
-        dtc_recall = recall_score(x_lbl, x_pred_dtc)
+        # dtc_recall = recall_score(x_lbl, x_pred_dtc)
         # rbf_svm_recall = recall_score(x_lbl, x_pred_rbf_svm)
 
         print(
@@ -372,11 +375,11 @@ class Framework:
     rfc score           {rfc_score:1.3f}
     rfc precision       {rfc_precision:1.3f}
     rfc recall          {rfc_recall:1.3f}
-    
-    dtc score           {dtc_score:1.3f}
-    dtc precision       {dtc_precision:1.3f}
-    dtc recall          {dtc_recall:1.3f}
-"""
+        """
+            # dtc score           {dtc_score:1.3f}
+            # dtc precision       {dtc_precision:1.3f}
+            # dtc recall          {dtc_recall:1.3f}
+
             # rbf_svm score       {rbf_svm_score:1.9f}
             # rbf_svm precision   {rbf_svm_precision:1.9f}
             # rbf_svm recall      {rbf_svm_recall:1.9f}
@@ -409,19 +412,19 @@ class Framework:
         # print(y_lbl.shape)
 
         y_pred_rfc = rfc.predict(y_ft)
-        y_pred_dtc = dtc.predict(y_ft)
+        # y_pred_dtc = dtc.predict(y_ft)
         # y_pred_rbf_svm = rbf_svm.predict(y_ft)
 
         rfc_score = rfc.score(y_ft, y_lbl.to_numpy().ravel())
-        dtc_score = dtc.score(y_ft, y_lbl.to_numpy().ravel())
+        # dtc_score = dtc.score(y_ft, y_lbl.to_numpy().ravel())
         # rbf_svm_score = rbf_svm.score(y_ft, y_lbl)
 
         rfc_precision = precision_score(y_lbl, y_pred_rfc)
-        dtc_precision = precision_score(y_lbl, y_pred_dtc)
+        # dtc_precision = precision_score(y_lbl, y_pred_dtc)
         # rbf_svm_precision = precision_score(y_lbl, y_pred_rbf_svm)
 
         rfc_recall = recall_score(y_lbl, y_pred_rfc)
-        dtc_recall = recall_score(y_lbl, y_pred_dtc)
+        # dtc_recall = recall_score(y_lbl, y_pred_dtc)
         # rbf_svm_recall = recall_score(y_lbl, y_pred_rbf_svm)
 
         print(
@@ -429,11 +432,11 @@ class Framework:
     rfc score           {rfc_score:1.3f}
     rfc precision       {rfc_precision:1.3f}
     rfc recall          {rfc_recall:1.3f}
+            """
+            # dtc score           {dtc_score:1.3f}
+            # dtc precision       {dtc_precision:1.3f}
+            # dtc recall          {dtc_recall:1.3f}
 
-    dtc score           {dtc_score:1.3f}
-    dtc precision       {dtc_precision:1.3f}
-    dtc recall          {dtc_recall:1.3f}
-"""
             # rbf_svm score       {rbf_svm_score:1.3f}
             # rbf_svm precision   {rbf_svm_precision:1.3f}
             # rbf_svm recall      {rbf_svm_recall:1.3f}
@@ -466,7 +469,6 @@ if __name__ == "__main__":
     #       - Comparar 0s entre xy_predicted
 
     fwork = Framework(n=150000, year="2017", read_df=True)
-    # fwork.df.to_pickle('df_pickle')
     fwork.ml_p_algorithm()
 
     # aux_df = fwork.df
