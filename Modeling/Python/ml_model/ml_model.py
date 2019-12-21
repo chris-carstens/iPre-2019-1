@@ -353,10 +353,12 @@ class Framework:
             rfc_fi_df = pd.DataFrame(columns=cols)
             rfc_fi_df['features'] = x_ft.columns.to_numpy()
             rfc_fi_df['r_importance'] = rfc.feature_importances_
-            rfc_fi_df.sort_values(by=['r_importance'],
-                                  ascending=False,
-                                  inplace=True)
-            rfc_fi_df.reset_index(drop=True, inplace=True)
+            # rfc_fi_df.sort_values(by=['r_importance'],
+            #                       ascending=False,
+            #                       inplace=True)
+            # rfc_fi_df.reset_index(drop=True, inplace=True)
+
+            rfc_fi_df.to_pickle('rfc_pickle')
 
             print('\n', rfc_fi_df)
 
