@@ -1,5 +1,5 @@
 # ml_model.py:
-# - Python version: 3.7.1
+# - Python version: 3.8.1
 # - Author: Mauro S. Mendoza Elguera
 # - Institution: Pontifical Catholic University of Chile
 # - Date: 2019-08-30
