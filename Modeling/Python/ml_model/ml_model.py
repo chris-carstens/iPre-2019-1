@@ -80,7 +80,12 @@ class Framework:
             self.generate_df()
 
             if pickle:
-                self.df.to_picle('df_pickle')
+                self.df: pd.DataFrame  # Type hint
+                st = time()
+
+                print("\nPickling dataframe...", end=" ")
+                self.df.to_pickle('df_pickle')
+                print(f"finished! ({time() - st:3.1f} sec)")
 
     @timer
     def get_data(self):
@@ -294,7 +299,7 @@ class Framework:
 
     @staticmethod
     @timer
-    def ml_p_algorithm():
+    def ml_p_algorithm(f_importance=False):
         """
         Produce la predicción de acuerdo a los datos entregados, utilizando
         un approach de machine learning con clasificador RandomForest y
@@ -343,14 +348,17 @@ class Framework:
         # dtc.fit(x_ft, x_lbl.to_numpy().ravel())
         # rbf_svm.fit(x_ft, x_lbl)
 
-        cols = pd.Index(['features', 'r_importance'])
-        rfc_fi_df = pd.DataFrame(columns=cols)
-        rfc_fi_df['features'] = x_ft.columns.to_numpy()
-        rfc_fi_df['r_importance'] = rfc.feature_importances_
-        rfc_fi_df.sort_values(by=['r_importance'],
-                              ascending=False,
-                              inplace=True)
-        rfc_fi_df.reset_index(drop=True, inplace=True)
+        if f_importance:
+            cols = pd.Index(['features', 'r_importance'])
+            rfc_fi_df = pd.DataFrame(columns=cols)
+            rfc_fi_df['features'] = x_ft.columns.to_numpy()
+            rfc_fi_df['r_importance'] = rfc.feature_importances_
+            rfc_fi_df.sort_values(by=['r_importance'],
+                                  ascending=False,
+                                  inplace=True)
+            rfc_fi_df.reset_index(drop=True, inplace=True)
+
+            print('\n', rfc_fi_df)
 
         x_pred_rfc = rfc.predict(x_ft)
         # x_pred_dtc = dtc.predict(x_ft)
@@ -468,8 +476,8 @@ if __name__ == "__main__":
     #       - Comparación de rendimiento Bin. Class vs Multi. Class
     #       - Comparar 0s entre xy_predicted
 
-    fwork = Framework(n=150000, year="2017", read_df=True)
-    fwork.ml_p_algorithm()
+    fwork = Framework(n=150000, year="2017", read_df=True, pickle=False)
+    fwork.ml_p_algorithm(f_importance=True)
 
     # aux_df = fwork.df
     #
