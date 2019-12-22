@@ -1,21 +1,34 @@
-# aux_functions.py:
-# Python Version: 3.8.1
+"""
+aux_functions.py:
+Python Version: 3.8.1
 
-# iPre - Big Data para Criminología
-# Created by Mauro S. Mendoza Elguera at 16-09-19
-# Pontifical Catholic University of Chile
+iPre - Big Data para Criminología
+Created by Mauro S. Mendoza Elguera at 16-09-19
+Pontifical Catholic University of Chile
 
-# Notes
+Notes
 
-# -
+-
+"""
+
+from time import time
 
 import numpy as np
-import pandas as pd
 import geopandas as gpd
 
 from math import floor
-
 from scipy.signal import convolve2d
+
+
+def timer(fn):
+    def inner_1(*args, **kwargs):
+        st = time()
+
+        fn(*args, **kwargs)
+
+        print(f"\n\tFinished! ({time() - st:3.1f} sec)")
+
+    return inner_1
 
 
 def n_i(xi, x_min, hx):

@@ -1,13 +1,15 @@
-# ml_model.py:
-# Python Version: 3.8.1
+"""
+ml_model.py:
+Python Version: 3.8.1
 
-# iPre - Big Data para Criminología
-# Created by Mauro S. Mendoza Elguera at 30-08-19
-# Pontifical Catholic University of Chile
+iPre - Big Data para Criminología
+Created by Mauro S. Mendoza Elguera at 30-08-19
+Pontifical Catholic University of Chile
 
-# Notes
+Notes
 
-# -
+-
+"""
 
 import pandas as pd
 import numpy as np
@@ -30,8 +32,7 @@ from sklearn.metrics import confusion_matrix
 from sodapy import Socrata
 import credentials as cre
 
-from aux_functions import n_i, nc_incidents, to_df_col, filter_cells, \
-    il_neighbors
+import aux_functions as af
 from parameters import dallas_limits
 
 pd.set_option('display.max_columns', None)
@@ -39,18 +40,6 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.width', 1000)
 
 
-def timer(fn):
-    def inner_1(*args, **kwargs):
-        st = time()
-
-        fn(*args, **kwargs)
-
-        print(f"\n\tFinished! ({time() - st:3.1f} sec)")
-
-    return inner_1
-
-
-# noinspection DuplicatedCode
 class Framework:
     def __init__(self, n=1000, year="2017", read_df=True, pickle=False):
         self.n, self.year = n, year
@@ -91,7 +80,7 @@ class Framework:
                 self.df.to_pickle('df_pickle')
                 print(f"finished! ({time() - st:3.1f} sec)")
 
-    @timer
+    @af.timer
     def get_data(self):
         """
         Obtención de datos a partir de la Socrata API.
@@ -154,7 +143,7 @@ class Framework:
 
             self.data = df
 
-    @timer
+    @af.timer
     def generate_df(self):
         """
         La malla se genera de la esquina inf-izquierda a la esquina sup-derecha,
@@ -244,8 +233,8 @@ class Framework:
             for index, row in fil_incidents.iterrows():
                 xi, yi = row.geometry.x, row.geometry.y
 
-                nx_i = n_i(xi, self.x.min(), self.hx)
-                ny_i = n_i(yi, self.y.min(), self.hy)
+                nx_i = af.n_i(xi, self.x.min(), self.hx)
+                ny_i = af.n_i(yi, self.y.min(), self.hy)
 
                 D[nx_i, ny_i] += 1
 
@@ -256,21 +245,21 @@ class Framework:
 
             # Actualización del pandas dataframe
 
-            self.df.loc[:, ('Incidents_0', month)] = to_df_col(D)
+            self.df.loc[:, ('Incidents_0', month)] = af.to_df_col(D)
             self.df.loc[:, ('Incidents_1', month)] = \
-                to_df_col(il_neighbors(matrix=D, i=1))
+                af.to_df_col(af.il_neighbors(matrix=D, i=1))
             self.df.loc[:, ('Incidents_2', month)] = \
-                to_df_col(il_neighbors(matrix=D, i=2))
+                af.to_df_col(af.il_neighbors(matrix=D, i=2))
             self.df.loc[:, ('Incidents_3', month)] = \
-                to_df_col(il_neighbors(matrix=D, i=3))
+                af.to_df_col(af.il_neighbors(matrix=D, i=3))
             self.df.loc[:, ('Incidents_4', month)] = \
-                to_df_col(il_neighbors(matrix=D, i=4))
+                af.to_df_col(af.il_neighbors(matrix=D, i=4))
             self.df.loc[:, ('Incidents_5', month)] = \
-                to_df_col(il_neighbors(matrix=D, i=5))
+                af.to_df_col(af.il_neighbors(matrix=D, i=5))
             self.df.loc[:, ('Incidents_6', month)] = \
-                to_df_col(il_neighbors(matrix=D, i=6))
+                af.to_df_col(af.il_neighbors(matrix=D, i=6))
             self.df.loc[:, ('Incidents_7', month)] = \
-                to_df_col(il_neighbors(matrix=D, i=7))
+                af.to_df_col(af.il_neighbors(matrix=D, i=7))
 
             print('finished!')
 
@@ -285,7 +274,7 @@ class Framework:
 
         # Llenado de la columna 'in_dallas'
 
-        self.df = filter_cells(self.df)
+        self.df = af.filter_cells(self.df)
 
         # Binary Classification
 
@@ -302,7 +291,7 @@ class Framework:
         print(f"{time() - st:3.2f} sec")
 
     @staticmethod
-    @timer
+    @af.timer
     def ml_p_algorithm(f_importance=False):
         """
         Produce la predicción de acuerdo a los datos entregados, utilizando
