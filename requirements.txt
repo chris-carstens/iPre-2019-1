@@ -25,6 +25,7 @@ sodapy
 
 # Geospatial Analyisis
 geopandas
+descartes
 Shapely
 Fiona
 pyproj

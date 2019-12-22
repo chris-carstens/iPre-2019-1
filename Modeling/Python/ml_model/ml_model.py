@@ -292,13 +292,16 @@ class Framework:
 
     @staticmethod
     @af.timer
-    def ml_p_algorithm(f_importance=False):
+    def ml_p_algorithm(f_importance=False, pickle=False):
         """
         Produce la predicción de acuerdo a los datos entregados, utilizando
-        un approach de machine learning con clasificador RandomForest y
-        entrega el output asociado a la matriz de confusión.
+        un approach de machine learning con clasificador RandomForest (rfc) y
+        entrega el output asociado.
 
-        :return:
+        :param f_importance: True para imprimir estadísticas
+            asociadas a los features utilizados para entrenar el classifier
+        :param pickle: True si se quiere generar un pickle de las estadísticas
+            asociadas al entrenamiento del classifier
         """
 
         print("\nInitializing...")
@@ -346,12 +349,9 @@ class Framework:
             rfc_fi_df = pd.DataFrame(columns=cols)
             rfc_fi_df['features'] = x_ft.columns.to_numpy()
             rfc_fi_df['r_importance'] = rfc.feature_importances_
-            # rfc_fi_df.sort_values(by=['r_importance'],
-            #                       ascending=False,
-            #                       inplace=True)
-            # rfc_fi_df.reset_index(drop=True, inplace=True)
 
-            rfc_fi_df.to_pickle('rfc_pickle')
+            if pickle:
+                rfc_fi_df.to_pickle('rfc_pickle')
 
             print('\n', rfc_fi_df)
 

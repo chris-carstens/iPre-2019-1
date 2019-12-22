@@ -510,10 +510,10 @@ class Promap:
     #
     #     print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
     #
-    #     print("\tReading shapefiles...", end=" ")
+    #     print("\tReading Streets...", end=" ")
     #     dallas_districts = gpd.GeoDataFrame.from_file(
     #             "../Data/Councils/Councils.shp")
-    #     dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
+    #     dallas = gpd.read_file('../Data/Streets/STREETS.shp')
     #     print("finished!")
     #
     #     fig, ax = plt.subplots(figsize=(15, 15))
@@ -603,7 +603,7 @@ class Promap:
     #
     #     print("\nPlotting Contours...")
     #
-    #     dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
+    #     dallas = gpd.read_file('../Data/Streets/STREETS.shp')
     #
     #     fig, ax = plt.subplots(figsize=(15, 12))
     #     ax.set_facecolor('xkcd:black')
@@ -659,7 +659,7 @@ class Promap:
     #
     #     print("\nPlotting Heatmap...")
     #
-    #     dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
+    #     dallas = gpd.read_file('../Data/Streets/STREETS.shp')
     #
     #     fig, ax = plt.subplots(figsize=(15, 12))
     #     ax.set_facecolor('xkcd:black')
@@ -806,7 +806,7 @@ class Promap:
     #
     #     dallasMap = GDALVectorReader(
     #             FileName='/Users/msmendozaelguera/Desktop/iPre/Modeling/Data'
-    #                      '/shapefiles'
+    #                      '/Streets'
     #                      '/STREETS.shp')
     #
     #     print("finished!")
