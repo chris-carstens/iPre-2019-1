@@ -190,13 +190,13 @@ class Framework:
         print("\tCreating dataframe columns...")
 
         months = [month_name[i] for i in range(1, 13)]
-        cols = pd.MultiIndex.from_product(
+        columns = pd.MultiIndex.from_product(
             [['Incidents_0', 'Incidents_1', 'Incidents_2', 'Incidents_3',
               'Incidents_4', 'Incidents_5', 'Incidents_6', 'Incidents_7'],
              months]
         )
 
-        self.df = pd.DataFrame(columns=cols)
+        self.df = pd.DataFrame(columns=columns)
 
         # Creación de los parámetros para el cálculo de los índices
 
@@ -290,9 +290,8 @@ class Framework:
 
         print(f"{time() - st:3.2f} sec")
 
-    @staticmethod
     @af.timer
-    def ml_p_algorithm(f_importance=False, pickle=False):
+    def ml_p_algorithm(self, f_importance=False, pickle=False):
         """
         Produce la predicción de acuerdo a los datos entregados, utilizando
         un approach de machine learning con clasificador RandomForest (rfc) y
@@ -310,7 +309,7 @@ class Framework:
 
         print("\n\tPreparing input...")
 
-        aux_df = fwork.df
+        aux_df = self.df
 
         x_ft = aux_df.loc[:,
                [('Incidents_0', month_name[i]) for i in range(1, 10)] +
