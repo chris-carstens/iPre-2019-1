@@ -1,8 +1,13 @@
 # aux_functions.py:
-# - Python version: 3.7.1
-# - Author: Mauro S. Mendoza Elguera
-# - Institution: Pontifical Catholic University of Chile
-# - Date: 2019-09-16
+# Python Version: 3.8.1
+
+# iPre - Big Data para Criminología
+# Created by Mauro S. Mendoza Elguera at 16-09-19
+# Pontifical Catholic University of Chile
+
+# Notes
+
+# -
 
 import numpy as np
 import pandas as pd

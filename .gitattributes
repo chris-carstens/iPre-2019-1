@@ -11,4 +11,4 @@
 # - Asegurarse primero de subir .gitattributes modificado y luego los lf
 
 Modeling/Python/ml_model/df_pickle filter=lfs diff=lfs merge=lfs -text
-paraview_build_v5.7.1 filter=lfs diff=lfs merge=lfs -text
+paraview_build_v5.7.1/* filter=lfs diff=lfs merge=lfs -text

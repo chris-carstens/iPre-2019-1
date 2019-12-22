@@ -1,8 +1,13 @@
 # params.py:
-# - Python version: 3.7.1
-# - Author: Mauro S. Mendoza Elguera
-# - Institution: Pontifical Catholic University of Chile
-# - Date: 2019-09-27
+# Python Version: 3.8.1
+
+# iPre - Big Data para Criminología
+# Created by Mauro S. Mendoza Elguera at 27-09-19
+# Pontifical Catholic University of Chile
+
+# Notes
+
+# -
 
 
 # Limites de dallas en epsg: 3857
