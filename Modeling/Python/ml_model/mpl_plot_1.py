@@ -3,7 +3,7 @@ mpl_plot_1.py
 
 iPre - Big Data para Criminología
 Created by Mauro S. Mendoza Elguera at 20-12-19
-Pontifical Catholic University of Chile
+Pontifical Catholic University of ChileÅ
 """
 
 import pandas as pd

@@ -24,8 +24,9 @@ from statsmodels.nonparametric.kernel_density \
 
 from sodapy import Socrata
 import credentials as cre
-import parameters as params
 
+import parameters as params
+import aux_functions as af
 
 # Observaciones
 #
@@ -34,47 +35,6 @@ import parameters as params
 # Testing data 649 incidents (November 1st - December 31st)
 #
 # 2. Se requiere que la muestra sea "estable" en el periodo analizado
-
-def timer(fn):
-    def inner_1(*args, **kwargs):
-        st = time()
-
-        fn(*args, **kwargs)
-
-        print(f"\nFinished! ({time() - st:3.1f} sec)")
-
-    return inner_1
-
-
-def checked_points(points):
-    dallas_shp = gpd.read_file('../../Data/Councils/Councils.shp')
-
-    df_points = pd.DataFrame(
-        {'x': points[0, :], 'y': points[1, :], 't': points[2, :]}
-    )
-
-    inc_points = df_points[['x', 'y']].apply(lambda row:
-                                             Point(row['x'], row['y']),
-                                             axis=1)
-    geo_inc = gpd.GeoDataFrame({'geometry': inc_points, 'day': df_points['t']})
-
-    # Para borrar el warning asociado a != epsg distintos
-    geo_inc.crs = {'init': 'epsg:2276'}
-
-    valid_inc = gpd.tools.sjoin(geo_inc,
-                                dallas_shp,
-                                how='inner',
-                                op='intersects').reset_index()
-
-    valid_inc_2 = valid_inc[['geometry', 'day']]
-
-    x = valid_inc_2['geometry'].apply(lambda row: row.x)
-    y = valid_inc_2['geometry'].apply(lambda row: row.y)
-    t = valid_inc_2['day']
-
-    v_points = np.array([x, y, t])
-
-    return v_points
 
 
 settings = EstimatorSettings(efficient=True,
@@ -94,7 +54,7 @@ class MyKDEMultivariate(KDEMultivariate):
 
         # simulated and checked points
         s_points = np.transpose(means + norm)
-        c_points = checked_points(s_points)
+        c_points = af.checked_points(s_points)
 
         print(f"\n{size - c_points.shape[1]} invalid points found")
 
@@ -150,7 +110,7 @@ class Framework:
             bw=bw
         )
 
-    @timer
+    @af.timer
     def get_data(self):
         """
         Requests data using the Socrata API and saves in the
@@ -267,7 +227,7 @@ class Framework:
                   "\n"
                   f"\t{self.data.shape[0]} incidents successfully retrieved!")
 
-    @timer
+    @af.timer
     def train_model(self, x, y, t, bw=None):
         """
         Entrena el modelo y genera un KDE
@@ -308,7 +268,7 @@ class Framework:
                   f"\t\thy = {round(self.kde.bw[1], 3)} ft\n"
                   f"\t\tht = {round(self.kde.bw[2], 3)} days")
 
-    @timer
+    @af.timer
     def data_barplot(self,
                      pdf: bool = False):
         """
@@ -355,7 +315,7 @@ class Framework:
 
         plt.show()
 
-    @timer
+    @af.timer
     def spatial_pattern(self,
                         pdf: bool = False):
         """
@@ -442,7 +402,7 @@ class Framework:
             plt.savefig("output/spatial_pattern.pdf", format='pdf')
         plt.show()
 
-    @timer
+    @af.timer
     def contour_plot(self,
                      bins: int,
                      ti: int,
@@ -498,7 +458,7 @@ class Framework:
             plt.savefig("output/dallas_contourplot.pdf", format='pdf')
         plt.show()
 
-    @timer
+    @af.timer
     def heatmap(self,
                 bins: int,
                 ti: int,
@@ -558,7 +518,7 @@ class Framework:
             plt.savefig("output/dallas_heatmap.pdf", format='pdf')
         plt.show()
 
-    @timer
+    @af.timer
     def generate_grid(self,
                       bins: int = 100):
         """
@@ -591,7 +551,7 @@ class Framework:
                   pointData={"density": d,
                              "y_day": t})
 
-    @timer
+    @af.timer
     def plot_4d(self,
                 jpg: bool = False,
                 interactive: bool = False):
