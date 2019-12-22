@@ -1,1 +1,14 @@
+# .gitattributes
+# Python Version: 3.8.1
+
+# iPre - Big Data para Criminología
+# Created by Mauro S. Mendoza Elguera at 22-12-19
+# Pontifical Catholic University of Chile
+
+# Notes
+
+# - Folders/Files Git LFS will manage: git lfs track folder_name
+# - Asegurarse primero de subir .gitattributes modificado y luego los lf
+
 Modeling/Python/ml_model/df_pickle filter=lfs diff=lfs merge=lfs -text
+paraview_build_v5.7.1 filter=lfs diff=lfs merge=lfs -text

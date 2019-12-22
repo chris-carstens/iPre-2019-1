@@ -1,8 +1,13 @@
 # ml_model.py:
-# - Python version: 3.8.1
-# - Author: Mauro S. Mendoza Elguera
-# - Institution: Pontifical Catholic University of Chile
-# - Date: 2019-08-30
+# Python Version: 3.8.1
+
+# iPre - Big Data para Criminología
+# Created by Mauro S. Mendoza Elguera at 30-08-19
+# Pontifical Catholic University of Chile
+
+# Notes
+
+# -
 
 import pandas as pd
 import numpy as np
@@ -19,9 +24,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 
 from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier
-
 from sklearn.metrics import precision_score, recall_score
-# from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix
 
 from sodapy import Socrata
 import credentials as cre

@@ -5,9 +5,11 @@
 # Created by Mauro S. Mendoza Elguera at 21-12-19
 # Pontifical Catholic University of Chile
 
-# Install packages: pip install -r requirements.txt
-# Outdated packages: pip list --outdated
-# Upgrade packages: pip install --upgrade pkg_name1 pkg_name2 ...
+# Notes:
+
+# - Install packages: pip install -r requirements.txt
+# - Outdated packages: pip list --outdated
+# - Upgrade packages: pip install --upgrade pkg_name1 pkg_name2 ...
 
 # Array Computing
 numpy
