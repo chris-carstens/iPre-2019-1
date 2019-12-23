@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 
 def n_semanas(total_dias, dia):
@@ -22,5 +23,12 @@ def linear_distance(a1, a2):
     linear_distance = abs(a1 - a2)
     #print('DISTANCIA LINEAL: ', linear_distance)
     return float(linear_distance)
+
+def find_position(mgridx, mgridy, x, y, hx, hy):
+    x_desplazada = mgridx - hx/2
+    y_desplazada = mgridy - hy/2
+    pos_x = np.where(x_desplazada <= x)[0][-1]
+    pos_y = np.where(y_desplazada <= y)[1][-1]
+    return pos_x, pos_y
 
 
