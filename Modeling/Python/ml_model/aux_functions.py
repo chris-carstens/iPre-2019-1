@@ -179,8 +179,11 @@ def filter_cells(df):
     Completa la columna "in_dallas" del dataframe, explicitando cuales de las
     celdas se encuentran dentro de Dallas.
 
-    :param df: Pandas dataframe
-    :return: Pandas Dataframe
+    :param pandas.DataFrame df: Dataframe que contiene información de celdas
+        que no necesariamente están en Dallas
+    :return: Dataframe con celdas filtradas, i.e., que están
+        dentro de Dallas 
+    :rtype: pandas.DataFrame
     """
 
     print('\tFiltering cells...')
@@ -190,11 +193,7 @@ def filter_cells(df):
     dallas_shp.to_crs(epsg=3857, inplace=True)
 
     print('\t\tCreating GeoDataframe...')
-    # Trans. a gpd para usar el sjoin()
-
-    # print(df[[('geometry', ''), ('in_dallas', '')]].head())
     geo_pd = gpd.GeoDataFrame(df[[('geometry', ''), ('in_dallas', '')]])
-
     geo_pd.crs = dallas_shp.crs  # Mismo crs que el shp para evitar warnings
 
     # Borramos el segundo nivel ''.
@@ -210,11 +209,13 @@ def filter_cells(df):
     geo_pd.fillna(value={'index_right': 0}, inplace=True)  # para filtrar
     geo_pd.loc[geo_pd['index_right'] != 0, 'in_dallas'] = 1
 
-    # Añadimos la columna del gpd al df inicial
+    # Añadimos la columna del gpd filtrado al df inicial
     df[[('in_dallas', '')]] = geo_pd[['in_dallas']]
 
     # Filtramos el df inicial con la columna añadida
     df = df[df[('in_dallas', '')] == 1]
+
+    df.drop(labels=[('in_dallas', '')], axis=1, inplace=True)
 
     print(f'finished!', end=" ")
 

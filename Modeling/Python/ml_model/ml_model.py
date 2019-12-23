@@ -41,7 +41,7 @@ pd.set_option('display.width', 1000)
 
 
 class Framework:
-    def __init__(self, n=1000, year="2017", read_df=True, pickle=False):
+    def __init__(self, n=1000, year="2017", read_df=True):
         self.n, self.year = n, year
 
         self.data = None
@@ -71,14 +71,6 @@ class Framework:
         else:
             self.get_data()
             self.generate_df()
-
-            if pickle:
-                self.df: pd.DataFrame  # Type hint
-                st = time()
-
-                print("\nPickling dataframe...", end=" ")
-                self.df.to_pickle('df_pickle')
-                print(f"finished! ({time() - st:3.1f} sec)")
 
     @af.timer
     def get_data(self):
@@ -276,14 +268,6 @@ class Framework:
 
         self.df = af.filter_cells(self.df)
 
-        # Binary Classification
-
-        # self.df[('Risky', '')] = 0
-
-        # Multinominal Classification
-
-        # self.df[('Risky', '')] = 0
-
         # Garbage recollection
 
         del self.data, self.incidents, self.x, self.y
@@ -291,7 +275,7 @@ class Framework:
         print(f"{time() - st:3.2f} sec")
 
     @af.timer
-    def ml_p_algorithm(self, f_importance=False, pickle=False):
+    def ml_algorithm(self, f_importance=False, pickle=False):
         """
         Produce la predicción de acuerdo a los datos entregados, utilizando
         un approach de machine learning con clasificador RandomForest (rfc) y
@@ -309,9 +293,8 @@ class Framework:
 
         print("\n\tPreparing input...")
 
-        aux_df = self.df
-
-        x_ft = aux_df.loc[:,
+        x_ft = self.df.loc[
+               :,
                [('Incidents_0', month_name[i]) for i in range(1, 10)] +
                [('Incidents_1', month_name[i]) for i in range(1, 10)] +
                [('Incidents_2', month_name[i]) for i in range(1, 10)] +
@@ -321,15 +304,15 @@ class Framework:
                [('Incidents_6', month_name[i]) for i in range(1, 10)] +
                [('Incidents_7', month_name[i]) for i in range(1, 10)]
                ]
-
-        x_lbl = aux_df.loc[:,
+        x_lbl = self.df.loc[
+                :,
                 [('Incidents_0', 'October'), ('Incidents_1', 'October'),
                  ('Incidents_2', 'October'), ('Incidents_3', 'October'),
                  ('Incidents_4', 'October'), ('Incidents_5', 'October'),
                  ('Incidents_6', 'October'), ('Incidents_7', 'October')]
                 ]
-        x_lbl[('Insecure', '')] = x_lbl.T.any().astype(int)
-        x_lbl = x_lbl[('Insecure', '')]
+        x_lbl[('Dangerous', '')] = x_lbl.T.any().astype(int)
+        x_lbl = x_lbl[('Dangerous', '')]
 
         # Algoritmo
 
@@ -343,6 +326,10 @@ class Framework:
         # dtc.fit(x_ft, x_lbl.to_numpy().ravel())
         # rbf_svm.fit(x_ft, x_lbl)
 
+        x_pred_rfc = rfc.predict(x_ft)
+        # x_pred_dtc = dtc.predict(x_ft)
+        # x_pred_rbf_svm = rbf_svm.predict(x_ft)
+
         if f_importance:
             cols = pd.Index(['features', 'r_importance'])
             rfc_fi_df = pd.DataFrame(columns=cols)
@@ -350,15 +337,14 @@ class Framework:
             rfc_fi_df['r_importance'] = rfc.feature_importances_
 
             if pickle:
-                rfc_fi_df.to_pickle('rfc_pickle')
+                rfc_fi_df.to_pickle('rfc.pkl')
 
             print('\n', rfc_fi_df)
 
-        x_pred_rfc = rfc.predict(x_ft)
-        # x_pred_dtc = dtc.predict(x_ft)
-        # x_pred_rbf_svm = rbf_svm.predict(x_ft)
-
         print("\n\tx\n")
+
+        self.df[('Dangerous_Oct', '')] = x_lbl
+        self.df[('Dangerous_pred_Oct', '')] = x_pred_rfc
 
         rfc_score = rfc.score(x_ft, x_lbl)
         # dtc_score = dtc.score(x_ft, x_lbl)
@@ -390,7 +376,8 @@ class Framework:
 
         print("\n\ty\n")
 
-        y_ft = aux_df.loc[:,
+        y_ft = self.df.loc[
+               :,
                [('Incidents_0', month_name[i]) for i in range(2, 11)] +
                [('Incidents_1', month_name[i]) for i in range(2, 11)] +
                [('Incidents_2', month_name[i]) for i in range(2, 11)] +
@@ -400,18 +387,16 @@ class Framework:
                [('Incidents_6', month_name[i]) for i in range(2, 11)] +
                [('Incidents_7', month_name[i]) for i in range(2, 11)]
                ]
-
-        y_lbl = aux_df.loc[:,
+        y_lbl = self.df.loc[
+                :,
                 [('Incidents_0', 'November'), ('Incidents_1', 'November'),
                  ('Incidents_2', 'November'), ('Incidents_3', 'November'),
                  ('Incidents_4', 'November'), ('Incidents_5', 'November'),
                  ('Incidents_6', 'November'), ('Incidents_7', 'November')]
                 ]
-        y_lbl[('Insecure', '')] = y_lbl.T.any().astype(int)
-        y_lbl = y_lbl[('Insecure', '')]
 
-        # print(y_lbl.sum())
-        # print(y_lbl.shape)
+        y_lbl[('Dangerous', '')] = y_lbl.T.any().astype(int)
+        y_lbl = y_lbl[('Dangerous', '')]
 
         y_pred_rfc = rfc.predict(y_ft)
         # y_pred_dtc = dtc.predict(y_ft)
@@ -450,16 +435,28 @@ class Framework:
         # print("\tComputando matrices de confusión...", end="\n\n")
         #
         # c_matrix_x = confusion_matrix(
-        #         x_lbl[('Insecure', '')], x_predict[:, 0]
+        #         x_lbl[('Dangerous', '')], x_predict[:, 0]
         # )
         #
         # print(c_matrix_x, end="\n\n")
         #
         # c_matrix_y = confusion_matrix(
-        #         y_lbl[('Insecure', '')], y_predict[:, 0]
+        #         y_lbl[('Dangerous', '')], y_predict[:, 0]
         # )
         #
         # print(c_matrix_y)
+
+    @af.timer
+    def df_to_pickle(self, file_name='df.pkl'):
+        """
+        Genera un pickle de self.df
+
+        :param str file_name: Nombre del pickle a generar
+        :return: pickle de self.df
+        """
+
+        print("\nPickling dataframe...", end=" ")
+        self.df.to_pickle(file_name)
 
 
 if __name__ == "__main__":
@@ -470,8 +467,8 @@ if __name__ == "__main__":
     #       - Comparación de rendimiento Bin. Class vs Multi. Class
     #       - Comparar 0s entre xy_predicted
 
-    fwork = Framework(n=150000, year="2017", read_df=True, pickle=False)
-    fwork.ml_p_algorithm(f_importance=True)
+    fwork = Framework(n=150000, year="2017", read_df=False)
+    fwork.ml_algorithm(f_importance=True, pickle=True)
 
     # aux_df = fwork.df
     #
@@ -484,7 +481,7 @@ if __name__ == "__main__":
     #       [('Incidents', 'October'), ('NC Incidents', 'October')]
     #      ]
     #
-    # y1[('Insecure', '')] = ((y1[('Incidents', 'October')] != 0) |
+    # y1[('Dangerous', '')] = ((y1[('Incidents', 'October')] != 0) |
     #                         (y1[('NC Incidents', 'October')] != 0)) \
     #     .astype(int)
     # y1.drop([('Incidents', 'October'), ('NC Incidents', 'October')],
@@ -522,7 +519,7 @@ if __name__ == "__main__":
     #
     # y2 = aux_df.loc[:,
     #         [('Incidents', 'November')] + [('NC Incidents', 'November')]]
-    # y2[('Insecure', '')] = \
+    # y2[('Dangerous', '')] = \
     #     ((y2[('Incidents', 'November')] != 0) |
     #      (y2[('NC Incidents', 'November')] != 0)).astype(int)
     # y2.drop([('Incidents', 'November'), ('NC Incidents', 'November')],

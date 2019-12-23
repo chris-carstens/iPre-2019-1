@@ -29,8 +29,11 @@ descartes
 Shapely
 Fiona
 pyproj
+Rtree
 
 # Paraview
+# El módulo paraview debe ser instalado aparte, como producto de
+# realizar una build afín de la app.
 pyevtk
 
 # Machine Learning
