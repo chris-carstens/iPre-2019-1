@@ -186,6 +186,8 @@ def filter_cells(df):
     :rtype: pandas.DataFrame
     """
 
+    aux_df = df
+
     print('\tFiltering cells...')
 
     print('\t\tLoading shapefile...')
@@ -193,33 +195,30 @@ def filter_cells(df):
     dallas_shp.to_crs(epsg=3857, inplace=True)
 
     print('\t\tCreating GeoDataframe...')
-    geo_pd = gpd.GeoDataFrame(df[[('geometry', ''), ('in_dallas', '')]])
+    geo_pd = gpd.GeoDataFrame(aux_df[[('geometry', ''), ('in_dallas', '')]])
     geo_pd.crs = dallas_shp.crs  # Mismo crs que el shp para evitar warnings
 
-    # Borramos el segundo nivel ''.
+    # Borramos el segundo nivel ''
     geo_pd = geo_pd.T.reset_index(level=1, drop=True).T
 
     print('\t\tFiltering...')
     geo_pd = gpd.tools.sjoin(geo_pd, dallas_shp,
                              how='left',  # left para conservar indices
-                             op='intersects')[['in_dallas',
-                                               'index_right']]
+                             op='intersects')[['in_dallas', 'index_right']]
 
     print('\t\tUpdating dataframe... ', end='')
     geo_pd.fillna(value={'index_right': 0}, inplace=True)  # para filtrar
     geo_pd.loc[geo_pd['index_right'] != 0, 'in_dallas'] = 1
 
     # Añadimos la columna del gpd filtrado al df inicial
-    df[[('in_dallas', '')]] = geo_pd[['in_dallas']]
+    aux_df[[('in_dallas', '')]] = geo_pd[['in_dallas']]
 
     # Filtramos el df inicial con la columna añadida
-    df = df[df[('in_dallas', '')] == 1]
-
-    df.drop(labels=[('in_dallas', '')], axis=1, inplace=True)
+    aux_df = aux_df[aux_df[('in_dallas', '')] == 1]
 
     print(f'finished!', end=" ")
 
-    return df
+    return aux_df
 
 
 if __name__ == '__main__':

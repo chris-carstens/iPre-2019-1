@@ -16,9 +16,9 @@ from matplotlib.lines import Line2D
 
 import parameters as prm
 
-data = pd.read_pickle('df.pkl')[('geometry', ''),
+data = pd.read_pickle('df.pkl')[[('geometry', ''),
                                 ('Dangerous_Oct', ''),
-                                ('Dangerous_pred_Oct', '')]
+                                ('Dangerous_pred_Oct', '')]]
 
 # d_districts = gpd.GeoDataFrame.from_file(
 #     filename='../../Data/Councils/Councils.shp'

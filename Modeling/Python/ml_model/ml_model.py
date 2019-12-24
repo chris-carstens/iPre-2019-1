@@ -66,7 +66,7 @@ class Framework:
             st = time()
 
             print("\nReading pickle dataframe...", end=" ")
-            self.df = pd.read_pickle('df_pickle')
+            self.df = pd.read_pickle('df.pkl')
             print(f"finished! ({time() - st:3.1f} sec)")
         else:
             self.get_data()
@@ -158,8 +158,6 @@ class Framework:
 
         :return: Pandas Dataframe con la información
         """
-
-        st = time()
 
         print("\nGenerating dataframe...\n")
 
@@ -267,12 +265,11 @@ class Framework:
         # Llenado de la columna 'in_dallas'
 
         self.df = af.filter_cells(self.df)
+        self.df.drop(columns=[('in_dallas', '')], inplace=True)
 
         # Garbage recollection
 
         del self.data, self.incidents, self.x, self.y
-
-        print(f"{time() - st:3.2f} sec")
 
     @af.timer
     def ml_algorithm(self, f_importance=False, pickle=False):
@@ -339,7 +336,7 @@ class Framework:
             if pickle:
                 rfc_fi_df.to_pickle('rfc.pkl')
 
-            print('\n', rfc_fi_df)
+            # print('\n', rfc_fi_df)
 
         print("\n\tx\n")
 
@@ -467,8 +464,8 @@ if __name__ == "__main__":
     #       - Comparación de rendimiento Bin. Class vs Multi. Class
     #       - Comparar 0s entre xy_predicted
 
-    fwork = Framework(n=150000, year="2017", read_df=False)
-    fwork.ml_algorithm(f_importance=True, pickle=True)
+    fwork = Framework(n=150000, year="2017", read_df=True)
+    # fwork.ml_algorithm(f_importance=True, pickle=True)
 
     # aux_df = fwork.df
     #
