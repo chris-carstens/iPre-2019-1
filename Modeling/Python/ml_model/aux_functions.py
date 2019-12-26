@@ -222,11 +222,18 @@ def filter_cells(df):
 
 
 if __name__ == '__main__':
+    # Test para diamond() y il_neighbors()
     # dim = 6
     # layer = 2
     #
     # D = np.random.randint(low=0, high=10, size=(dim, dim), dtype=int)
     #
     # print(D, il_neighbors(matrix=D, i=layer), sep='\n' * 2)
+
+    # TODO
+    #       - Revisar problema de la relación entre las funciones diamond(),
+    #           il_neighbors() y to_df_col(). Recordemos que los patrones de
+    #           hotspots en mpl_plot_4.py deben cer 'circulares' y no líneas
+    #           verticales, como ocurre actualmente.
 
     pass

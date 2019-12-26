@@ -448,10 +448,9 @@ if __name__ == "__main__":
     #       - Mejorar feature engineering con medidas del modelo ProMap
     #       - Pensar implementación de HR/PAI
     #       - Comparación de rendimiento Bin. Class vs Multi. Class
-    #       - Comparar 0s entre xy_predicted
 
     fwork = Framework(n=150000, year="2017", read_df=True)
-    fwork.ml_algorithm(f_importance=False, pickle=False)
+    # fwork.ml_algorithm(f_importance=False, pickle=False)
 
     # aux_df = fwork.df
     #
