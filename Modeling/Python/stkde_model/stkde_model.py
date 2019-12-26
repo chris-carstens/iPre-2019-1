@@ -618,7 +618,7 @@ class Framework:
         print("\tLoading Dallas Street shapefile...", end=" ")
 
         dallasMap = GDALVectorReader(
-            FileName='/../Data/Streets/STREETS.shp'
+            FileName='../../Data/Streets/STREETS.shp'
         )
 
         print("finished!")
