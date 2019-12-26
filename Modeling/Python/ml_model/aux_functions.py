@@ -236,4 +236,7 @@ if __name__ == '__main__':
     #           hotspots en mpl_plot_4.py deben cer 'circulares' y no líneas
     #           verticales, como ocurre actualmente.
 
-    pass
+    import pandas as pd
+    x, y = np.mgrid[0:3, 0:5]
+    D = np.random.randint(10, size=(3, 5))
+    df = pd.DataFrame(np.flipud(D.T))

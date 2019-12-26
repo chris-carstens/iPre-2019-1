@@ -204,7 +204,6 @@ class Framework:
         self.data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
                                      crs=2276,
                                      geometry=geometry)
-
         self.data.to_crs(epsg=3857, inplace=True)
 
         # Nro. incidentes en la i-ésima capa de la celda (i, j)
