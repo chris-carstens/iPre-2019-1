@@ -608,8 +608,8 @@ class Framework:
         print("\n\tLoading 3D grid...", end=" ")
 
         densities = XMLStructuredGridReader(FileName=[
-            '/Users/msmendoza/Desktop/iPre/Modeling/Python/stkde_model/STKDE '
-            'grid.vts'])
+            '/Users/msmendoza/Desktop/iPre/Modeling/Python/stkde_model/'
+            'stkde_grid.vts'])
         densities.PointArrayStatus = ['density', 'y_day']
 
         print("finished!")
@@ -618,7 +618,8 @@ class Framework:
         print("\tLoading Dallas Street shapefile...", end=" ")
 
         dallasMap = GDALVectorReader(
-            FileName='/Modeling/Data/Streets/STREETS.shp')
+            FileName='/../Data/Streets/STREETS.shp'
+        )
 
         print("finished!")
 
