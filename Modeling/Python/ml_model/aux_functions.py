@@ -239,4 +239,4 @@ if __name__ == '__main__':
     import pandas as pd
     x, y = np.mgrid[0:3, 0:5]
     D = np.random.randint(10, size=(3, 5))
-    df = pd.DataFrame(np.flipud(D.T))
+    df = pd.DataFrame(to_df_col(D))
