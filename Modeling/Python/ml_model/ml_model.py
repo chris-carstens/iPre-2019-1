@@ -212,7 +212,6 @@ class Framework:
             print(f"\t\t{month}... ", end=' ')
 
             fil_incidents = self.data[self.data.month1 == month]
-
             D = np.zeros((self.nx, self.ny), dtype=int)
 
             for _, row in fil_incidents.iterrows():
