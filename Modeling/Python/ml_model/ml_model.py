@@ -162,7 +162,6 @@ class Framework:
         print("\nGenerating dataframe...\n")
 
         # Creación de la malla
-
         print("\tCreating mgrid...")
 
         x_bins = abs(dallas_limits['x_max'] - dallas_limits['x_min']) / 100
@@ -176,7 +175,6 @@ class Framework:
                          ]
 
         # Creación del esqueleto del dataframe
-
         print("\tCreating dataframe columns...")
 
         months = [month_name[i] for i in range(1, 13)]
@@ -189,7 +187,6 @@ class Framework:
         self.df = pd.DataFrame(columns=columns)
 
         # Creación de los parámetros para el cálculo de los índices
-
         print("\tFilling df...")
 
         self.nx = self.x.shape[0] - 1
@@ -200,7 +197,6 @@ class Framework:
 
         # Manejo de los puntos de incidentes para poder trabajar en (x, y)
         # y realizar Feature Engineering
-
         geometry = [Point(xy) for xy in zip(
             np.array(self.data[['x']]),
             np.array(self.data[['y']]))
@@ -211,8 +207,7 @@ class Framework:
 
         self.data.to_crs(epsg=3857, inplace=True)
 
-        # Nro. incidentes en la celda(i, j) + Nro. incidentes en celdas vecinas
-
+        # Nro. incidentes en la i-ésima capa de la celda (i, j)
         for month in [month_name[i] for i in range(1, 13)]:
             print(f"\t\t{month}... ", end=' ')
 
@@ -220,7 +215,7 @@ class Framework:
 
             D = np.zeros((self.nx, self.ny), dtype=int)
 
-            for index, row in fil_incidents.iterrows():
+            for _, row in fil_incidents.iterrows():
                 xi, yi = row.geometry.x, row.geometry.y
 
                 nx_i = af.n_i(xi, self.x.min(), self.hx)
@@ -228,13 +223,7 @@ class Framework:
 
                 D[nx_i, ny_i] += 1
 
-            # Actualización del diccionario con las matrices
-
-            # self.incidents['Incidents'][month] = D
-            # self.incidents['NC Incidents'][month] = nc_incidents(D)
-
             # Actualización del pandas dataframe
-
             self.df.loc[:, ('Incidents_0', month)] = af.to_df_col(D)
             self.df.loc[:, ('Incidents_1', month)] = \
                 af.to_df_col(af.il_neighbors(matrix=D, i=1))
@@ -254,7 +243,6 @@ class Framework:
             print('finished!')
 
         # Adición de las columnas 'geometry' e 'in_dallas' al df
-
         print("\tPreparing df for filtering...")
 
         self.df['geometry'] = [Point(i) for i in
@@ -263,12 +251,10 @@ class Framework:
         self.df['in_dallas'] = 0
 
         # Llenado de la columna 'in_dallas'
-
         self.df = af.filter_cells(self.df)
         self.df.drop(columns=[('in_dallas', '')], inplace=True)
 
         # Garbage recollection
-
         del self.data, self.incidents, self.x, self.y
 
     @af.timer
@@ -465,7 +451,7 @@ if __name__ == "__main__":
     #       - Comparar 0s entre xy_predicted
 
     fwork = Framework(n=150000, year="2017", read_df=True)
-    # fwork.ml_algorithm(f_importance=True, pickle=True)
+    fwork.ml_algorithm(f_importance=False, pickle=False)
 
     # aux_df = fwork.df
     #

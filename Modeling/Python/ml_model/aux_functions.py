@@ -207,8 +207,8 @@ def filter_cells(df):
                              op='intersects')[['in_dallas', 'index_right']]
 
     print('\t\tUpdating dataframe... ', end='')
-    geo_pd.fillna(value={'index_right': 0}, inplace=True)  # para filtrar
-    geo_pd.loc[geo_pd['index_right'] != 0, 'in_dallas'] = 1
+    geo_pd.fillna(value={'index_right': 14}, inplace=True)  # para filtrar
+    geo_pd.loc[geo_pd['index_right'] < 14, 'in_dallas'] = 1
 
     # Añadimos la columna del gpd filtrado al df inicial
     aux_df[[('in_dallas', '')]] = geo_pd[['in_dallas']]
@@ -222,9 +222,11 @@ def filter_cells(df):
 
 
 if __name__ == '__main__':
-    dim = 6
-    layer = 2
+    # dim = 6
+    # layer = 2
+    #
+    # D = np.random.randint(low=0, high=10, size=(dim, dim), dtype=int)
+    #
+    # print(D, il_neighbors(matrix=D, i=layer), sep='\n' * 2)
 
-    D = np.random.randint(low=0, high=10, size=(dim, dim), dtype=int)
-
-    print(D, il_neighbors(matrix=D, i=layer), sep='\n' * 2)
+    pass
