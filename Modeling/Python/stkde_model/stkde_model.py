@@ -954,7 +954,7 @@ if __name__ == "__main__":
     #                      ti=365,
     #                      pdf=False)
     # # %%
-    dallas_stkde.plot_4d(jpg=False,
+    dallas_stkde.plot_4d(jpg=True,
                          interactive=True)
 
     # Testeando el resample() del predict_group 1...
