@@ -12,7 +12,7 @@ import seaborn as sbn
 
 from calendar import month_name
 
-df = pd.read_pickle('rfc_pickle')
+df = pd.read_pickle('rfc.pkl')
 df.set_index(keys='features', drop=True, inplace=True)
 
 data = df.to_numpy().reshape(8, 9).T

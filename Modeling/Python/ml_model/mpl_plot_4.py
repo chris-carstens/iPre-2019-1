@@ -125,5 +125,5 @@ if __name__ == '__main__':
     d_streets.to_crs(epsg=3857, inplace=True)
     d_districts.to_crs(epsg=3857, inplace=True)
 
-    prediction_plot(geodata11, geodata12)
-    prediction_plot(geodata21, geodata22)
+    prediction_plot_1(geodata11, geodata12)
+    prediction_plot_1(geodata21, geodata22)

@@ -171,7 +171,7 @@ def to_df_col(D):
     :return:
     """
 
-    return np.flipud(np.flipud(D.T)).flatten().tolist()
+    return np.flipud(np.flipud(D.T)).flatten()#.tolist()
 
 
 def filter_cells(df):

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 from calendar import month_name
 
-df = pd.read_pickle('rfc_pickle')
+df = pd.read_pickle('rfc.pkl')
 data = [aux_df.sum()['r_importance'] for aux_df in [df[df['features'].isin(
     [(f'Incidents_{i}', month_name[j]) for i in range(0, 8)])]
                                                     for j in range(1, 10)]]

@@ -218,7 +218,6 @@ class Framework:
 
                 nx_i = af.n_i(xi, self.x.min(), self.hx)
                 ny_i = af.n_i(yi, self.y.min(), self.hy)
-
                 D[nx_i, ny_i] += 1
 
             # Actualización del pandas dataframe
@@ -447,7 +446,7 @@ if __name__ == "__main__":
     #       - Pensar implementación de HR/PAI
     #       - Comparación de rendimiento Bin. Class vs Multi. Class
 
-    fwork = Framework(n=150000, year="2017", read_df=True)
+    fwork = Framework(n=150000, year="2017", read_df=False)
     # fwork.ml_algorithm(f_importance=False, pickle=False)
 
     # aux_df = fwork.df
