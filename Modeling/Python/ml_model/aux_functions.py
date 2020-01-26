@@ -99,69 +99,6 @@ def il_neighbors(matrix, i=1):
     return convolve2d(in1=matrix, in2=kernel, mode='same')
 
 
-def nc_incidents(D):
-    """
-    [DEPRECATED]
-
-    Calcula la cantidad de incidentes en las celdas vecinas de cada una de
-    las celdas en la matriz D.
-
-    OBS. Notemos que con aplicar
-    np.flipud(nc_incidents(np.flipud(m.T))).flatten()
-    se obtiene rápidamente un vector columna para ingresar al dataframe
-    correspondiente, con la indexación para df.
-
-    :param D: np.array que bajo la perspectiva matricial, contiene la
-    cantidad de incidentes que ocurren en determinada celda
-    :return: np.ndarray que contiene en cada posición la cantidad de incidentes
-    en celdas vecinas de la celda correspondiente en la matriz D.
-    """
-
-    Dl = np.pad(array=D[:-1, :],
-                pad_width=((1, 0), (0, 0)),
-                mode='constant',
-                constant_values=0)
-
-    Dr = np.pad(array=D[1:, :],
-                pad_width=((0, 1), (0, 0)),
-                mode='constant',
-                constant_values=0)
-
-    Dd = np.pad(array=D[:, :-1],
-                pad_width=((0, 0), (1, 0)),
-                mode='constant',
-                constant_values=0)
-
-    Du = np.pad(array=D[:, 1:],
-                pad_width=((0, 0), (0, 1)),
-                mode='constant',
-                constant_values=0)
-
-    Dld = np.pad(array=D[:-1, :-1],
-                 pad_width=((1, 0), (1, 0)),
-                 mode='constant',
-                 constant_values=0)
-
-    Dlu = np.pad(array=D[:-1, 1:],
-                 pad_width=((1, 0), (0, 1)),
-                 mode='constant',
-                 constant_values=0)
-
-    Drd = np.pad(array=D[1:, :-1],
-                 pad_width=((0, 1), (1, 0)),
-                 mode='constant',
-                 constant_values=0)
-
-    Dru = np.pad(array=D[1:, 1:],
-                 pad_width=((0, 1), (0, 1)),
-                 mode='constant',
-                 constant_values=0)
-
-    # np.sum(data[:, 1:], axis=1) # Column of the df
-
-    return Dl + Dlu + Du + Dru + Dr + Drd + Dd + Dld
-
-
 def to_df_col(D):
     """
     Transforma el array para su inclusión directa como una columna de un
@@ -238,6 +175,7 @@ if __name__ == '__main__':
     #           verticales, como ocurre actualmente.
 
     import pandas as pd
+
     x, y = np.mgrid[0:3, 0:5]
     D = np.random.randint(10, size=(3, 5))
     df = pd.DataFrame(to_df_col(D))

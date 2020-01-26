@@ -32,9 +32,11 @@ from sklearn.metrics import confusion_matrix
 from sodapy import Socrata
 import credentials as cre
 
-from aux_functions import *
-from parameters import dallas_limits
+import seaborn as sbn
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+from aux_functions import *
+from parameters import *
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -207,11 +209,6 @@ class Framework:
                                      geometry=geometry)
 
         self.data.to_crs(epsg=3857, inplace=True)
-        fig, ax = plt.subplots(figsize=(20, 15))
-        fig.set_facecolor('black')
-        ax.set_facecolor('xkcd:black')
-        self.data.plot(ax=ax, markersize=15, color='red', marker='o')
-        plt.show()
 
         # Nro. incidentes en la i-ésima capa de la celda (i, j)
         for month in [month_name[i] for i in range(1, 13)]:
@@ -262,7 +259,7 @@ class Framework:
         self.df.drop(columns=[('in_dallas', '')], inplace=True)
 
         # Garbage recollection
-        del self.data, self.incidents, self.x, self.y
+        del self.incidents, self.x, self.y
 
     @timer
     def ml_algorithm(self, f_importance=False, pickle=False):
@@ -448,6 +445,230 @@ class Framework:
         print("\nPickling dataframe...", end=" ")
         self.df.to_pickle(file_name)
 
+    def plot_incidents(self):
+        """
+        Plotea los incidentes almacenados en self.data, es decir,
+
+
+        :return:
+        """
+
+        if not self.data:
+            self.get_data()
+
+            geometry = [Point(xy) for xy in zip(
+                np.array(self.data[['x']]),
+                np.array(self.data[['y']]))
+                        ]
+            self.data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
+                                         crs=2276,
+                                         geometry=geometry)
+            self.data.to_crs(epsg=3857, inplace=True)
+
+        fig, ax = plt.subplots(figsize=(20, 15))
+        fig.set_facecolor('black')
+        ax.set_facecolor('xkcd:black')
+
+        self.data.plot(ax=ax, markersize=10, color='red', marker='o')
+        plt.show()
+
+    @staticmethod
+    def plot_ft_imp_1():
+        df = pd.read_pickle('rfc.pkl')
+        data = [aux_df.sum()['r_importance'] for aux_df in
+                [df[df['features'].isin(
+                    [(f'Incidents_{i}', month_name[j]) for i in range(0, 8)])]
+                 for j in range(1, 10)]]
+        index = [month_name[i] for i in range(1, 10)]
+
+        ax = pd.DataFrame(data=data, index=index, columns=['r_importance']) \
+            .plot.bar(y='r_importance', color='black', width=0.25, rot=0,
+                      legend=None)
+
+        for i in range(0, 9):
+            plt.text(x=i - 0.3, y=data[i] + 0.02 * max(data),
+                     s=f'{data[i]:.3f}')
+
+        plt.xlabel("Features",
+                   fontdict={'fontsize': 12.5,
+                             'fontweight': 'bold',
+                             'family': 'serif'},
+                   labelpad=10
+                   )
+        plt.ylabel("Relative Importance",
+                   fontdict={'fontsize': 12.5,
+                             'fontweight': 'bold',
+                             'family': 'serif'},
+                   labelpad=7.5
+                   )
+        plt.xticks(ticks=[i for i in range(0, 9)],
+                   labels=[f'{month_name[i]:.3s}' for i in range(1, 10)])
+        plt.tick_params(axis='both', length=0, pad=8.5)
+
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+        ax.spines['bottom'].set_color('lightgray')
+        ax.spines['left'].set_color('lightgray')
+
+        plt.show()
+
+    @staticmethod
+    def plot_ft_imp_2():
+        df = pd.read_pickle('rfc.pkl')
+        data = [aux_df.sum()['r_importance'] for aux_df in
+                [df[df['features'].isin(
+                    [(f'Incidents_{i}', month_name[j]) for j in range(1, 10)])]
+                 for i in range(0, 8)]]
+        index = [i for i in range(0, 8)]
+
+        ax = pd.DataFrame(data=data, index=index, columns=['r_importance']) \
+            .plot.bar(y='r_importance', color='black', width=0.25, rot=0,
+                      legend=None)
+
+        for i in range(0, 8):
+            plt.text(x=i - 0.3, y=data[i] + 0.02 * max(data),
+                     s=f'{data[i]:.3f}')
+
+        plt.xlabel("Layers",
+                   fontdict={'fontsize': 12.5,
+                             'fontweight': 'bold',
+                             'family': 'serif'},
+                   labelpad=10
+                   )
+        plt.ylabel("Relative Importance",
+                   fontdict={'fontsize': 12.5,
+                             'fontweight': 'bold',
+                             'family': 'serif'},
+                   labelpad=7.5
+                   )
+        plt.xticks(ticks=[i for i in range(0, 8)],
+                   labels=[f'{i}' for i in range(0, 8)])
+        plt.tick_params(axis='both', length=0, pad=8.5)  # Hide tick lines
+
+        ax.spines['top'].set_visible(False)  # Hide frame
+        ax.spines['right'].set_visible(False)
+
+        ax.spines['bottom'].set_color('lightgray')  # Frame color
+        ax.spines['left'].set_color('lightgray')
+
+        plt.show()
+
+    @staticmethod
+    def plot_ft_imp_3():
+        df = pd.read_pickle('rfc.pkl')
+        df.set_index(keys='features', drop=True, inplace=True)
+
+        data = df.to_numpy().reshape(8, 9).T
+        columns = [i for i in range(0, 8)]
+        index = [f'{month_name[i]:.3s}' for i in range(1, 10)]
+
+        df = pd.DataFrame(data=data, index=index, columns=columns)
+
+        sbn.heatmap(data=df, annot=True, annot_kws={"fontsize": 9})
+
+        plt.xlabel("Layers",
+                   fontdict={'fontsize': 12.5,
+                             'fontweight': 'bold',
+                             'family': 'serif'},
+                   labelpad=10
+                   )
+        plt.ylabel("Months",
+                   fontdict={'fontsize': 12.5,
+                             'fontweight': 'bold',
+                             'family': 'serif'},
+                   labelpad=7.5
+                   )
+
+        plt.tick_params(axis='both', length=0, pad=8.5)
+        plt.yticks(rotation=0)
+
+        plt.show()
+
+    @staticmethod
+    def plot_hotspots_s(geodata_d, geodata_nd):
+        """
+            Plotea las celdas de Dallas reconocidas como peligrosas o
+            no-peligrosas de acuerdo al algoritmo.
+
+            :param gpd.GeoDataFrame geodata_d: gdf con los puntos de celdas
+                peligrosas
+            :param gpd.GeoDataFrame geodata_nd: gdf con los puntos de celdas
+                no-peligrosas
+            """
+
+        print('Reading shapefiles...')
+        d_streets = gpd.GeoDataFrame.from_file(
+            filename='../../Data/Streets/STREETS.shp'
+        )
+        d_districts = gpd.GeoDataFrame.from_file(
+            filename='../../Data/Councils/Councils.shp'
+        )
+        d_streets.to_crs(epsg=3857, inplace=True)
+        d_districts.to_crs(epsg=3857, inplace=True)
+
+        fig, ax = plt.subplots(figsize=(20, 15))
+        ax.set_facecolor('xkcd:black')
+
+        for district, data in d_districts.groupby('DISTRICT'):
+            data.plot(ax=ax,
+                      color=d_colors[district],
+                      linewidth=2.5,
+                      edgecolor="black")
+
+        handles = [Line2D([], [], marker='o', color='red',
+                          label='Dangerous Cell',
+                          linestyle='None'),
+                   Line2D([], [], marker='o', color="blue",
+                          label="Non-Dangerous Cell",
+                          linestyle='None')]
+
+        d_streets.plot(ax=ax, alpha=0.4, color="dimgrey", zorder=2,
+                       label="Streets")
+        geodata_nd.plot(ax=ax, markersize=10, color='blue', marker='o',
+                        zorder=3, label="Incidents")
+        geodata_d.plot(ax=ax, markersize=10, color='red', marker='o',
+                       zorder=3, label="Incidents")
+
+        plt.legend(loc="best", bbox_to_anchor=(0.1, 0.7),
+                   frameon=False, fontsize=13.5, handles=handles)
+
+        legends = ax.get_legend()
+        for text in legends.get_texts():
+            text.set_color('white')
+
+        ax.set_axis_off()
+        fig.set_facecolor('black')
+        plt.show()
+        plt.close()
+
+    def plot_hotspots(self):
+        data = self.df[[('geometry', ''),
+                        ('Dangerous_Oct', ''),
+                        ('Dangerous_pred_Oct', '')]]
+
+        # Quitamos el nivel ''
+        data = data.T.reset_index(level=1, drop=True).T
+
+        # Creamos el df para los datos reales (1) y predichos (2).
+        data1 = data[['geometry', 'Dangerous_Oct']]
+        data2 = data[['geometry', 'Dangerous_pred_Oct']]
+
+        # Filtramos las celdas detectadas como Dangerous para reducir los
+        # tiempos de cómputo.
+        data1_d = data1[data1['Dangerous_Oct'] == 1]
+        data1_nd = data1[data1['Dangerous_Oct'] == 0]
+        geodata1_d = gpd.GeoDataFrame(data1_d)
+        geodata1_nd = gpd.GeoDataFrame(data1_nd)
+
+        data2_d = data2[data2['Dangerous_pred_Oct'] == 1]
+        data2_nd = data2[data2['Dangerous_pred_Oct'] == 0]
+        geodata2_d = gpd.GeoDataFrame(data2_d)
+        geodata2_nd = gpd.GeoDataFrame(data2_nd)
+
+        self.plot_hotspots_s(geodata1_d, geodata1_nd)
+        self.plot_hotspots_s(geodata2_d, geodata2_nd)
+
 
 if __name__ == "__main__":
     # TODO
@@ -455,8 +676,9 @@ if __name__ == "__main__":
     #       - Mejorar feature engineering con medidas del modelo ProMap
     #       - Pensar implementación de HR/PAI
     #       - Comparación de rendimiento Bin. Class vs Multi. Class
+    #       - Eliminar el FutureWarning del .to_crs()
 
-    fwork = Framework(n=150000, year="2017", read_df=False)
+    fwork = Framework(n=150000, year="2017", read_df=True)
     # fwork.ml_algorithm(f_importance=False, pickle=False)
 
     # aux_df = fwork.df
