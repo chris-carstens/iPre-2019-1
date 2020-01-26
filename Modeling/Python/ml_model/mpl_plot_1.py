@@ -1,9 +1,12 @@
 """
 mpl_plot_1.py
 
+Ploteo de la importancia relativa de las features presentes en el df
+hasta el momento (agrupación por meses)
+
 iPre - Big Data para Criminología
 Created by Mauro S. Mendoza Elguera at 20-12-19
-Pontifical Catholic University of ChileÅ
+Pontifical Catholic University of Chile
 """
 
 import pandas as pd

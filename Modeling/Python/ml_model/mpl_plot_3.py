@@ -1,6 +1,9 @@
 """
 mpl_plot_3.py
 
+Ploteo de un heatmap que muestra la importancia de los datos de acuerdo
+a las capas/meses.
+
 iPre - Big Data para Criminología
 Created by Mauro S. Mendoza Elguera at 20-12-19
 Pontifical Catholic University of Chile

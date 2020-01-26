@@ -1,6 +1,9 @@
 """
 mpl_plot_2.py
 
+Ploteo de la importancia relativa de las diferentes capas de delitos
+(agrupación por capas)
+
 iPre - Big Data para Criminología
 Created by Mauro S. Mendoza Elguera at 20-12-19
 Pontifical Catholic University of Chile

@@ -32,8 +32,9 @@ from sklearn.metrics import confusion_matrix
 from sodapy import Socrata
 import credentials as cre
 
-import aux_functions as af
+from aux_functions import *
 from parameters import dallas_limits
+import matplotlib.pyplot as plt
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -72,7 +73,7 @@ class Framework:
             self.get_data()
             self.generate_df()
 
-    @af.timer
+    @timer
     def get_data(self):
         """
         Obtención de datos a partir de la Socrata API.
@@ -135,7 +136,7 @@ class Framework:
 
             self.data = df
 
-    @af.timer
+    @timer
     def generate_df(self):
         """
         La malla se genera de la esquina inf-izquierda a la esquina sup-derecha,
@@ -204,7 +205,13 @@ class Framework:
         self.data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
                                      crs=2276,
                                      geometry=geometry)
+
         self.data.to_crs(epsg=3857, inplace=True)
+        fig, ax = plt.subplots(figsize=(20, 15))
+        fig.set_facecolor('black')
+        ax.set_facecolor('xkcd:black')
+        self.data.plot(ax=ax, markersize=15, color='red', marker='o')
+        plt.show()
 
         # Nro. incidentes en la i-ésima capa de la celda (i, j)
         for month in [month_name[i] for i in range(1, 13)]:
@@ -216,26 +223,26 @@ class Framework:
             for _, row in fil_incidents.iterrows():
                 xi, yi = row.geometry.x, row.geometry.y
 
-                nx_i = af.n_i(xi, self.x.min(), self.hx)
-                ny_i = af.n_i(yi, self.y.min(), self.hy)
+                nx_i = n_i(xi, self.x.min(), self.hx)
+                ny_i = n_i(yi, self.y.min(), self.hy)
                 D[nx_i, ny_i] += 1
 
             # Actualización del pandas dataframe
-            self.df.loc[:, ('Incidents_0', month)] = af.to_df_col(D)
+            self.df.loc[:, ('Incidents_0', month)] = to_df_col(D)
             self.df.loc[:, ('Incidents_1', month)] = \
-                af.to_df_col(af.il_neighbors(matrix=D, i=1))
+                to_df_col(il_neighbors(matrix=D, i=1))
             self.df.loc[:, ('Incidents_2', month)] = \
-                af.to_df_col(af.il_neighbors(matrix=D, i=2))
+                to_df_col(il_neighbors(matrix=D, i=2))
             self.df.loc[:, ('Incidents_3', month)] = \
-                af.to_df_col(af.il_neighbors(matrix=D, i=3))
+                to_df_col(il_neighbors(matrix=D, i=3))
             self.df.loc[:, ('Incidents_4', month)] = \
-                af.to_df_col(af.il_neighbors(matrix=D, i=4))
+                to_df_col(il_neighbors(matrix=D, i=4))
             self.df.loc[:, ('Incidents_5', month)] = \
-                af.to_df_col(af.il_neighbors(matrix=D, i=5))
+                to_df_col(il_neighbors(matrix=D, i=5))
             self.df.loc[:, ('Incidents_6', month)] = \
-                af.to_df_col(af.il_neighbors(matrix=D, i=6))
+                to_df_col(il_neighbors(matrix=D, i=6))
             self.df.loc[:, ('Incidents_7', month)] = \
-                af.to_df_col(af.il_neighbors(matrix=D, i=7))
+                to_df_col(il_neighbors(matrix=D, i=7))
 
             print('finished!')
 
@@ -245,16 +252,19 @@ class Framework:
         self.df['geometry'] = [Point(i) for i in
                                zip(self.x[:-1, :-1].flatten(),
                                    self.y[:-1, :-1].flatten())]
+
+        # print(self.df.geometry.head(200))
+
         self.df['in_dallas'] = 0
 
         # Llenado de la columna 'in_dallas'
-        self.df = af.filter_cells(self.df)
+        self.df = filter_cells(self.df)
         self.df.drop(columns=[('in_dallas', '')], inplace=True)
 
         # Garbage recollection
         del self.data, self.incidents, self.x, self.y
 
-    @af.timer
+    @timer
     def ml_algorithm(self, f_importance=False, pickle=False):
         """
         Produce la predicción de acuerdo a los datos entregados, utilizando
@@ -291,6 +301,7 @@ class Framework:
                  ('Incidents_4', 'October'), ('Incidents_5', 'October'),
                  ('Incidents_6', 'October'), ('Incidents_7', 'October')]
                 ]
+
         x_lbl[('Dangerous', '')] = x_lbl.T.any().astype(int)
         x_lbl = x_lbl[('Dangerous', '')]
 
@@ -299,14 +310,13 @@ class Framework:
         print("\tRunning algorithms...")
 
         rfc = RandomForestClassifier(n_jobs=8)
-        # dtc = DecisionTreeClassifier()
-        # rbf_svm = SVC()
-
         rfc.fit(x_ft, x_lbl.to_numpy().ravel())
-        # dtc.fit(x_ft, x_lbl.to_numpy().ravel())
-        # rbf_svm.fit(x_ft, x_lbl)
-
         x_pred_rfc = rfc.predict(x_ft)
+
+        # dtc = DecisionTreeClassifier()
+        # dtc.fit(x_ft, x_lbl.to_numpy().ravel())
+        # rbf_svm = SVC()
+        # rbf_svm.fit(x_ft, x_lbl)
         # x_pred_dtc = dtc.predict(x_ft)
         # x_pred_rbf_svm = rbf_svm.predict(x_ft)
 
@@ -426,7 +436,7 @@ class Framework:
         #
         # print(c_matrix_y)
 
-    @af.timer
+    @timer
     def df_to_pickle(self, file_name='df.pkl'):
         """
         Genera un pickle de self.df
