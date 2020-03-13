@@ -73,7 +73,7 @@ class Framework:
         if read_data:
             st = time()
             print("Reading data pickle...", end=" ")
-            self.df = pd.read_pickle('data.pkl')
+            self.data = pd.read_pickle('data.pkl')
             print(f"finished! ({time() - st:3.1f} sec)")
         else:
             self.get_data()
@@ -324,13 +324,15 @@ class Framework:
         self.df[('TP', '')] = 0
         self.df[('FN', '')] = 0
         self.df[('TP', '')] = np.where(
-            (self.df[('Dangerous_Oct', '')] == self.df[('Dangerous_pred_Oct', '')]) &
+            (self.df[('Dangerous_Oct', '')] == self.df[
+                ('Dangerous_pred_Oct', '')]) &
             (self.df[('Dangerous_Oct', '')] == 1),
             1,
             0
         )
         self.df[('FN', '')] = np.where(
-            (self.df[('Dangerous_Oct', '')] != self.df[('Dangerous_pred_Oct', '')]) &
+            (self.df[('Dangerous_Oct', '')] != self.df[
+                ('Dangerous_pred_Oct', '')]) &
             (self.df[('Dangerous_pred_Oct', '')] == 0),
             1,
             0
@@ -421,19 +423,28 @@ class Framework:
             self.data.to_pickle(file_name)
 
     @timer
-    def plot_incidents(self, month="October"):
+    def plot_incidents(self, month="October", i_type="TP & FN"):
         """
         Plotea los incidentes almacenados en self.data en el mes dado.
+        Asegurarse que al momento de realizar el ploteo, ya se haya
+        hecho un llamado al método ml_algorithm() para identificar los
+        incidentes TP y FN
 
-
-        :param str month:
+        :param str i_type:
+        :param str month: String con el nombre del mes que se predijo
+            con ml_algorithm()
         :return:
         """
 
         print(f"\nPlotting {month} Incidents...")
 
         print("\tFiltering incidents...")
-        f_gdata = self.df[self.df.month1 == month]
+        data = gpd.GeoDataFrame(self.df)
+
+        tp_data = data[self.df.TP == 1]
+        fn_data = data[self.df.FN == 1]
+        # other_data = data[(self.df.FN == 0) & (self.df.TP == 0)]
+
         print("\tReading shapefile...")
         d_streets = gpd.GeoDataFrame.from_file(
             "../../Data/Streets/STREETS.shp")
@@ -447,12 +458,34 @@ class Framework:
                        color="dimgrey",
                        zorder=2,
                        label="Streets")
-        f_gdata.plot(ax=ax,
-                     markersize=10,
-                     color='red',
-                     marker='o',
-                     zorder=3,
-                     label="Incidents")
+
+        if i_type == "TP":
+            tp_data.plot(ax=ax,
+                         markersize=2.5,
+                         color='red',
+                         marker='o',
+                         zorder=3,
+                         label="TP Incidents")
+        if i_type == "FN":
+            fn_data.plot(ax=ax,
+                         markersize=10,
+                         color='blue',
+                         marker='o',
+                         zorder=3,
+                         label="FN Incidents")
+        if i_type == "TP & FN":
+            tp_data.plot(ax=ax,
+                         markersize=2.5,
+                         color='red',
+                         marker='o',
+                         zorder=3,
+                         label="TP Incidents")
+            fn_data.plot(ax=ax,
+                         markersize=10,
+                         color='blue',
+                         marker='o',
+                         zorder=3,
+                         label="FN Incidents")
 
         # Legends
         handles = [Line2D([], [],
@@ -464,7 +497,8 @@ class Framework:
                           marker='o',
                           color="blue",
                           label="FN Incident",
-                          linestyle='None')]
+                          linestyle='None'),
+                   ]
 
         plt.legend(loc="best",
                    bbox_to_anchor=(0.1, 0.7),
@@ -738,8 +772,8 @@ if __name__ == "__main__":
     # TODO (Reu. 13/03)
     #   -
 
-    fwork = Framework(n=150000, year="2017", read_df=False, read_data=False)
-    fwork.ml_algorithm(pickle=True)
+    fwork = Framework(n=150000, year="2017", read_df=True, read_data=True)
+    fwork.plot_incidents()
 
     # fwork.ml_algorithm(f_importance=False, pickle=False)
 
