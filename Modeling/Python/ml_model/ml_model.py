@@ -194,7 +194,6 @@ class Framework:
 
         self.nx = self.x.shape[0] - 1
         self.ny = self.y.shape[1] - 1
-
         self.hx = (self.x.max() - self.x.min()) / self.nx
         self.hy = (self.y.max() - self.y.min()) / self.ny
 
@@ -212,13 +211,11 @@ class Framework:
         for month in [month_name[i] for i in range(1, 13)]:
 
             print(f"\t\t{month}... ", end=' ')
-
             fil_incidents = self.data[self.data.month1 == month]
             D = np.zeros((self.nx, self.ny), dtype=int)
 
             for _, row in fil_incidents.iterrows():
                 xi, yi = row.geometry.x, row.geometry.y
-
                 nx_i = n_i(xi, self.x.min(), self.hx)
                 ny_i = n_i(yi, self.y.min(), self.hy)
                 D[nx_i, ny_i] += 1
@@ -423,7 +420,7 @@ class Framework:
             self.data.to_pickle(file_name)
 
     @timer
-    def plot_incidents(self, month="October", i_type="real"):
+    def plot_incidents(self, i_type="real", month="October"):
         """
         Plotea los incidentes almacenados en self.data en el mes dado.
         Asegurarse que al momento de realizar el ploteo, ya se haya
@@ -441,12 +438,21 @@ class Framework:
 
         tp_data, fn_data, data = None, None, None
 
-        if i_type == ("TP & FN" or "TP" or "FN"):
+        if i_type == "TP & FN":
             data = gpd.GeoDataFrame(self.df)
             tp_data = data[self.df.TP == 1]
             fn_data = data[self.df.FN == 1]
+        if i_type == "TP":
+            data = gpd.GeoDataFrame(self.df)
+            tp_data = self.df[self.df.TP == 1]
+        if i_type == "FN":
+            data = gpd.GeoDataFrame(self.df)
+            fn_data = self.df[self.df.FN == 1]
         if i_type == "real":
             data = self.data[self.data.month1 == month]
+        if i_type == "pred":
+            data = gpd.GeoDataFrame(self.df)
+            all_hp = data[self.df[('Dangerous_pred_Oct', '')] == 1]
 
         print("\tReading shapefile...")
         d_streets = gpd.GeoDataFrame.from_file(
@@ -462,6 +468,15 @@ class Framework:
                        zorder=2,
                        label="Streets")
 
+        if i_type == 'pred':
+            all_hp.plot(
+                ax=ax,
+                markersize=10,
+                color='y',
+                marker='o',
+                zorder=3,
+                label="TP Incidents"
+            )
         if i_type == "real":
             data.plot(
                 ax=ax,
@@ -524,6 +539,11 @@ class Framework:
                    color="blue",
                    label="FN Incident",
                    linestyle='None'),
+            Line2D([], [],
+                   marker='o',
+                   color='y',
+                   label='Predicted Incidents',
+                   linestyle='None')
         ]
 
         plt.legend(loc="best",
@@ -796,10 +816,16 @@ if __name__ == "__main__":
     #       * PAI / a/A   ,   HR / a/A
 
     # TODO (Reu. 13/03)
-    #   -
+    #   - Pensar la forma de relacionar los incidentes con las celdas
+    #       asociadas (id), para poder calcular el HR [Ponderar TP cells
+    #       con el número de incidentes en ellas.
+    #   - RECUERDA REALIZAR LA COMPARACION CON Dangerous_pred_Oct y no TP/FN
 
     fwork = Framework(n=150000, year="2017", read_df=True, read_data=True)
-    fwork.plot_incidents()
+    fwork.plot_incidents(i_type='real')
+    fwork.plot_incidents(i_type='pred')
+    fwork.plot_incidents(i_type='TP & FN')
+
 
     # fwork.ml_algorithm(f_importance=False, pickle=False)
 
