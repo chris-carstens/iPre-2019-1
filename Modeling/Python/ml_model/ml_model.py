@@ -423,7 +423,7 @@ class Framework:
             self.data.to_pickle(file_name)
 
     @timer
-    def plot_incidents(self, month="October", i_type="TP & FN"):
+    def plot_incidents(self, month="October", i_type="real"):
         """
         Plotea los incidentes almacenados en self.data en el mes dado.
         Asegurarse que al momento de realizar el ploteo, ya se haya
@@ -437,13 +437,16 @@ class Framework:
         """
 
         print(f"\nPlotting {month} Incidents...")
-
         print("\tFiltering incidents...")
-        data = gpd.GeoDataFrame(self.df)
 
-        tp_data = data[self.df.TP == 1]
-        fn_data = data[self.df.FN == 1]
-        # other_data = data[(self.df.FN == 0) & (self.df.TP == 0)]
+        tp_data, fn_data, data = None, None, None
+
+        if i_type == ("TP & FN" or "TP" or "FN"):
+            data = gpd.GeoDataFrame(self.df)
+            tp_data = data[self.df.TP == 1]
+            fn_data = data[self.df.FN == 1]
+        if i_type == "real":
+            data = self.data[self.data.month1 == month]
 
         print("\tReading shapefile...")
         d_streets = gpd.GeoDataFrame.from_file(
@@ -459,46 +462,69 @@ class Framework:
                        zorder=2,
                        label="Streets")
 
+        if i_type == "real":
+            data.plot(
+                ax=ax,
+                markersize=10,
+                color='darkorange',
+                marker='o',
+                zorder=3,
+                label="TP Incidents"
+            )
         if i_type == "TP":
-            tp_data.plot(ax=ax,
-                         markersize=2.5,
-                         color='red',
-                         marker='o',
-                         zorder=3,
-                         label="TP Incidents")
+            tp_data.plot(
+                ax=ax,
+                markersize=2.5,
+                color='red',
+                marker='o',
+                zorder=3,
+                label="TP Incidents"
+            )
         if i_type == "FN":
-            fn_data.plot(ax=ax,
-                         markersize=10,
-                         color='blue',
-                         marker='o',
-                         zorder=3,
-                         label="FN Incidents")
+            fn_data.plot(
+                ax=ax,
+                markersize=2.5,
+                color='blue',
+                marker='o',
+                zorder=3,
+                label="FN Incidents"
+            )
         if i_type == "TP & FN":
-            tp_data.plot(ax=ax,
-                         markersize=2.5,
-                         color='red',
-                         marker='o',
-                         zorder=3,
-                         label="TP Incidents")
-            fn_data.plot(ax=ax,
-                         markersize=10,
-                         color='blue',
-                         marker='o',
-                         zorder=3,
-                         label="FN Incidents")
+            tp_data.plot(
+                ax=ax,
+                markersize=2.5,
+                color='red',
+                marker='o',
+                zorder=3,
+                label="TP Incidents"
+            )
+            fn_data.plot(
+                ax=ax,
+                markersize=2.5,
+                color='blue',
+                marker='o',
+                zorder=3,
+                label="FN Incidents"
+            )
 
         # Legends
-        handles = [Line2D([], [],
-                          marker='o',
-                          color='red',
-                          label='TP Incident',
-                          linestyle='None'),
-                   Line2D([], [],
-                          marker='o',
-                          color="blue",
-                          label="FN Incident",
-                          linestyle='None'),
-                   ]
+        handles = [
+            Line2D([], [],
+                   marker='o',
+                   color='darkorange',
+                   label='Incident',
+                   linestyle='None'),
+            Line2D([], [],
+                   marker='o',
+                   color='red',
+                   label='TP Incident',
+                   linestyle='None'),
+            Line2D([], [],
+                   marker='o',
+                   color="blue",
+                   label="FN Incident",
+                   linestyle='None'),
+        ]
 
         plt.legend(loc="best",
                    bbox_to_anchor=(0.1, 0.7),
@@ -762,7 +788,7 @@ if __name__ == "__main__":
     #   - Eliminar el FutureWarning del .to_crs()
 
     # TODO (Reu. 05/03)
-    #   - TP/FN en el plot de delitos de octubre
+    #   - TP/FN en el plot de delitos de octubre                    √
     #   - HR calculado en base a los delitos y no a las celdas
     #       (por eso no se usará el recall como HR)
     #   - Buscar clf que trabaje con un valor real entre (0, 1)
