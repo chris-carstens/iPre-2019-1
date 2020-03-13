@@ -187,7 +187,6 @@ class Framework:
               'Incidents_4', 'Incidents_5', 'Incidents_6', 'Incidents_7'],
              months]
         )
-
         self.df = pd.DataFrame(columns=columns)
 
         # Creación de los parámetros para el cálculo de los índices
@@ -200,7 +199,6 @@ class Framework:
         self.hy = (self.y.max() - self.y.min()) / self.ny
 
         # Manejo de los puntos de incidentes para poder trabajar en (x, y)
-        # y realizar Feature Engineering
         geometry = [Point(xy) for xy in zip(
             np.array(self.data[['x']]),
             np.array(self.data[['y']]))
@@ -250,12 +248,9 @@ class Framework:
         self.df['geometry'] = [Point(i) for i in
                                zip(self.x[:-1, :-1].flatten(),
                                    self.y[:-1, :-1].flatten())]
-
-        # print(self.df.geometry.head(200))
-
         self.df['in_dallas'] = 0
 
-        # Llenado de la columna 'in_dallas'
+        # Filtrado de celdas (llenado de la columna 'in_dallas')
         self.df = filter_cells(self.df)
         self.df.drop(columns=[('in_dallas', '')], inplace=True)
 
@@ -278,9 +273,9 @@ class Framework:
         print("\nInitializing...")
 
         # Preparación del input para el algoritmo
-
         print("\n\tPreparing input...")
 
+        # Jan-Sep
         x_ft = self.df.loc[
                :,
                [('Incidents_0', month_name[i]) for i in range(1, 10)] +
@@ -292,6 +287,7 @@ class Framework:
                [('Incidents_6', month_name[i]) for i in range(1, 10)] +
                [('Incidents_7', month_name[i]) for i in range(1, 10)]
                ]
+        # Oct
         x_lbl = self.df.loc[
                 :,
                 [('Incidents_0', 'October'), ('Incidents_1', 'October'),
@@ -299,24 +295,15 @@ class Framework:
                  ('Incidents_4', 'October'), ('Incidents_5', 'October'),
                  ('Incidents_6', 'October'), ('Incidents_7', 'October')]
                 ]
-
         x_lbl[('Dangerous', '')] = x_lbl.T.any().astype(int)
         x_lbl = x_lbl[('Dangerous', '')]
 
         # Algoritmo
-
         print("\tRunning algorithms...")
 
         rfc = RandomForestClassifier(n_jobs=8)
         rfc.fit(x_ft, x_lbl.to_numpy().ravel())
         x_pred_rfc = rfc.predict(x_ft)
-
-        # dtc = DecisionTreeClassifier()
-        # dtc.fit(x_ft, x_lbl.to_numpy().ravel())
-        # rbf_svm = SVC()
-        # rbf_svm.fit(x_ft, x_lbl)
-        # x_pred_dtc = dtc.predict(x_ft)
-        # x_pred_rbf_svm = rbf_svm.predict(x_ft)
 
         if f_importance:
             cols = pd.Index(['features', 'r_importance'])
@@ -327,39 +314,37 @@ class Framework:
             if pickle:
                 rfc_fi_df.to_pickle('rfc.pkl')
 
-            # print('\n', rfc_fi_df)
-
         print("\n\tx\n")
 
+        # TODO Comparar las dos cols para determinar si TP/FN
         self.df[('Dangerous_Oct', '')] = x_lbl
         self.df[('Dangerous_pred_Oct', '')] = x_pred_rfc
 
+        # Comparación para determinar si las celdas predichas son TP/FN
+        self.df[('TP', '')] = 0
+        self.df[('FN', '')] = 0
+        self.df[('TP', '')] = np.where(
+            (self.df[('Dangerous_Oct', '')] == self.df[('Dangerous_pred_Oct', '')]) &
+            (self.df[('Dangerous_Oct', '')] == 1),
+            1,
+            0
+        )
+        self.df[('FN', '')] = np.where(
+            (self.df[('Dangerous_Oct', '')] != self.df[('Dangerous_pred_Oct', '')]) &
+            (self.df[('Dangerous_pred_Oct', '')] == 0),
+            1,
+            0
+        )
+
         rfc_score = rfc.score(x_ft, x_lbl)
-        # dtc_score = dtc.score(x_ft, x_lbl)
-        # rbf_svm_score = rbf_svm.score(x_ft, x_lbl)
-
         rfc_precision = precision_score(x_lbl, x_pred_rfc)
-        # dtc_precision = precision_score(x_lbl, x_pred_dtc)
-        # rbf_svm_precision = precision_score(x_lbl, x_pred_rbf_svm)
-
         rfc_recall = recall_score(x_lbl, x_pred_rfc)
-        # dtc_recall = recall_score(x_lbl, x_pred_dtc)
-        # rbf_svm_recall = recall_score(x_lbl, x_pred_rbf_svm)
-
         print(
             f"""
     rfc score           {rfc_score:1.3f}
     rfc precision       {rfc_precision:1.3f}
     rfc recall          {rfc_recall:1.3f}
         """
-            # dtc score           {dtc_score:1.3f}
-            # dtc precision       {dtc_precision:1.3f}
-            # dtc recall          {dtc_recall:1.3f}
-
-            # rbf_svm score       {rbf_svm_score:1.9f}
-            # rbf_svm precision   {rbf_svm_precision:1.9f}
-            # rbf_svm recall      {rbf_svm_recall:1.9f}
-            #         """
         )
 
         print("\n\ty\n")
@@ -387,20 +372,10 @@ class Framework:
         y_lbl = y_lbl[('Dangerous', '')]
 
         y_pred_rfc = rfc.predict(y_ft)
-        # y_pred_dtc = dtc.predict(y_ft)
-        # y_pred_rbf_svm = rbf_svm.predict(y_ft)
 
         rfc_score = rfc.score(y_ft, y_lbl.to_numpy().ravel())
-        # dtc_score = dtc.score(y_ft, y_lbl.to_numpy().ravel())
-        # rbf_svm_score = rbf_svm.score(y_ft, y_lbl)
-
         rfc_precision = precision_score(y_lbl, y_pred_rfc)
-        # dtc_precision = precision_score(y_lbl, y_pred_dtc)
-        # rbf_svm_precision = precision_score(y_lbl, y_pred_rbf_svm)
-
         rfc_recall = recall_score(y_lbl, y_pred_rfc)
-        # dtc_recall = recall_score(y_lbl, y_pred_dtc)
-        # rbf_svm_recall = recall_score(y_lbl, y_pred_rbf_svm)
 
         print(
             f"""
@@ -408,14 +383,6 @@ class Framework:
     rfc precision       {rfc_precision:1.3f}
     rfc recall          {rfc_recall:1.3f}
             """
-            # dtc score           {dtc_score:1.3f}
-            # dtc precision       {dtc_precision:1.3f}
-            # dtc recall          {dtc_recall:1.3f}
-
-            # rbf_svm score       {rbf_svm_score:1.3f}
-            # rbf_svm precision   {rbf_svm_precision:1.3f}
-            # rbf_svm recall      {rbf_svm_recall:1.3f}
-            #         """
         )
 
         # Confusion Matrix
@@ -757,22 +724,22 @@ class Framework:
 
 
 if __name__ == "__main__":
-    # TODO
-    #       - Comparar entre etiqueta 1 y 3
-    #       - Mejorar feature engineering con medidas del modelo ProMap
-    #       - Pensar implementación de HR/PAI
-    #       - Comparación de rendimiento Bin. Class vs Multi. Class
-    #       - Eliminar el FutureWarning del .to_crs()
+    # TODO (Personal)
+    #   - Eliminar el FutureWarning del .to_crs()
 
-    #       - TP/FN en el plot de delitos de octubre
-    #       - HR calculado en base a los delitos y no a las celdas
-    #           (por eso no se usará el recall como HR)
-    #       - Buscar clf que trabaje con un valor real entre (0, 1)
-    #           * Ahí se debe obtener el plot a colores de dallas
-    #           * PAI / a/A   ,   HR / a/A
+    # TODO (Reu. 05/03)
+    #   - TP/FN en el plot de delitos de octubre
+    #   - HR calculado en base a los delitos y no a las celdas
+    #       (por eso no se usará el recall como HR)
+    #   - Buscar clf que trabaje con un valor real entre (0, 1)
+    #       * Ahí se debe obtener el plot a colores de dallas
+    #       * PAI / a/A   ,   HR / a/A
 
-    fwork = Framework(n=150000, year="2017", read_df=True, read_data=True)
-    fwork.plot_incidents()
+    # TODO (Reu. 13/03)
+    #   -
+
+    fwork = Framework(n=150000, year="2017", read_df=False, read_data=False)
+    fwork.ml_algorithm(pickle=True)
 
     # fwork.ml_algorithm(f_importance=False, pickle=False)
 
