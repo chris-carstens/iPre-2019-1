@@ -785,13 +785,13 @@ class Framework:
 
 if __name__ == "__main__":
     # TODO (Personal)
-    #   - Eliminar el FutureWarning del .to_crs()
+    #   - Eliminar el FutureWarning del .to_crs()                   PENDIENTE
 
     # TODO (Reu. 05/03)
     #   - TP/FN en el plot de delitos de octubre                    √
-    #   - HR calculado en base a los delitos y no a las celdas
+    #   - HR calculado en base a los delitos y no a las celdas      PENDIENTE
     #       (por eso no se usará el recall como HR)
-    #   - Buscar clf que trabaje con un valor real entre (0, 1)
+    #   - Buscar clf que trabaje con un valor real entre (0, 1)     PENDIENTE
     #       * Ahí se debe obtener el plot a colores de dallas
     #       * PAI / a/A   ,   HR / a/A
 
