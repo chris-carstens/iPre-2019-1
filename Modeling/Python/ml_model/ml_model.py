@@ -44,11 +44,11 @@ pd.set_option('display.width', 1000)
 
 
 class Framework:
-    def __init__(self, n=1000, year="2017", read_df=True):
+    def __init__(self, n=1000, year="2017", read_df=False, read_data=False):
         self.n, self.year = n, year
 
-        self.data = None
-        self.df = None
+        self.data = None  # Incidentes, geolocalización, dates, etc.
+        self.df = None  # Nro. de incidentes por capas, etc.
 
         self.x, self.y = None, None
         self.nx, self.ny, self.hx, self.hy = None, None, None, None
@@ -67,9 +67,13 @@ class Framework:
 
         if read_df:
             st = time()
-
-            print("\nReading pickle dataframe...", end=" ")
+            print("\nReading df pickle...", end=" ")
             self.df = pd.read_pickle('df.pkl')
+            print(f"finished! ({time() - st:3.1f} sec)")
+        if read_data:
+            st = time()
+            print("Reading data pickle...", end=" ")
+            self.df = pd.read_pickle('data.pkl')
             print(f"finished! ({time() - st:3.1f} sec)")
         else:
             self.get_data()
@@ -93,7 +97,6 @@ class Framework:
                      username=cre.USERNAME_S,
                      password=cre.PASSWORD_S) as client:
             # Actualmente estamos filtrando por robos a domicilios
-
             where = \
                 f"""
                     year1 = {self.year}
@@ -115,7 +118,6 @@ class Framework:
             print(f"\n\t{df.shape[0]} records successfully retrieved!")
 
             # DB Cleaning & Formatting
-
             df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
                 lambda x: float(x))
             df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
@@ -132,7 +134,6 @@ class Framework:
                                'y_cordinate': 'y',
                                'date1': 'date'},
                       inplace=True)
-
             df.sort_values(by=['date'], inplace=True)
             df.reset_index(drop=True, inplace=True)
 
@@ -207,11 +208,11 @@ class Framework:
         self.data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
                                      crs=2276,
                                      geometry=geometry)
-
         self.data.to_crs(epsg=3857, inplace=True)
 
         # Nro. incidentes en la i-ésima capa de la celda (i, j)
         for month in [month_name[i] for i in range(1, 13)]:
+
             print(f"\t\t{month}... ", end=' ')
 
             fil_incidents = self.data[self.data.month1 == month]
@@ -434,46 +435,130 @@ class Framework:
         # print(c_matrix_y)
 
     @timer
-    def df_to_pickle(self, file_name='df.pkl'):
+    def to_pickle(self, file_name):
         """
-        Genera un pickle de self.df
+        Genera un pickle de self.df o self.data dependiendo el nombre
+        dado (data.pkl o df.pkl)
 
         :param str file_name: Nombre del pickle a generar
-        :return: pickle de self.df
+        :return: pickle de self.df o self.data
         """
 
         print("\nPickling dataframe...", end=" ")
-        self.df.to_pickle(file_name)
+        if file_name == "df.pkl":
+            self.df.to_pickle(file_name)
+        if file_name == "data.pkl":
+            if self.data is None:
+                self.get_data()
+                self.generate_df()
+            self.data.to_pickle(file_name)
 
-    def plot_incidents(self):
+    @timer
+    def plot_incidents(self, month="October"):
         """
-        Plotea los incidentes almacenados en self.data, es decir,
+        Plotea los incidentes almacenados en self.data en el mes dado.
 
+
+        :param str month:
+        :return:
+        """
+
+        print(f"\nPlotting {month} Incidents...")
+
+        print("\tFiltering incidents...")
+        f_gdata = self.df[self.df.month1 == month]
+        print("\tReading shapefile...")
+        d_streets = gpd.GeoDataFrame.from_file(
+            "../../Data/Streets/STREETS.shp")
+        d_streets.to_crs(epsg=3857, inplace=True)
+
+        print("\tRendering Plot...")
+        fig, ax = plt.subplots(figsize=(20, 15))
+
+        d_streets.plot(ax=ax,
+                       alpha=0.4,
+                       color="dimgrey",
+                       zorder=2,
+                       label="Streets")
+        f_gdata.plot(ax=ax,
+                     markersize=10,
+                     color='red',
+                     marker='o',
+                     zorder=3,
+                     label="Incidents")
+
+        # Legends
+        handles = [Line2D([], [],
+                          marker='o',
+                          color='red',
+                          label='TP Incident',
+                          linestyle='None'),
+                   Line2D([], [],
+                          marker='o',
+                          color="blue",
+                          label="FN Incident",
+                          linestyle='None')]
+
+        plt.legend(loc="best",
+                   bbox_to_anchor=(0.1, 0.7),
+                   frameon=False,
+                   fontsize=13.5,
+                   handles=handles)
+
+        legends = ax.get_legend()
+        for text in legends.get_texts():
+            text.set_color('white')
+
+        # Background
+        ax.set_axis_off()
+        fig.set_facecolor('black')
+        plt.show()
+        plt.close()
+
+    @timer
+    def plot_hotspots(self):
+        """
+        Utiliza el método estático asociado para plotear los hotspots
+        con los datos ya cargados del framework.
 
         :return:
         """
 
-        if not self.data:
-            self.get_data()
+        data = self.df[[('geometry', ''),
+                        ('Dangerous_Oct', ''),
+                        ('Dangerous_pred_Oct', '')]]
 
-            geometry = [Point(xy) for xy in zip(
-                np.array(self.data[['x']]),
-                np.array(self.data[['y']]))
-                        ]
-            self.data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
-                                         crs=2276,
-                                         geometry=geometry)
-            self.data.to_crs(epsg=3857, inplace=True)
+        # Quitamos el nivel ''
+        data = data.T.reset_index(level=1, drop=True).T
 
-        fig, ax = plt.subplots(figsize=(20, 15))
-        fig.set_facecolor('black')
-        ax.set_facecolor('xkcd:black')
+        # Creamos el df para los datos reales (1) y predichos (2).
+        data1 = data[['geometry', 'Dangerous_Oct']]
+        data2 = data[['geometry', 'Dangerous_pred_Oct']]
 
-        self.data.plot(ax=ax, markersize=10, color='red', marker='o')
-        plt.show()
+        # Filtramos las celdas detectadas como Dangerous para reducir los
+        # tiempos de cómputo.
+        data1_d = data1[data1['Dangerous_Oct'] == 1]
+        data1_nd = data1[data1['Dangerous_Oct'] == 0]
+        geodata1_d = gpd.GeoDataFrame(data1_d)
+        geodata1_nd = gpd.GeoDataFrame(data1_nd)
+
+        data2_d = data2[data2['Dangerous_pred_Oct'] == 1]
+        data2_nd = data2[data2['Dangerous_pred_Oct'] == 0]
+        geodata2_d = gpd.GeoDataFrame(data2_d)
+        geodata2_nd = gpd.GeoDataFrame(data2_nd)
+
+        self.plot_hotspots_s(geodata1_d, geodata1_nd)
+        self.plot_hotspots_s(geodata2_d, geodata2_nd)
 
     @staticmethod
     def plot_ft_imp_1():
+        """
+        Barplot de las importancias relativas de los datos agrupados
+        por meses.
+
+        :return:
+        """
+
         df = pd.read_pickle('rfc.pkl')
         data = [aux_df.sum()['r_importance'] for aux_df in
                 [df[df['features'].isin(
@@ -515,6 +600,13 @@ class Framework:
 
     @staticmethod
     def plot_ft_imp_2():
+        """
+        Barplot de las importancias relativas de los datos agrupados en
+        capas.
+
+        :return:
+        """
+
         df = pd.read_pickle('rfc.pkl')
         data = [aux_df.sum()['r_importance'] for aux_df in
                 [df[df['features'].isin(
@@ -556,6 +648,13 @@ class Framework:
 
     @staticmethod
     def plot_ft_imp_3():
+        """
+        Heatmap que combina las estadísticas de las importancias
+        relativas de los datos agrupados por meses y capas.
+
+        :return:
+        """
+
         df = pd.read_pickle('rfc.pkl')
         df.set_index(keys='features', drop=True, inplace=True)
 
@@ -623,15 +722,29 @@ class Framework:
                           label="Non-Dangerous Cell",
                           linestyle='None')]
 
-        d_streets.plot(ax=ax, alpha=0.4, color="dimgrey", zorder=2,
+        d_streets.plot(ax=ax,
+                       alpha=0.4,
+                       color="dimgrey",
+                       zorder=2,
                        label="Streets")
-        geodata_nd.plot(ax=ax, markersize=10, color='blue', marker='o',
-                        zorder=3, label="Incidents")
-        geodata_d.plot(ax=ax, markersize=10, color='red', marker='o',
-                       zorder=3, label="Incidents")
+        geodata_nd.plot(ax=ax,
+                        markersize=10,
+                        color='blue',
+                        marker='o',
+                        zorder=3,
+                        label="Incidents")
+        geodata_d.plot(ax=ax,
+                       markersize=10,
+                       color='red',
+                       marker='o',
+                       zorder=3,
+                       label="Incidents")
 
-        plt.legend(loc="best", bbox_to_anchor=(0.1, 0.7),
-                   frameon=False, fontsize=13.5, handles=handles)
+        plt.legend(loc="best",
+                   bbox_to_anchor=(0.1, 0.7),
+                   frameon=False,
+                   fontsize=13.5,
+                   handles=handles)
 
         legends = ax.get_legend()
         for text in legends.get_texts():
@@ -642,33 +755,6 @@ class Framework:
         plt.show()
         plt.close()
 
-    def plot_hotspots(self):
-        data = self.df[[('geometry', ''),
-                        ('Dangerous_Oct', ''),
-                        ('Dangerous_pred_Oct', '')]]
-
-        # Quitamos el nivel ''
-        data = data.T.reset_index(level=1, drop=True).T
-
-        # Creamos el df para los datos reales (1) y predichos (2).
-        data1 = data[['geometry', 'Dangerous_Oct']]
-        data2 = data[['geometry', 'Dangerous_pred_Oct']]
-
-        # Filtramos las celdas detectadas como Dangerous para reducir los
-        # tiempos de cómputo.
-        data1_d = data1[data1['Dangerous_Oct'] == 1]
-        data1_nd = data1[data1['Dangerous_Oct'] == 0]
-        geodata1_d = gpd.GeoDataFrame(data1_d)
-        geodata1_nd = gpd.GeoDataFrame(data1_nd)
-
-        data2_d = data2[data2['Dangerous_pred_Oct'] == 1]
-        data2_nd = data2[data2['Dangerous_pred_Oct'] == 0]
-        geodata2_d = gpd.GeoDataFrame(data2_d)
-        geodata2_nd = gpd.GeoDataFrame(data2_nd)
-
-        self.plot_hotspots_s(geodata1_d, geodata1_nd)
-        self.plot_hotspots_s(geodata2_d, geodata2_nd)
-
 
 if __name__ == "__main__":
     # TODO
@@ -678,7 +764,16 @@ if __name__ == "__main__":
     #       - Comparación de rendimiento Bin. Class vs Multi. Class
     #       - Eliminar el FutureWarning del .to_crs()
 
-    fwork = Framework(n=150000, year="2017", read_df=True)
+    #       - TP/FN en el plot de delitos de octubre
+    #       - HR calculado en base a los delitos y no a las celdas
+    #           (por eso no se usará el recall como HR)
+    #       - Buscar clf que trabaje con un valor real entre (0, 1)
+    #           * Ahí se debe obtener el plot a colores de dallas
+    #           * PAI / a/A   ,   HR / a/A
+
+    fwork = Framework(n=150000, year="2017", read_df=True, read_data=True)
+    fwork.plot_incidents()
+
     # fwork.ml_algorithm(f_importance=False, pickle=False)
 
     # aux_df = fwork.df
