@@ -44,9 +44,9 @@ def n_i(xi, x_min, hx):
     return floor((xi - x_min) / hx)
 
 
-def id_i(nx_i, ny_i, n_x):
+def cell_index(nx_i, ny_i, n_x):
     """
-    Retorna el id_i, asociado a la i-ésima celda en la malla.
+    Retorna el cell_index, asociado a la i-ésima celda en la malla.
 
     :param nx_i:
     :param ny_i:
@@ -104,7 +104,7 @@ def to_df_col(D):
     Transforma el array para su inclusión directa como una columna de un
     Pandas Dataframe
 
-    :param D:
+    :param np.ndarray D:
     :return:
     """
 
@@ -177,5 +177,6 @@ if __name__ == '__main__':
     import pandas as pd
 
     x, y = np.mgrid[0:3, 0:5]
-    D = np.random.randint(10, size=(3, 5))
+    D = np.random.randint(10, size=(3, 5), dtype=int)
     df = pd.DataFrame(to_df_col(D))
+    df['extra'] = 'test'

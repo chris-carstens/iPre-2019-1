@@ -206,6 +206,7 @@ class Framework:
                                      crs=2276,
                                      geometry=geometry)
         self.data.to_crs(epsg=3857, inplace=True)
+        self.data['Cell'] = None
 
         # Nro. incidentes en la i-ésima capa de la celda (i, j)
         for month in [month_name[i] for i in range(1, 13)]:
@@ -253,6 +254,39 @@ class Framework:
 
         # Garbage recollection
         del self.incidents, self.x, self.y
+
+    @timer
+    def assign_cells(self, month='October'):
+        """
+        Asigna el número de celda asociado a cada incidente en self.data
+
+        :return:
+        """
+
+        data = self.data[self.data.month1 == month]
+
+        x_bins = abs(dallas_limits['x_max'] - dallas_limits['x_min']) / 100
+        y_bins = abs(dallas_limits['y_max'] - dallas_limits['y_min']) / 100
+
+        x, y = np.mgrid[
+               dallas_limits['x_min']:
+               dallas_limits['x_max']:x_bins * 1j,
+               dallas_limits['y_min']:
+               dallas_limits['y_max']:y_bins * 1j,
+               ]
+
+        nx = x.shape[0] - 1
+        ny = y.shape[1] - 1
+        hx = (x.max() - x.min()) / nx
+        hy = (y.max() - y.min()) / ny
+
+        for idx, inc in data.iterrows():
+            xi, yi = inc.geometry.x, inc.geometry.y
+            nx_i = n_i(xi, x.min(), hx)
+            ny_i = n_i(yi, y.min(), hy)
+            cell_idx = cell_index(nx_i, ny_i, nx)
+
+            self.data.loc[idx, 'Cell'] = cell_idx
 
     @timer
     def ml_algorithm(self, f_importance=False, pickle=False):
@@ -313,7 +347,7 @@ class Framework:
 
         print("\n\tx\n")
 
-        # TODO Comparar las dos cols para determinar si TP/FN
+        # Sirven para determinar celdas con TP/FN
         self.df[('Dangerous_Oct', '')] = x_lbl
         self.df[('Dangerous_pred_Oct', '')] = x_pred_rfc
 
@@ -399,6 +433,23 @@ class Framework:
         # )
         #
         # print(c_matrix_y)
+
+    @timer
+    def calculate_hr(self):
+        """
+        Calculates de Hit Rate for the given Framework
+
+        :rtype: int
+        :return:
+        """
+
+        n_incidentsh = 0
+        n_incidents = pd.DataFrame(self.data)
+        n_incidents_oct = n_incidents[n_incidents.month1 == 'October']
+
+        hr = n_incidentsh / n_incidents_oct
+
+        return hr
 
     @timer
     def to_pickle(self, file_name):
@@ -819,13 +870,17 @@ if __name__ == "__main__":
     #   - Pensar la forma de relacionar los incidentes con las celdas
     #       asociadas (id), para poder calcular el HR [Ponderar TP cells
     #       con el número de incidentes en ellas.
-    #   - RECUERDA REALIZAR LA COMPARACION CON Dangerous_pred_Oct y no TP/FN
+    #   - RECUERDA REALIZAR LA COMPARACIÓN CON Dangerous_pred_Oct y no TP/FN
 
-    fwork = Framework(n=150000, year="2017", read_df=True, read_data=True)
-    fwork.plot_incidents(i_type='real')
-    fwork.plot_incidents(i_type='pred')
-    fwork.plot_incidents(i_type='TP & FN')
+    fwork = Framework(n=150000, year="2017", read_df=False, read_data=True)
+    fwork.assign_cells()
+    # ans = pd.DataFrame(fwork.data)
+    # ans = ans[ans.month == 'October']
+    # ans.index.to_list() # Para la lista de índices
 
+    # fwork.plot_incidents(i_type='real')
+    # fwork.plot_incidents(i_type='pred')
+    # fwork.plot_incidents(i_type='TP & FN')
 
     # fwork.ml_algorithm(f_importance=False, pickle=False)
 
