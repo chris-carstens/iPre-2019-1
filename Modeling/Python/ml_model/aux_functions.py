@@ -44,7 +44,7 @@ def n_i(xi, x_min, hx):
     return floor((xi - x_min) / hx)
 
 
-def cell_index(nx_i, ny_i, n_x):
+def cell_index(nx_i, ny_i, n_y):
     """
     Retorna el cell_index, asociado a la i-ésima celda en la malla.
 
@@ -54,7 +54,7 @@ def cell_index(nx_i, ny_i, n_x):
     :return:
     """
 
-    return nx_i + n_x * ny_i
+    return nx_i*n_y + ny_i
 
 
 def diamond(d=3):

@@ -18,11 +18,12 @@ from calendar import month_name
 from time import time
 
 import geopandas as gpd
+
 from shapely.geometry import Point
 from fiona.crs import from_epsg
 
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.svm import SVC
 
 from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier
@@ -210,7 +211,6 @@ class Framework:
 
         # Nro. incidentes en la i-ésima capa de la celda (i, j)
         for month in [month_name[i] for i in range(1, 13)]:
-
             print(f"\t\t{month}... ", end=' ')
             fil_incidents = self.data[self.data.month1 == month]
             D = np.zeros((self.nx, self.ny), dtype=int)
@@ -284,7 +284,7 @@ class Framework:
             xi, yi = inc.geometry.x, inc.geometry.y
             nx_i = n_i(xi, x.min(), hx)
             ny_i = n_i(yi, y.min(), hy)
-            cell_idx = cell_index(nx_i, ny_i, nx)
+            cell_idx = cell_index(nx_i, ny_i, ny)
 
             self.data.loc[idx, 'Cell'] = cell_idx
 
@@ -435,21 +435,147 @@ class Framework:
         # print(c_matrix_y)
 
     @timer
-    def calculate_hr(self):
+    def ml_algorithm_2(self, f_importance=False, pickle=False):
+        """
+        Algoritmo implementado con un Random Forest Regressor (rfr)
+
+        :param f_importance:
+        :param pickle:
+        :return:
+        """
+        print("\nInitializing...")
+
+        # Preparación del input para el algoritmo
+        print("\n\tPreparing input...")
+
+        # Jan-Sep
+        x_ft = self.df.loc[
+               :,
+               [('Incidents_0', month_name[i]) for i in range(1, 10)] +
+               [('Incidents_1', month_name[i]) for i in range(1, 10)] +
+               [('Incidents_2', month_name[i]) for i in range(1, 10)] +
+               [('Incidents_3', month_name[i]) for i in range(1, 10)] +
+               [('Incidents_4', month_name[i]) for i in range(1, 10)] +
+               [('Incidents_5', month_name[i]) for i in range(1, 10)] +
+               [('Incidents_6', month_name[i]) for i in range(1, 10)] +
+               [('Incidents_7', month_name[i]) for i in range(1, 10)]
+               ]
+        # Oct
+        x_lbl = self.df.loc[
+                :,
+                [('Incidents_0', 'October'), ('Incidents_1', 'October'),
+                 ('Incidents_2', 'October'), ('Incidents_3', 'October'),
+                 ('Incidents_4', 'October'), ('Incidents_5', 'October'),
+                 ('Incidents_6', 'October'), ('Incidents_7', 'October')]
+                ]
+        x_lbl[('Dangerous', '')] = x_lbl.T.any().astype(int)
+        x_lbl = x_lbl[('Dangerous', '')]
+
+        # Algoritmo
+        print("\tRunning algorithms...")
+
+        rfr = RandomForestRegressor(n_jobs=8)
+        rfr.fit(x_ft, x_lbl.to_numpy().ravel())
+        x_pred_rfc = rfr.predict(x_ft)
+
+        # Sirven para determinar celdas con TP/FN
+        self.df[('Dangerous_Oct_rfr', '')] = x_lbl
+        self.df[('Dangerous_pred_Oct_rfr', '')] = x_pred_rfc
+
+        # Estadísticas
+
+        # rfr_score = rfr.score(x_ft, x_lbl)
+        # rfr_precision = precision_score(x_lbl, x_pred_rfc)
+        # rfr_recall = recall_score(x_lbl, x_pred_rfc)
+        # print(
+        #     f"""
+        #     rfr score           {rfr_score:1.3f}
+        #     rfr precision       {rfr_precision:1.3f}
+        #     rfr recall          {rfr_recall:1.3f}
+        #         """
+        # )
+
+        # Plot
+
+        # Datos Oct luego de aplicar el rfr
+        ans = self.df[[('geometry', ''), ('Dangerous_pred_Oct_rfr', '')]]
+        ans = gpd.GeoDataFrame(ans)
+
+        c = 0.50  # Threshold
+        ans = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= c]
+
+        print("\tReading shapefile...")
+        d_streets = gpd.GeoDataFrame.from_file(
+            "../../Data/Streets/STREETS.shp")
+        d_streets.to_crs(epsg=3857, inplace=True)
+
+        print("\tRendering Plot...")
+        fig, ax = plt.subplots(figsize=(20, 15))
+        d_streets.plot(ax=ax,
+                       alpha=0.4,
+                       color="dimgrey",
+                       label="Streets")
+
+        ans.plot(ax=ax, column=('Dangerous_pred_Oct_rfr', ''), cmap='jet')
+
+        # Background
+        ax.set_axis_off()
+        fig.set_facecolor('black')
+        plt.show()
+        plt.close()
+
+    def calculate_hr(self, plot=False):
         """
         Calculates de Hit Rate for the given Framework
 
+        :param plot: Plotea las celdas de los incidentes luego de aplicar
+            un join
         :rtype: int
         :return:
         """
 
-        n_incidentsh = 0
-        n_incidents = pd.DataFrame(self.data)
-        n_incidents_oct = n_incidents[n_incidents.month1 == 'October']
+        incidents = pd.DataFrame(self.data)
+        incidents_oct = incidents[incidents.month1 == 'October']  # 332
 
-        hr = n_incidentsh / n_incidents_oct
+        data_oct = pd.DataFrame(self.data[fwork.data.month1 == 'October'])
+        data_oct.drop(columns='geometry', inplace=True)
+
+        ans = data_oct.join(other=self.df, on='Cell', how='left')
+        ans = ans[ans[('geometry', '')].notna()]
+
+        incidentsh = ans[ans[('Dangerous_pred_Oct', '')] == 1]
+        incidentsh = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= 0.9]
+
+        hr = incidentsh.shape[0] / incidents_oct.shape[0]
+        print(f"HR: {hr:1.3f}")
 
         return hr
+
+    def calculate_pai(self):
+        """
+        Calcula el Predictive Accuracy Index (PAI)
+
+        :return:
+        """
+
+        # data_oct = pd.DataFrame(self.data[self.data.month1 == 'October'])
+        # data_oct.drop(columns='geometry', inplace=True)
+
+        # ans = data_oct.join(other=fwork.df, on='Cell', how='left')
+        # ans = self.df[self.df[('geometry', '')].notna()]
+
+        # a = self.df[self.df[('Dangerous_pred_Oct', '')] == 1].shape[0]
+        a = self.df[self.df[('Dangerous_pred_Oct_rfr', '')] >= 0.9].shape[0]
+        A = self.df.shape[0]  # Celdas en Dallas
+
+        hr = self.calculate_hr()
+        ap = a / A
+
+        print(f"a: {a} cells    A: {A} cells")
+        print(f"Area Percentage: {ap:1.3f} %")
+        print(f"PAI: {hr / ap:1.3f}")
+
+        return hr / ap
 
     @timer
     def to_pickle(self, file_name):
@@ -478,7 +604,7 @@ class Framework:
         hecho un llamado al método ml_algorithm() para identificar los
         incidentes TP y FN
 
-        :param str i_type:
+        :param str i_type: Tipo de incidente a plotear (e.g. TP, FN, TP & FN)
         :param str month: String con el nombre del mes que se predijo
             con ml_algorithm()
         :return:
@@ -501,6 +627,8 @@ class Framework:
             fn_data = self.df[self.df.FN == 1]
         if i_type == "real":
             data = self.data[self.data.month1 == month]
+            n_incidents = data.shape[0]
+            print(f"\tNumber of Incidents in {month}: {n_incidents}")
         if i_type == "pred":
             data = gpd.GeoDataFrame(self.df)
             all_hp = data[self.df[('Dangerous_pred_Oct', '')] == 1]
@@ -522,7 +650,7 @@ class Framework:
         if i_type == 'pred':
             all_hp.plot(
                 ax=ax,
-                markersize=10,
+                markersize=2.5,
                 color='y',
                 marker='o',
                 zorder=3,
@@ -853,6 +981,66 @@ class Framework:
         plt.show()
         plt.close()
 
+    @timer
+    def plot_joined_cells(self):
+        """
+
+        :return:
+        """
+
+        data_oct = pd.DataFrame(self.data[self.data.month1 == 'October'])
+        data_oct.drop(columns='geometry', inplace=True)
+
+        ans = data_oct.join(other=fwork.df, on='Cell', how='left')
+        ans = ans[ans[('geometry', '')].notna()]
+
+        gpd_ans = gpd.GeoDataFrame(ans, geometry=ans[('geometry', '')])
+
+        d_streets = gpd.GeoDataFrame.from_file(
+            "../../Data/Streets/STREETS.shp")
+        d_streets.to_crs(epsg=3857, inplace=True)
+
+        fig, ax = plt.subplots(figsize=(20, 15))
+
+        d_streets.plot(ax=ax,
+                       alpha=0.4,
+                       color="dimgrey",
+                       zorder=2,
+                       label="Streets")
+
+        gpd_ans.plot(
+            ax=ax,
+            markersize=10,
+            color='red',
+            marker='o',
+            zorder=3,
+            label="Joined Incidents"
+        )
+
+        handles = [
+            Line2D([], [],
+                   marker='o',
+                   color='red',
+                   label='Joined Incidents',
+                   linestyle='None'),
+        ]
+
+        plt.legend(loc="best",
+                   bbox_to_anchor=(0.1, 0.7),
+                   frameon=False,
+                   fontsize=13.5,
+                   handles=handles)
+
+        legends = ax.get_legend()
+        for text in legends.get_texts():
+            text.set_color('white')
+
+        # Background
+        ax.set_axis_off()
+        fig.set_facecolor('black')
+        plt.show()
+        plt.close()
+
 
 if __name__ == "__main__":
     # TODO (Personal)
@@ -860,7 +1048,7 @@ if __name__ == "__main__":
 
     # TODO (Reu. 05/03)
     #   - TP/FN en el plot de delitos de octubre                    √
-    #   - HR calculado en base a los delitos y no a las celdas      PENDIENTE
+    #   - HR calculado en base a los delitos y no a las celdas      √
     #       (por eso no se usará el recall como HR)
     #   - Buscar clf que trabaje con un valor real entre (0, 1)     PENDIENTE
     #       * Ahí se debe obtener el plot a colores de dallas
@@ -869,20 +1057,26 @@ if __name__ == "__main__":
     # TODO (Reu. 13/03)
     #   - Pensar la forma de relacionar los incidentes con las celdas
     #       asociadas (id), para poder calcular el HR [Ponderar TP cells
-    #       con el número de incidentes en ellas.
-    #   - RECUERDA REALIZAR LA COMPARACIÓN CON Dangerous_pred_Oct y no TP/FN
+    #       con el número de incidentes en ellas.                   √
+    #   - RECUERDA REALIZAR LA COMPARACIÓN CON Dangerous_pred_Oct
+    #       y no TP/FN                                              √
 
-    fwork = Framework(n=150000, year="2017", read_df=False, read_data=True)
-    fwork.assign_cells()
-    # ans = pd.DataFrame(fwork.data)
-    # ans = ans[ans.month == 'October']
-    # ans.index.to_list() # Para la lista de índices
+    # TODO (Reu. 30/03)
+    #   - Calcular Area percentage Dangerous cells / all            √
+    #   - skelearn para valores reales en Dangerous label           √
+    #   - Plotear heatmap con valores reales                        √
+    #   - Proceso similar al STKDE, luego del clf con labels reales PENDIENTE
+    #       luego implementar parámetro "c", que modifica HR y A.p.
 
-    # fwork.plot_incidents(i_type='real')
-    # fwork.plot_incidents(i_type='pred')
-    # fwork.plot_incidents(i_type='TP & FN')
+    # TODO (Reu. 13/04)
+    #   - c vs HR, c vs Area Percetage , (c vs PAI), a/A vs PAI, a/A vs HR (rfr)
+    #   - (a/A, API), (a/A, HR) añadir en los plots del clf
 
-    # fwork.ml_algorithm(f_importance=False, pickle=False)
+    fwork = Framework(n=150000, year="2017", read_df=True, read_data=True)
+    # fwork.ml_algorithm()
+    # fwork.assign_cells()
+    fwork.calculate_pai()
+    # fwork.ml_algorithm_2()
 
     # aux_df = fwork.df
     #
