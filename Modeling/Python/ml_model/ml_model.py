@@ -524,7 +524,7 @@ class Framework:
         plt.show()
         plt.close()
 
-    def calculate_hr(self, plot=False):
+    def calculate_hr(self, plot=False, c=0.9):
         """
         Calculates de Hit Rate for the given Framework
 
@@ -544,14 +544,14 @@ class Framework:
         ans = ans[ans[('geometry', '')].notna()]
 
         incidentsh = ans[ans[('Dangerous_pred_Oct', '')] == 1]
-        incidentsh = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= 0.9]
+        incidentsh = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= c]
 
         hr = incidentsh.shape[0] / incidents_oct.shape[0]
         print(f"HR: {hr:1.3f}")
 
         return hr
 
-    def calculate_pai(self):
+    def calculate_pai(self, c=0.9):
         """
         Calcula el Predictive Accuracy Index (PAI)
 
@@ -565,7 +565,7 @@ class Framework:
         # ans = self.df[self.df[('geometry', '')].notna()]
 
         # a = self.df[self.df[('Dangerous_pred_Oct', '')] == 1].shape[0]
-        a = self.df[self.df[('Dangerous_pred_Oct_rfr', '')] >= 0.9].shape[0]
+        a = self.df[self.df[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
         A = self.df.shape[0]  # Celdas en Dallas
 
         hr = self.calculate_hr()
@@ -576,6 +576,17 @@ class Framework:
         print(f"PAI: {hr / ap:1.3f}")
 
         return hr / ap
+
+    def plot_statistics(self):
+        """
+
+        :return:
+        """
+
+
+
+
+
 
     @timer
     def to_pickle(self, file_name):
@@ -1069,7 +1080,7 @@ if __name__ == "__main__":
     #       luego implementar parámetro "c", que modifica HR y A.p.
 
     # TODO (Reu. 13/04)
-    #   - c vs HR, c vs Area Percetage , (c vs PAI), a/A vs PAI, a/A vs HR (rfr)
+    #   - c vs HR, c vs Area Percentage , (c vs PAI), a/A vs PAI, a/A vs HR
     #   - (a/A, API), (a/A, HR) añadir en los plots del clf
 
     fwork = Framework(n=150000, year="2017", read_df=True, read_data=True)
