@@ -1,5 +1,0 @@
-socrata_domain = "www.dallasopendata.com"
-API_KEY_S = "UMqwNlImTN2hqD8coBQfXG5TR"
-USERNAME_S = "ctcarstens@uc.cl"
-PASSWORD_S = "Losdeabajo256"
-socrata_dataset_identifier = "9s22-2qus"
