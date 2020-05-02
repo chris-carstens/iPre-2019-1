@@ -31,13 +31,13 @@ bw = np.array([1577.681, 1167.16, 35.549])
 
 # Oct - Nov - Dic
 
-w_day_oct, days_oct = monthrange(2016, 10)
-w_day_nov, days_nov = monthrange(2016, 11)
-w_day_dic, days_dic = monthrange(2016, 12)
+w_day_oct, days_oct = monthrange(2017, 10)
+w_day_nov, days_nov = monthrange(2017, 11)
+w_day_dic, days_dic = monthrange(2017, 12)
 
-days_oct_nov_dic = [date(2016, 10, i) for i in range(1, days_oct + 1)] + \
-                   [date(2016, 11, i) for i in range(1, days_nov + 1)] + \
-                   [date(2016, 12, i) for i in range(1, days_dic + 1)]
+days_oct_nov_dic = [date(2017, 10, i) for i in range(1, days_oct + 1)] + \
+                   [date(2017, 11, i) for i in range(1, days_nov + 1)] + \
+                   [date(2017, 12, i) for i in range(1, days_dic + 1)]
 
 predict_groups = {
     'group_1': {'t1_data': [], 't2_data': [], 'STKDE': None},
