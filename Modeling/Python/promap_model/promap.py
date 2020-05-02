@@ -5,26 +5,19 @@ import pandas as pd
 from time import time
 import datetime
 
-import seaborn as sb
-import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import matplotlib.patches as mpatches
-from matplotlib.lines import Line2D
+
 
 import geopandas as gpd
 from shapely.geometry import Point, shape
-import fiona
+
 import shutil
-
-
 
 from sodapy import Socrata
 import credentials as cre
 import params
-import auxiliar_functions as aux
+import aux_functions as aux
 from collections import defaultdict
-import pickle
 
 
 # Observaciones
