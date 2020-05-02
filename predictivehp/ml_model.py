@@ -571,11 +571,6 @@ class Framework:
         :return:
         """
 
-
-
-
-
-
     @timer
     def to_pickle(self, file_name):
         """
