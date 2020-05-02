@@ -1,33 +1,42 @@
-# parameters:
-# - Python version: 3.7
-# - Author: Mauro S. Mendoza Elguera
-# - Date: 2019-07-12
+"""
+parameters.py:
+Python Version: 3.8.1
+
+iPre - Big Data para Criminología
+Created by Mauro S. Mendoza Elguera at 27-09-19
+Pontifical Catholic University of Chile
+
+Notes
+
+-
+"""
+
+# STKDE
 
 import numpy as np
-
 from calendar import monthrange
 from datetime import date
 
-d_colors = {"1": "darksalmon",
-            "2": "royalblue",
-            "3": "mediumpurple",
-            "4": "green",
-            "5": "tan",
-            "6": "brown",
-            "7": "pink",
-            "8": "olive",
-            "9": "peru",
-            "10": "orange",
-            "11": "darkkhaki",
-            "12": "cadetblue",
-            "13": "crimson",
-            "14": "thistle"}
+d_colors = {
+    "1": "darksalmon",
+    "2": "royalblue",
+    "3": "mediumpurple",
+    "4": "green",
+    "5": "tan",
+    "6": "brown",
+    "7": "pink",
+    "8": "olive",
+    "9": "peru",
+    "10": "orange",
+    "11": "darkkhaki",
+    "12": "cadetblue",
+    "13": "crimson",
+    "14": "thistle"
+}
 
 # Optimal Bandwidths
 
 bw = np.array([1577.681, 1167.16, 35.549])
-
-# ------------------------------------------------------------------------------
 
 # Oct - Nov - Dic
 
@@ -72,8 +81,20 @@ for i in range(1, len(days_oct_nov_dic))[::7]:
     if group_n > 8:
         break
 
-# ------------------------------------------------------------------------------
+# Obs. Limites de dallas en epsg: 3857
 
-if __name__ == "__main__":
-    for i in predict_groups['group_2']['t1_data']:
-        print(i)
+# ML
+
+dallas_limits = {
+    'x_min': -10804957.65128928, 'x_max': -10735466.29163222,
+    'y_min': 3840201.8325116523, 'y_max': 3900214.267184315
+}
+
+# ProMap
+
+bw = {'x': 1577.681, 'y': 1167.16, 't': 35.549}
+hx = 100
+hy = 100
+
+if __name__ == '__main__':
+    pass

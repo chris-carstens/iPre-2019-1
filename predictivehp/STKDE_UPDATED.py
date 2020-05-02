@@ -6,15 +6,10 @@ from time import time
 import datetime
 
 import seaborn as sb
-import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import matplotlib.patches as mpatches
-from matplotlib.lines import Line2D
 
 import geopandas as gpd
-from shapely.geometry import Point, shape
-import fiona
+from shapely.geometry import Point
 
 #from pyevtk.hl import gridToVTK
 #from paraview.simple import *
@@ -24,7 +19,8 @@ from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
 
 from sodapy import Socrata
 import credentials as cre
-import parameters as params
+from predictivehp import parameters as params
+
 
 # Observaciones
 #
@@ -46,7 +42,7 @@ def _time(fn):
 
 
 def checked_points(points):
-    dallas_shp = gpd.read_file('../../Data/Councils/Councils.shp')
+    dallas_shp = gpd.read_file('Data/Councils/Councils.shp')
 
     df_points = pd.DataFrame(
             {'x': points[0, :], 'y': points[1, :], 't': points[2, :]}

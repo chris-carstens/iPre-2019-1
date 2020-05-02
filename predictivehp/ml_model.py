@@ -11,33 +11,21 @@ Notes
 -
 """
 
-import pandas as pd
-import numpy as np
 import datetime
 from calendar import month_name
-from time import time
 
 import geopandas as gpd
 
-from shapely.geometry import Point
-from fiona.crs import from_epsg
-
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.svm import SVC
 
-from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier
 from sklearn.metrics import precision_score, recall_score
-from sklearn.metrics import confusion_matrix
 
 from sodapy import Socrata
 import credentials as cre
 
 import seaborn as sbn
-import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from aux_functions import *
-from parameters import *
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -506,7 +494,7 @@ class Framework:
 
         print("\tReading shapefile...")
         d_streets = gpd.GeoDataFrame.from_file(
-            "../../Data/Streets/STREETS.shp")
+            "Data/Streets/STREETS.shp")
         d_streets.to_crs(epsg=3857, inplace=True)
 
         print("\tRendering Plot...")
@@ -646,7 +634,7 @@ class Framework:
 
         print("\tReading shapefile...")
         d_streets = gpd.GeoDataFrame.from_file(
-            "../../Data/Streets/STREETS.shp")
+            "Data/Streets/STREETS.shp")
         d_streets.to_crs(epsg=3857, inplace=True)
 
         print("\tRendering Plot...")
@@ -935,10 +923,10 @@ class Framework:
 
         print('Reading shapefiles...')
         d_streets = gpd.GeoDataFrame.from_file(
-            filename='../../Data/Streets/STREETS.shp'
+            filename='Data/Streets/STREETS.shp'
         )
         d_districts = gpd.GeoDataFrame.from_file(
-            filename='../../Data/Councils/Councils.shp'
+            filename='Data/Councils/Councils.shp'
         )
         d_streets.to_crs(epsg=3857, inplace=True)
         d_districts.to_crs(epsg=3857, inplace=True)
@@ -1008,7 +996,7 @@ class Framework:
         gpd_ans = gpd.GeoDataFrame(ans, geometry=ans[('geometry', '')])
 
         d_streets = gpd.GeoDataFrame.from_file(
-            "../../Data/Streets/STREETS.shp")
+            "Data/Streets/STREETS.shp")
         d_streets.to_crs(epsg=3857, inplace=True)
 
         fig, ax = plt.subplots(figsize=(20, 15))
