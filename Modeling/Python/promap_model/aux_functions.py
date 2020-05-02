@@ -99,9 +99,6 @@ def calcular_celdas(hx, hy, superficie):
 
 
 
-
-
-
 if __name__ == '__main__':
     a, _ = np.mgrid[0:5, 0:5]
     print(calcular_celdas(100, 100, 4170))
