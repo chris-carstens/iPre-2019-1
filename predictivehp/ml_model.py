@@ -26,6 +26,7 @@ import credentials as cre
 import seaborn as sbn
 from matplotlib.lines import Line2D
 from aux_functions import *
+from parameters import dallas_limits, d_colors
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
