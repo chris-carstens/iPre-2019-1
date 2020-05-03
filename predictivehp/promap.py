@@ -7,7 +7,6 @@ import datetime
 
 import matplotlib.pyplot as plt
 
-
 import geopandas as gpd
 from shapely.geometry import Point, shape
 
@@ -15,8 +14,8 @@ import shutil
 
 from sodapy import Socrata
 import credentials as cre
-import params
-import aux_functions as aux
+import parameters
+import auxiliar_functions_promap as aux
 from collections import defaultdict
 
 
@@ -53,20 +52,25 @@ class Promap:
         :param year: Año de los registros pedidos
 
         :param bw: diccionario con las banwith calculadas previamente
+
         """
 
+        print(bw)
         self.data = []
         self.training_data = []  # 3000
         self.testing_data = []  # 600
 
-        self.bw_x = bw['x']
-        self.bw_y = bw['y']
-        self.bw_t = bw['t']
+        self.bw_x = bw[0]
+        self.bw_y = bw[1]
+        self.bw_t = bw[2]
 
         self.n = n
         self.year = year
 
         self.matriz_con_densidades = None
+        self.HR = None
+        self.PAI = None
+        self.area_percentaje = None
 
         if read_files:
             self.training_data = pd.read_pickle('training_data.pkl')
@@ -134,8 +138,6 @@ class Promap:
                     x.split(' ')[0], '%Y-%m-%d')
             )
 
-
-
             df = df[['x_coordinate', 'y_cordinate', 'date1']]
             df.loc[:, 'y_day'] = df["date1"].apply(
                 lambda x: x.timetuple().tm_yday
@@ -156,8 +158,6 @@ class Promap:
             df.reset_index(drop=True, inplace=True)
 
             self.data = df
-
-
 
             # Hasta este punto tenemos los datos en un formato que no nos
             # srve, ahora se pasaran a un formato (X,Y)
@@ -187,8 +187,6 @@ class Promap:
 
             self.data = data_ok
 
-
-
             # División en training y testing data
 
             self.training_data = self.data[
@@ -198,7 +196,6 @@ class Promap:
             self.testing_data = self.data[
                 self.data["date"].apply(lambda x: x.month) > 10
                 ]
-
 
             self.training_data.to_pickle("training_data.pkl")
             self.testing_data.to_pickle("testing_data.pkl")
@@ -218,23 +215,21 @@ class Promap:
 
         print("\nGenerando dataframe...\n")
 
-        self.x_min = params.dallas_limits['x_min']
-        self.x_max = params.dallas_limits['x_max']
-        self.y_min = params.dallas_limits['y_min']
-        self.y_max = params.dallas_limits['y_max']
+        self.x_min = parameters.dallas_limits['x_min']
+        self.x_max = parameters.dallas_limits['x_max']
+        self.y_min = parameters.dallas_limits['y_min']
+        self.y_max = parameters.dallas_limits['y_max']
 
-        self.hx = params.hx
-        self.hy = params.hy
+        self.hx = parameters.hx
+        self.hy = parameters.hy
 
         self.bins_x = round(abs(self.x_max - self.x_min) / self.hx)
         self.bins_y = round(abs(self.y_max - self.y_min) / self.hy)
 
-
-
         print(f'\thx: {self.hx} mts, hy: {self.hy} mts')
-        print(f'\tbw.x: {self.bw_x} mts, bw.y: {self.bw_y} mts, bw.t: {self.bw_t} dias')
+        print(
+            f'\tbw.x: {self.bw_x} mts, bw.y: {self.bw_y} mts, bw.t: {self.bw_t} dias')
         print(f'\tbins.x: {self.bins_x}, bins.y: {self.bins_y}\n')
-
 
         self.x, self.y = np.mgrid[self.x_min + self.hx / 2:self.x_max -
                                                            self.hx /
@@ -242,7 +237,7 @@ class Promap:
                                                              1j,
                          self.y_min + self.hy / 2:self.y_max - self.hy /
                                                   2:self.bins_y *
-                                                                           1j]
+                                                    1j]
 
         self.total_dias_training = self.training_data['y_day'].max()
 
@@ -260,10 +255,7 @@ class Promap:
               f'{self.total_dias_training}')
         print(f'\tNº de datos para testear el modelo: {len(self.testing_data)}')
 
-
         matriz_con_ceros = np.zeros((self.bins_x, self.bins_y))
-
-
 
         for k in range(len(self.training_data)):
             x, y, t = self.training_data['x'][k], self.training_data['y'][k], \
@@ -291,7 +283,6 @@ class Promap:
                                                              elemento_y,
                                                              self.hx,
                                                              self.hy)
-
 
                     matriz_con_ceros[i][j] += time_weight * cell_weight
 
@@ -421,15 +412,62 @@ class Promap:
         cantidad_de_hotspots = np.count_nonzero(self.matriz_con_densidades)
         n_delitos_testing = np.sum(self.testing_matrix)
 
-        HR = [i / n_delitos_testing for i in hits_n]
+        self.HR = [i / n_delitos_testing for i in hits_n]
 
-
-        area_percentaje = [i / (100_000) for i in
+        self.area_percentaje = [i / (100_000) for i in
                            area_hits]
 
-        PAI = [0 if float(area_percentaje[i]) == 0 else float(HR[i]) / float(
-            area_percentaje[i]) for i in range(len(HR))]
+        self.PAI = [0 if float(self.area_percentaje[i]) == 0 else float(self.HR[
+                                                                            i]) / float(
+            self.area_percentaje[i]) for i in range(len(self.HR))]
 
+
+
+
+    def plot_HR(self):
+        if self.HR is None:
+            self.calcular_hr_and_pai()
+
+        print('\n--- HITRATE ---\n')
+        aux.grafico(self.area_percentaje, self.HR, '% Area', 'HR')
+
+    def plot_PAI(self):
+        if self.PAI is None:
+            self.calcular_hr_and_pai()
+
+        print('\n--- PAI ---\n')
+        aux.grafico(self.area_percentaje, self.PAI, '% Area', 'PAI')
+
+    def plot_delitos_meses(self):
+        meses_training = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+                          'Jul', 'Ago', 'Sept', 'Oct']
+
+        meses_test = ['Nov', 'Dic']
+
+        n_por_mes = []
+
+        n_mes = 1
+        n_datos = 0
+
+        while n_mes <= 12:
+            for x in self.data['date']:
+                if x.month == n_mes:
+                    n_datos += 1
+            n_por_mes.append(n_datos)
+            n_mes += 1
+            n_datos = 0
+
+        datos_training = n_por_mes[0:10]
+        datos_test = n_por_mes[10:12]
+
+        plt.bar(meses_training, datos_training, align='center')
+        plt.bar(meses_test, datos_test, color='g', align='center')
+        plt.title('Distribución de delitos por mes')
+        plt.legend(['Meses de training', 'Meses de Test'])
+        plt.show()
+
+    def tabla_de_datos(self, k, hits_n, n_delitos_testing, HR,
+                       area_percentaje, PAI, area_hits):
         pd.options.display.max_columns = None
         pd.options.display.max_rows = None
 
@@ -438,7 +476,7 @@ class Promap:
              'hits totales (N)': n_delitos_testing,
              'HR': HR,
              'celdas de area (a)': area_hits,
-             'area total (A)': 100_000 ,
+             'area total (A)': 100_000,
              'porcentaje de area': area_percentaje,
              'PAI': PAI}
 
@@ -458,85 +496,23 @@ class Promap:
         print('\n')
         print(df_split[0].center(columns))
         print(df_split[maxPAI].center(columns))
-        print("\033[94m"+df_split[maxPAI + 1].center(columns)+"\033[0m")
+        print("\033[94m" + df_split[maxPAI + 1].center(columns) + "\033[0m")
         print(df_split[maxPAI + 2].center(columns))
 
-        #blue '\033[94m'
+        # blue '\033[94m'
 
         print('\n\n')
 
         for i in range(len(tabla)):
-            if i == maxPAI+1:
+            if i == maxPAI + 1:
                 print("\033[94m" + df_split[i].center(
                     columns) + "\033[0m")
             else:
                 print(df_split[i].center(columns))
 
 
-
-
-
-
-
-
-        aux.grafico(k, HR, 'K', 'HR')
-        aux.grafico(k, PAI, 'K', 'PAI')
-        aux.grafico(k, area_percentaje, 'K', '%AREA')
-        aux.grafico(area_percentaje, HR, '%area', 'HR')
-        aux.grafico(area_percentaje, PAI, '%area', 'PAI')
-
-
-        return {'HR': HR, 'PAI': PAI, 'area_percentaje': area_percentaje}
-
-    def plot_HR(self):
-        print('\n--- HITRATE ---\n')
-        results = self.calcular_hr_and_pai()
-        area_percentaje = results['area_percentaje']
-        HR = results['HR']
-        aux.grafico(area_percentaje, HR, '% Area', 'HR')
-
-    def plot_PAI(self):
-        print('\n--- PAI ---\n')
-        results = self.calcular_hr_and_pai()
-        area_percentaje = results['area_percentaje']
-        PAI = results['PAI']
-        aux.grafico(area_percentaje, PAI, '% Area', 'PAI')
-
-    def plot_delitos_meses(self):
-        meses_training = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-                 'Jul', 'Ago', 'Sept', 'Oct']
-
-        meses_test = ['Nov', 'Dic']
-
-        n_por_mes = []
-
-        n_mes = 1
-        n_datos = 0
-
-        while n_mes <=12:
-            for x in self.data['date']:
-                if x.month == n_mes:
-                    n_datos += 1
-            n_por_mes.append(n_datos)
-            n_mes+=1
-            n_datos = 0
-
-        datos_training = n_por_mes[0:10]
-        datos_test = n_por_mes[10:12]
-
-
-        plt.bar(meses_training, datos_training, align='center')
-        plt.bar(meses_test, datos_test, color = 'g', align='center')
-        plt.title('Distribución de delitos por mes')
-        plt.legend(['Meses de training', 'Meses de Test'])
-        plt.show()
-
-
-
-
 if __name__ == "__main__":
     st = time()
-    promap = Promap(n=150_000, year="2017", bw=params.bw, read_files=False)
-    promap.plot_delitos_meses()
-    promap.calcular_hr_and_pai()
-
+    promap = Promap(n=150_000, year="2017", bw=parameters.bw, read_files=True)
+    promap.plot_HR()
+    promap.plot_PAI()
