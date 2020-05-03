@@ -15,7 +15,7 @@ import shutil
 from sodapy import Socrata
 import credentials as cre
 import parameters
-import aux_functions as aux
+import auxiliar_functions_promap as aux
 from collections import defaultdict
 
 
@@ -55,18 +55,22 @@ class Promap:
 
         """
 
+        print(bw)
         self.data = []
         self.training_data = []  # 3000
         self.testing_data = []  # 600
 
         self.bw_x = bw[0]
         self.bw_y = bw[1]
-        self.bw_t = bw[1]
+        self.bw_t = bw[2]
 
         self.n = n
         self.year = year
 
         self.matriz_con_densidades = None
+        self.HR = None
+        self.PAI = None
+        self.area_percentaje = None
 
         if read_files:
             self.training_data = pd.read_pickle('training_data.pkl')
@@ -408,30 +412,31 @@ class Promap:
         cantidad_de_hotspots = np.count_nonzero(self.matriz_con_densidades)
         n_delitos_testing = np.sum(self.testing_matrix)
 
-        HR = [i / n_delitos_testing for i in hits_n]
+        self.HR = [i / n_delitos_testing for i in hits_n]
 
-        area_percentaje = [i / (100_000) for i in
+        self.area_percentaje = [i / (100_000) for i in
                            area_hits]
 
-        PAI = [0 if float(area_percentaje[i]) == 0 else float(HR[i]) / float(
-            area_percentaje[i]) for i in range(len(HR))]
+        self.PAI = [0 if float(self.area_percentaje[i]) == 0 else float(self.HR[
+                                                                            i]) / float(
+            self.area_percentaje[i]) for i in range(len(self.HR))]
 
 
-        return {'HR': HR, 'PAI': PAI, 'area_percentaje': area_percentaje}
+
 
     def plot_HR(self):
+        if self.HR is None:
+            self.calcular_hr_and_pai()
+
         print('\n--- HITRATE ---\n')
-        results = self.calcular_hr_and_pai()
-        area_percentaje = results['area_percentaje']
-        HR = results['HR']
-        aux.grafico(area_percentaje, HR, '% Area', 'HR')
+        aux.grafico(self.area_percentaje, self.HR, '% Area', 'HR')
 
     def plot_PAI(self):
+        if self.PAI is None:
+            self.calcular_hr_and_pai()
+
         print('\n--- PAI ---\n')
-        results = self.calcular_hr_and_pai()
-        area_percentaje = results['area_percentaje']
-        PAI = results['PAI']
-        aux.grafico(area_percentaje, PAI, '% Area', 'PAI')
+        aux.grafico(self.area_percentaje, self.PAI, '% Area', 'PAI')
 
     def plot_delitos_meses(self):
         meses_training = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -508,8 +513,6 @@ class Promap:
 
 if __name__ == "__main__":
     st = time()
-    promap = Promap(n=150_000, year="2017", bw=parameters.bw, read_files=False)
+    promap = Promap(n=150_000, year="2017", bw=parameters.bw, read_files=True)
     promap.plot_HR()
-    promap.plot_HR()
-    promap.plot_PAI()
     promap.plot_PAI()
