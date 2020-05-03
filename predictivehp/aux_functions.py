@@ -15,11 +15,15 @@ import pandas as pd
 
 from math import floor, sqrt, ceil
 from scipy.signal import convolve2d
-import matplotlib.pyplot as plt
 
 import geopandas as gpd
 from shapely.geometry import Point
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+# General
 
 def timer(fn):
     def inner_1(*args, **kwargs):
@@ -30,6 +34,48 @@ def timer(fn):
         print(f"\nFinished! ({time() - st:3.1f} sec)")
 
     return inner_1
+
+
+# Plots
+
+def lineplot(x, y, x_label=None, y_label=None, title=None):
+    rc = {
+        'figure.facecolor': 'black',
+        # 'figure.figsize': (5.51, 3.54),
+
+        'xtick.color': 'white',
+        'ytick.color': 'white',
+        'xtick.major.size': 3,
+        'ytick.major.size': 3,
+        'xtick.bottom': True,
+        'xtick.top': False,
+        'ytick.left': True,
+        'ytick.right': False,
+
+        'axes.facecolor': sns.dark_palette("black", 100)[60],
+        'axes.edgecolor': 'black',
+        'axes.labelcolor': 'white',
+        'text.color': 'white',
+
+        'grid.color': sns.dark_palette("red", 100)[0],
+
+    }
+
+    # Para testear colores de la paleta (mantener comentado)
+    # sns.palplot(sns.dark_palette("red", 100))
+
+    sns.set(
+        palette=sns.color_palette("Reds", 5)[::-1],
+        rc=rc
+    )
+
+    fig = sns.lineplot(x=x, y=y)
+    if x_label:
+        plt.xlabel(x_label)
+    if y_label:
+        plt.ylabel(y_label)
+    if title:
+        plt.title(title)
 
 
 # STKDE

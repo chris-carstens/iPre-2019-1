@@ -17,13 +17,12 @@ from calendar import month_name
 import geopandas as gpd
 
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-
 from sklearn.metrics import precision_score, recall_score
 
 from sodapy import Socrata
 import credentials as cre
 
-import seaborn as sbn
+# import seaborn as sns
 from matplotlib.lines import Line2D
 from aux_functions import *
 from parameters import dallas_limits, d_colors
@@ -517,6 +516,7 @@ class Framework:
         """
         Calculates de Hit Rate for the given Framework
 
+        :param float c: Threshold de confianza para filtrar hotspots
         :param plot: Plotea las celdas de los incidentes luego de aplicar
             un join
         :rtype: int
@@ -536,7 +536,7 @@ class Framework:
         incidentsh = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= c]
 
         hr = incidentsh.shape[0] / incidents_oct.shape[0]
-        print(f"HR: {hr:1.3f}")
+        # print(f"HR: {hr:1.3f}")
 
         return hr
 
@@ -554,23 +554,52 @@ class Framework:
         # ans = self.df[self.df[('geometry', '')].notna()]
 
         # a = self.df[self.df[('Dangerous_pred_Oct', '')] == 1].shape[0]
-        a = self.df[self.df[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
+        # a = self.df[self.df[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
+        def a(x, c): return x[x[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
+
         A = self.df.shape[0]  # Celdas en Dallas
+        hr = self.calculate_hr(c=c)
+        ap = a(self.df, c) / A
 
-        hr = self.calculate_hr()
-        ap = a / A
-
-        print(f"a: {a} cells    A: {A} cells")
-        print(f"Area Percentage: {ap:1.3f} %")
-        print(f"PAI: {hr / ap:1.3f}")
+        # print(f"a: {a} cells    A: {A} cells")
+        # print(f"Area Percentage: {ap:1.3f}")
+        # print(f"PAI: {hr / ap:1.3f}")
 
         return hr / ap
 
-    def plot_statistics(self):
+    def plot_statistics(self, n=500):
         """
 
         :return:
         """
+        c_arr = np.linspace(0, 1, n)
+
+        def a(x, c): return x[x[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
+
+        ap_l, hr_l, pai_l = [], [], []
+        for c in c_arr:
+            A = self.df.shape[0]  # Celdas en Dallas
+            ap = a(self.df, c) / A  # in [0.00, 0.25]
+            hr = self.calculate_hr(c=c)
+            pai = hr / ap
+
+            ap_l.append(ap), hr_l.append(hr), pai_l.append(pai)
+
+        ap_arr = np.array(ap_l[::-1])
+        hr_arr, pai_arr = np.array(hr_l[::-1]), np.array(pai_l[::-1])
+
+        lineplot(
+            x=ap_arr, y=pai_arr,
+            x_label='Area Percentage',
+            y_label='PAI',
+        )
+        plt.show()
+        lineplot(
+            x=ap_arr, y=hr_arr,
+            x_label='Area Percentage',
+            y_label='Hit Rate',
+        )
+        plt.show()
 
     @timer
     def to_pickle(self, file_name):
@@ -885,7 +914,7 @@ class Framework:
 
         df = pd.DataFrame(data=data, index=index, columns=columns)
 
-        sbn.heatmap(data=df, annot=True, annot_kws={"fontsize": 9})
+        sns.heatmap(data=df, annot=True, annot_kws={"fontsize": 9})
 
         plt.xlabel("Layers",
                    fontdict={'fontsize': 12.5,
@@ -1065,12 +1094,10 @@ if __name__ == "__main__":
 
     # TODO (Reu. 13/04)
     #   - c vs HR, c vs Area Percentage , (c vs PAI), a/A vs PAI, a/A vs HR
-    #   - (a/A, API), (a/A, HR) añadir en los plots del clf
+    #   - (a/A, PAI), (a/A, HR) añadir en los plots del clf
 
     fwork = Framework(n=150000, year="2017", read_df=True, read_data=True)
-    # fwork.ml_algorithm()
-    # fwork.assign_cells()
-    fwork.calculate_pai()
+    fwork.plot_statistics(n=500)
     # fwork.ml_algorithm_2()
 
     # aux_df = fwork.df
