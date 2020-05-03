@@ -585,9 +585,27 @@ class Framework:
 
             ap_l.append(ap), hr_l.append(hr), pai_l.append(pai)
 
-        ap_arr = np.array(ap_l[::-1])
-        hr_arr, pai_arr = np.array(hr_l[::-1]), np.array(pai_l[::-1])
+        ap_arr = np.array(ap_l)
+        hr_arr, pai_arr = np.array(hr_l), np.array(pai_l)
 
+        lineplot(
+            x=c_arr, y=ap_arr,
+            x_label='c',
+            y_label='Area Percentage',
+        )
+        plt.show()
+        lineplot(
+            x=c_arr, y=hr_arr,
+            x_label='c',
+            y_label='Hit Rate',
+        )
+        plt.show()
+        lineplot(
+            x=c_arr, y=pai_arr,
+            x_label='c',
+            y_label='PAI',
+        )
+        plt.show()
         lineplot(
             x=ap_arr, y=pai_arr,
             x_label='Area Percentage',
@@ -600,6 +618,7 @@ class Framework:
             y_label='Hit Rate',
         )
         plt.show()
+
 
     @timer
     def to_pickle(self, file_name):
@@ -1093,11 +1112,11 @@ if __name__ == "__main__":
     #       luego implementar parámetro "c", que modifica HR y A.p.
 
     # TODO (Reu. 13/04)
-    #   - c vs HR, c vs Area Percentage , (c vs PAI), a/A vs PAI, a/A vs HR
-    #   - (a/A, PAI), (a/A, HR) añadir en los plots del clf
+    #   - c vs HR, c vs Area Percentage , c vs PAI, a/A vs PAI, a/A vs HR   √
+    #   - (a/A, PAI), (a/A, HR) añadir en los plots del clf         PREGUNTAR
 
     fwork = Framework(n=150000, year="2017", read_df=True, read_data=True)
-    fwork.plot_statistics(n=500)
+    fwork.plot_statistics(n=100)
     # fwork.ml_algorithm_2()
 
     # aux_df = fwork.df
