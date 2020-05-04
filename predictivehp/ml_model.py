@@ -32,6 +32,7 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.width', 1000)
 
 
+
 class Framework:
     def __init__(self, n=1000, year="2017", read_df=False, read_data=False):
         self.n, self.year = n, year

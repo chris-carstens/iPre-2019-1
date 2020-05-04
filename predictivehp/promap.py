@@ -17,6 +17,7 @@ import credentials as cre
 import parameters
 import auxiliar_functions_promap as aux
 from collections import defaultdict
+from matplotlib.lines import Line2D
 
 
 # Observaciones
@@ -55,10 +56,10 @@ class Promap:
 
         """
 
-        print(bw)
-        self.data = []
-        self.training_data = []  # 3000
-        self.testing_data = []  # 600
+
+        self.data = None
+        self.training_data = None  # 3000
+        self.testing_data = None  # 600
 
         self.bw_x = bw[0]
         self.bw_y = bw[1]
@@ -73,6 +74,7 @@ class Promap:
         self.area_percentaje = None
 
         if read_files:
+            self.data = pd.read_pickle('data.pkl')
             self.training_data = pd.read_pickle('training_data.pkl')
             self.testing_data = pd.read_pickle('testing_data.pkl')
             self.generar_df()
@@ -158,7 +160,7 @@ class Promap:
             df.reset_index(drop=True, inplace=True)
 
             self.data = df
-
+            
             # Hasta este punto tenemos los datos en un formato que no nos
             # srve, ahora se pasaran a un formato (X,Y)
 
@@ -182,10 +184,12 @@ class Promap:
                 data['y'].append(self.geo_data.geometry[i].y)
                 data['date'].append(self.data['date'][i])
                 data['y_day'].append(self.data['y_day'][i])
+                data['month1'].append(self.data['date'][i].month_name())
 
             data_ok = pd.DataFrame(data=data)
 
             self.data = data_ok
+
 
             # División en training y testing data
 
@@ -197,6 +201,7 @@ class Promap:
                 self.data["date"].apply(lambda x: x.month) > 10
                 ]
 
+            self.data.to_pickle("data.pkl")
             self.training_data.to_pickle("training_data.pkl")
             self.testing_data.to_pickle("testing_data.pkl")
 
@@ -409,20 +414,16 @@ class Promap:
                     i]) * self.matriz_con_densidades
                                  ))
 
-        cantidad_de_hotspots = np.count_nonzero(self.matriz_con_densidades)
         n_delitos_testing = np.sum(self.testing_matrix)
 
         self.HR = [i / n_delitos_testing for i in hits_n]
 
         self.area_percentaje = [i / (100_000) for i in
-                           area_hits]
+                                area_hits]
 
         self.PAI = [0 if float(self.area_percentaje[i]) == 0 else float(self.HR[
                                                                             i]) / float(
             self.area_percentaje[i]) for i in range(len(self.HR))]
-
-
-
 
     def plot_HR(self):
         if self.HR is None:
@@ -510,9 +511,153 @@ class Promap:
             else:
                 print(df_split[i].center(columns))
 
+    def plot_incidents(self, i_type="real", month="October"):
+        """
+        Plotea los incidentes almacenados en self.data en el mes dado.
+        Asegurarse que al momento de realizar el ploteo, ya se haya
+        hecho un llamado al método ml_algorithm() para identificar los
+        incidentes TP y FN
+
+        :param str i_type: Tipo de incidente a plotear (e.g. TP, FN, TP & FN)
+        :param str month: String con el nombre del mes que se predijo
+            con ml_algorithm()
+        :return:
+        """
+
+        print(f"\nPlotting {month} Incidents...")
+        print("\tFiltering incidents...")
+
+        tp_data, fn_data, data = None, None, None
+
+        # if i_type == "TP & FN":
+        #     data = gpd.GeoDataFrame(self.df)
+        #     tp_data = data[self.df.TP == 1]
+        #     fn_data = data[self.df.FN == 1]
+        # if i_type == "TP":
+        #     data = gpd.GeoDataFrame(self.df)
+        #     tp_data = self.df[self.df.TP == 1]
+        # if i_type == "FN":
+        #     data = gpd.GeoDataFrame(self.df)
+        #     fn_data = self.df[self.df.FN == 1]
+        if i_type == "real":
+            data = self.data[self.data.month1 == month]
+            n_incidents = data.shape[0]
+            print(f"\tNumber of Incidents in {month}: {n_incidents}")
+        # if i_type == "pred":
+        #     data = gpd.GeoDataFrame(self.df)
+        #     all_hp = data[self.df[('Dangerous_pred_Oct', '')] == 1]
+
+        print("\tReading shapefile...")
+        d_streets = gpd.GeoDataFrame.from_file(
+            "../Data/Streets/STREETS.shp")
+        d_streets.to_crs(epsg=2276, inplace=True)
+
+        print("\tRendering Plot...")
+        fig, ax = plt.subplots(figsize=(20, 15))
+
+        d_streets.plot(ax=ax,
+                       alpha=0.4,
+                       color="dimgrey",
+                       zorder=2,
+                       label="Streets")
+
+        # if i_type == 'pred':
+        #     all_hp.plot(
+        #         ax=ax,
+        #         markersize=2.5,
+        #         color='y',
+        #         marker='o',
+        #         zorder=3,
+        #         label="TP Incidents"
+        #     )
+        if i_type == "real":
+            data.plot(
+                ax=ax,
+                markersize=10,
+                color='darkorange',
+                marker='o',
+                zorder=3,
+                label="TP Incidents"
+            )
+        # if i_type == "TP":
+        #     tp_data.plot(
+        #         ax=ax,
+        #         markersize=2.5,
+        #         color='red',
+        #         marker='o',
+        #         zorder=3,
+        #         label="TP Incidents"
+        #     )
+        # if i_type == "FN":
+        #     fn_data.plot(
+        #         ax=ax,
+        #         markersize=2.5,
+        #         color='blue',
+        #         marker='o',
+        #         zorder=3,
+        #         label="FN Incidents"
+        #     )
+        # if i_type == "TP & FN":
+        #     tp_data.plot(
+        #         ax=ax,
+        #         markersize=2.5,
+        #         color='red',
+        #         marker='o',
+        #         zorder=3,
+        #         label="TP Incidents"
+        #     )
+        #     fn_data.plot(
+        #         ax=ax,
+        #         markersize=2.5,
+        #         color='blue',
+        #         marker='o',
+        #         zorder=3,
+        #         label="FN Incidents"
+        #     )
+
+        # Legends
+        handles = [Line2D([], [],
+                   marker='o',
+                   color='darkorange',
+                   label='Incident',
+                   linestyle='None'),
+            Line2D([], [],
+                   marker='o',
+                   color='red',
+                   label='TP Incident',
+                   linestyle='None'),
+            Line2D([], [],
+                   marker='o',
+                   color="blue",
+                   label="FN Incident",
+                   linestyle='None'),
+            Line2D([], [],
+                   marker='o',
+                   color='y',
+                   label='Predicted Incidents',
+                   linestyle='None')]
+
+        plt.legend(loc="best",
+                   bbox_to_anchor=(0.1, 0.7),
+                   frameon=False,
+                   fontsize=13.5,
+                   handles=handles)
+
+        legends = ax.get_legend()
+        for text in legends.get_texts():
+            text.set_color('white')
+
+        # Background
+        ax.set_axis_off()
+        fig.set_facecolor('black')
+        plt.show()
+        plt.close()
+
+
+
 
 if __name__ == "__main__":
     st = time()
-    promap = Promap(n=150_000, year="2017", bw=parameters.bw, read_files=True)
-    promap.plot_HR()
-    promap.plot_PAI()
+    promap = Promap(n=150_000, year="2017", bw=parameters.bw, read_files=False)
+    promap.plot_incidents()
+
