@@ -593,11 +593,21 @@ class Framework:
             x_label='c',
             y_label='Area Percentage',
         )
+        plt.savefig(
+            fname='Statistics_ml_model/ap vs c',
+            facecolor='black',
+            edgecolor='black'
+        )
         plt.show()
         lineplot(
             x=c_arr, y=hr_arr,
             x_label='c',
             y_label='Hit Rate',
+        )
+        plt.savefig(
+            fname='Statistics_ml_model/HR vs c',
+            facecolor='black',
+            edgecolor='black'
         )
         plt.show()
         lineplot(
@@ -605,11 +615,21 @@ class Framework:
             x_label='c',
             y_label='PAI',
         )
+        plt.savefig(
+            fname='Statistics_ml_model/PAI vs c',
+            facecolor='black',
+            edgecolor='black'
+        )
         plt.show()
         lineplot(
             x=ap_arr, y=pai_arr,
             x_label='Area Percentage',
             y_label='PAI',
+        )
+        plt.savefig(
+            fname='Statistics_ml_model/PAI vs ap',
+            facecolor='black',
+            edgecolor='black'
         )
         plt.show()
         lineplot(
@@ -617,8 +637,12 @@ class Framework:
             x_label='Area Percentage',
             y_label='Hit Rate',
         )
+        plt.savefig(
+            fname='Statistics_ml_model/HR vs ap',
+            facecolor='black',
+            edgecolor='black'
+        )
         plt.show()
-
 
     @timer
     def to_pickle(self, file_name):
@@ -1116,7 +1140,7 @@ if __name__ == "__main__":
     #   - (a/A, PAI), (a/A, HR) añadir en los plots del clf         PREGUNTAR
 
     fwork = Framework(n=150000, year="2017", read_df=True, read_data=True)
-    fwork.plot_statistics(n=100)
+    fwork.plot_statistics(n=1000)
     # fwork.ml_algorithm_2()
 
     # aux_df = fwork.df
