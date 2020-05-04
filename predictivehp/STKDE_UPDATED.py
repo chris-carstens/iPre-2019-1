@@ -21,6 +21,8 @@ from sodapy import Socrata
 import credentials as cre
 from predictivehp import parameters as params
 
+from aux_functions import checked_points as checked_points, _time as _time
+
 
 # Observaciones
 #
@@ -29,47 +31,6 @@ from predictivehp import parameters as params
 # Testing data 649 incidents (November 1st - December 31st)
 #
 # 2. Se requiere que la muestra sea "estable" en el periodo analizado
-
-def _time(fn):
-    def inner_1(*args, **kwargs):
-        start = time()
-
-        fn(*args, **kwargs)
-
-        print(f"\nFinished in {round(time() - start, 3)} sec")
-
-    return inner_1
-
-
-def checked_points(points):
-    dallas_shp = gpd.read_file('Data/Councils/Councils.shp')
-
-    df_points = pd.DataFrame(
-            {'x': points[0, :], 'y': points[1, :], 't': points[2, :]}
-    )
-
-    inc_points = df_points[['x', 'y']].apply(lambda row:
-                                             Point(row['x'], row['y']),
-                                             axis=1)
-    geo_inc = gpd.GeoDataFrame({'geometry': inc_points, 'day': df_points['t']})
-
-    # Para borrar el warning asociado a != epsg distintos
-    geo_inc.crs = {'init': 'epsg:2276'}
-
-    valid_inc = gpd.tools.sjoin(geo_inc,
-                                dallas_shp,
-                                how='inner',
-                                op='intersects').reset_index()
-
-    valid_inc_2 = valid_inc[['geometry', 'day']]
-
-    x = valid_inc_2['geometry'].apply(lambda row: row.x)
-    y = valid_inc_2['geometry'].apply(lambda row: row.y)
-    t = valid_inc_2['day']
-
-    v_points = np.array([x, y, t])
-
-    return v_points
 
 
 settings = EstimatorSettings(efficient=True,
@@ -1015,10 +976,7 @@ class Framework:
     def plot_HR(self):
         if not self.results_HR_PAI:
             self.results_HR_PAI = self.calculate_HR_PAI()
-            results_HR = self.results_HR_PAI['HR']
-
-        else:
-            results_HR = self.results_HR_PAI['HR']
+        results_HR = self.results_HR_PAI['HR']
         plt.xlabel('Area percentage')
         plt.ylabel('HR')
         plt.title("HR vs Area")
@@ -1033,9 +991,7 @@ class Framework:
     def plot_PAI(self):
         if not self.results_HR_PAI:
             self.results_HR_PAI = self.calculate_HR_PAI()
-            results_PAI = self.results_HR_PAI['PAI']
-        else:
-            results_PAI = self.results_HR_PAI['PAI']
+        results_PAI = self.results_HR_PAI['PAI']
         plt.xlabel('Area percentage')
         plt.ylabel('PAI')
         plt.title("PAI vs Area")
@@ -1044,6 +1000,30 @@ class Framework:
             plt.plot(area_percentaje, PAIs, label=f'group {i}')
         plt.legend()
         plt.savefig("PAIvsArea", format='pdf')
+        plt.show()
+
+
+    def plot_mean(self, hr_or_pai="PAI"):
+        if not self.results_HR_PAI:
+            self.results_HR_PAI = self.calculate_HR_PAI()
+        results = self.results_HR_PAI[hr_or_pai]
+
+        plt.xlabel('Area percentage')
+        plt.ylabel("Mean " + hr_or_pai)
+        plt.title("Mean: " + hr_or_pai + " vs Area")
+
+        param_mean = []
+        area_percentaje_mean = []
+
+        for i in range(0, 100):
+            HR_or_PAI = [results[group][0][i] for group in results]
+            mean = sum(HR_or_PAI) / len(HR_or_PAI)
+            param_mean.append(mean)
+            area = [results[group][1][i] for group in results]
+            area_mean = sum(area) / len(area)
+            area_percentaje_mean.append(area_mean)
+        plt.plot(area_percentaje_mean, param_mean, label=f'group {i}')
+        plt.savefig(hr_or_pai + " vs Area", format='pdf')
         plt.show()
 
 
@@ -1066,14 +1046,14 @@ if __name__ == "__main__":
     dallas_stkde = Framework(n=150000,
                              year="2017")
 
-    #print(dallas_stkde.training_data['x'])
-
-
     dallas_stkde.plot_HR()
     dallas_stkde.plot_PAI()
+    dallas_stkde.plot_mean()
 
 
-    # # BAR AND MAP PLOTS
+
+
+    #  BAR AND MAP PLOTS
 
     # dallas_stkde.data_barplot(pdf=False)
     # %%
@@ -1095,7 +1075,8 @@ if __name__ == "__main__":
     # s_points = dallas_stkde.predict_groups['group_1']['STKDE'] \
     #     .resample(size=1000)
 
-    # %%
+
+
 
     # def significance(data, stkde, sig):
     #     all = []
@@ -1120,23 +1101,4 @@ if __name__ == "__main__":
     #                                            100)]
     # test = list(zip(x, y, t, max_pdfs))
 
-    # %%
 
-
-
-    # DIFFERENTS PLOTS HR AND PAI
-        #plt.plot(c, HR)
-        #plt.xlabel('c')
-        #plt.ylabel('HR')
-        #plt.title("HR vs c")
-        #plt.show()
-        #plt.plot(c, HR, label=f'group {i}')
-        #plt.plot(c, area_percentaje, label=f'group {i}')
-        #plt.plot(area_percentaje, HR, label=f'group {i}')
-        #plt.show()
-        #plt.plot(area_percentaje[:-1], PAI, label=f'group {i}')
-        #plt.xlim([0, 0.2])
-        #plt.show()
-
-    #plt.legend()
-    #plt.savefig(f"all_groups.pdf", format='pdf')
