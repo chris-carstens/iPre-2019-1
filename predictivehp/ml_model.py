@@ -66,7 +66,7 @@ class Framework:
             self.data = pd.read_pickle('data.pkl')
             print(f"finished! ({time() - st:3.1f} sec)")
         else:
-            self.data = g
+            self.data = get
             self.generate_df()
 
     @timer

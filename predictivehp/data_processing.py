@@ -21,11 +21,11 @@ pd.set_option('display.max_rows', None)
 @timer
 def get_data(model='STKDE', year=2017, n=1000):
     """
+    Obtiene los datos de la Socrata API
 
-
-    :param model:
-    :param year:
-    :param n:
+    :param str model: Uno entre 'STKDE', 'ProMap, 'ML'
+    :param int year: Año de la db (e.g. 2017)
+    :param int n: Número máximo de muestras a extraer de la db
     :return:
     """
 
