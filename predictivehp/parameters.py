@@ -47,36 +47,6 @@ days_oct_nov_dic = [date(2017, 10, i) for i in range(1, days_oct + 1)] + \
                    [date(2017, 11, i) for i in range(1, days_nov + 1)] + \
                    [date(2017, 12, i) for i in range(1, days_dic + 1)]
 
-predict_groups = {
-    'group_1': {'t1_data': [], 't2_data': [], 'STKDE': None},
-    'group_2': {'t1_data': [], 't2_data': [], 'STKDE': None},
-    'group_3': {'t1_data': [], 't2_data': [], 'STKDE': None},
-    'group_4': {'t1_data': [], 't2_data': [], 'STKDE': None},
-    'group_5': {'t1_data': [], 't2_data': [], 'STKDE': None},
-    'group_6': {'t1_data': [], 't2_data': [], 'STKDE': None},
-    'group_7': {'t1_data': [], 't2_data': [], 'STKDE': None},
-    'group_8': {'t1_data': [], 't2_data': [], 'STKDE': None}
-}
-
-# Time 1 Data for building STKDE models : 1 Month
-group_n = 1
-for i in range(1, len(days_oct_nov_dic))[::7]:
-    predict_groups[f"group_{group_n}"]['t1_data'] = \
-        days_oct_nov_dic[i - 1:i - 1 + days_oct]
-
-    group_n += 1
-    if group_n > 8:
-        break
-
-# Time 2 Data for Prediction            : 1 Week
-group_n = 1
-for i in range(1, len(days_oct_nov_dic))[::7]:
-    predict_groups[f"group_{group_n}"]['t2_data'] = \
-        days_oct_nov_dic[i - 1 + days_oct:i - 1 + days_oct + 7]
-
-    group_n += 1
-    if group_n > 8:
-        break
 
 # Obs. Limites de dallas en epsg: 3857
 
