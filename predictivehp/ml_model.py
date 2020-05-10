@@ -25,6 +25,7 @@ import credentials as cre
 # import seaborn as sns
 from matplotlib.lines import Line2D
 from aux_functions import *
+from data_processing import *
 from parameters import dallas_limits, d_colors
 
 pd.set_option('display.max_columns', None)
@@ -65,7 +66,7 @@ class Framework:
             self.data = pd.read_pickle('data.pkl')
             print(f"finished! ({time() - st:3.1f} sec)")
         else:
-            self.get_data()
+            self.data = g
             self.generate_df()
 
     @timer
