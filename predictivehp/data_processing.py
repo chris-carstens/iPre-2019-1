@@ -42,6 +42,7 @@ def get_data(model='STKDE', year=2017, n=1000):
                 incidentnum,
                 year1,
                 date1,
+                month1,
                 time1,
                 x_coordinate,
                 y_cordinate,
@@ -96,6 +97,8 @@ def get_data(model='STKDE', year=2017, n=1000):
                 df = df.sample(n=3600,
                                replace=False,
                                random_state=250499)
+                df.sort_values(by=['date'], inplace=True)
+                df.reset_index(drop=True, inplace=True)
 
             # División en training data (X) y testing data (y)
             X = df[df["date"].apply(lambda x: x.month) <= 10]
@@ -149,4 +152,5 @@ def get_data(model='STKDE', year=2017, n=1000):
 
 
 if __name__ == '__main__':
-    pass
+    a = get_data(model='ML')
+    print(a.head())
