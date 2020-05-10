@@ -67,6 +67,7 @@ class Framework:
             print(f"finished! ({time() - st:3.1f} sec)")
         else:
             self.data = get_data(model='ML', year=2017, n=1000)
+            print(self.data.head())
             self.generate_df()
 
     @timer

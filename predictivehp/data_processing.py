@@ -125,9 +125,10 @@ def get_data(model='STKDE', year=2017, n=1000):
                             predict_groups[group]['t2_data'][-1]
                         )
                         ]
-                    return df, X, y, predict_groups
+                return df, X, y, predict_groups
             return df, X, y
         return df
+
 
 
 if __name__ == '__main__':
