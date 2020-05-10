@@ -20,7 +20,6 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.width', 1000)
 
 
-
 @timer
 def get_data(model='STKDE', year=2017, n=1000):
     """
@@ -90,15 +89,15 @@ def get_data(model='STKDE', year=2017, n=1000):
                            'date1': 'date'},
                   inplace=True)
 
-        # Reducción del tamaño de la DB
-        df = df.sample(n=3600,
-                       replace=False,
-                       random_state=250499)
-
         df.sort_values(by=['date'], inplace=True)
         df.reset_index(drop=True, inplace=True)
 
         if model == 'STKDE' or model == 'ProMap':
+            # Reducción del tamaño de la DB
+            df = df.sample(n=3600,
+                           replace=False,
+                           random_state=250499)
+
             # División en training data (X) y testing data (y)
             X = df[df["date"].apply(lambda x: x.month) <= 10]
             y = df[df["date"].apply(lambda x: x.month) > 10]
