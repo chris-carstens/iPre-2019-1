@@ -86,8 +86,7 @@ class Promap:
 
         else:
             self.data, self.training_data, self.testing_data = get_data(
-                model='Promap',
-                n=150_000)
+                 model='ProMap', n=150_000)
             self.generar_df()
             self.calcular_densidades()
 
@@ -112,6 +111,7 @@ class Promap:
         self.geo_data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
                                          crs=2276,
                                          geometry=geometry)
+
 
         self.geo_data.to_crs(epsg=3857, inplace=True)
 
@@ -583,4 +583,4 @@ class Promap:
 if __name__ == "__main__":
     st = time()
     promap = Promap(n=150_000, year="2017", bw=parameters.bw, read_files=False)
-    promap.plot_incidents()
+    #promap.plot_incidents()
