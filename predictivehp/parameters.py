@@ -39,7 +39,6 @@ d_colors = {
 bw = np.array([1577.681, 1167.16, 35.549])
 
 # Oct - Nov - Dic
-
 w_day_oct, days_oct = monthrange(2017, 10)
 w_day_nov, days_nov = monthrange(2017, 11)
 w_day_dic, days_dic = monthrange(2017, 12)
@@ -60,7 +59,6 @@ predict_groups = {
 }
 
 # Time 1 Data for building STKDE models : 1 Month
-
 group_n = 1
 for i in range(1, len(days_oct_nov_dic))[::7]:
     predict_groups[f"group_{group_n}"]['t1_data'] = \
@@ -71,7 +69,6 @@ for i in range(1, len(days_oct_nov_dic))[::7]:
         break
 
 # Time 2 Data for Prediction            : 1 Week
-
 group_n = 1
 for i in range(1, len(days_oct_nov_dic))[::7]:
     predict_groups[f"group_{group_n}"]['t2_data'] = \
