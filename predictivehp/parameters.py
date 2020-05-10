@@ -39,7 +39,6 @@ d_colors = {
 bw = np.array([1577.681, 1167.16, 35.549])
 
 # Oct - Nov - Dic
-
 w_day_oct, days_oct = monthrange(2017, 10)
 w_day_nov, days_nov = monthrange(2017, 11)
 w_day_dic, days_dic = monthrange(2017, 12)

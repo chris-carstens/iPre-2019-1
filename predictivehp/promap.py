@@ -18,6 +18,7 @@ import parameters
 import auxiliar_functions_promap as aux
 from collections import defaultdict
 from matplotlib.lines import Line2D
+from data_processing import *
 
 
 # Observaciones
@@ -71,143 +72,26 @@ class Promap:
         self.HR = None
         self.PAI = None
         self.area_percentaje = None
+        self.df = None
+        self.df_testing_data = None
+        self.df_training_data = None
 
         if read_files:
-            self.data = pd.read_pickle('data.pkl')
-            self.training_data = pd.read_pickle('training_data.pkl')
-            self.testing_data = pd.read_pickle('testing_data.pkl')
+            self.df = pd.read_pickle('data.pkl')
+            self.df_training_data = pd.read_pickle('training_data.pkl')
+            self.df_testing_data = pd.read_pickle('testing_data.pkl')
             self.generar_df()
             self.matriz_con_densidades = np.load(
                 'matriz_de_densidades.pkl.npy')
 
         else:
-            self.get_data()
+            self.data, self.training_data, self.testing_data = get_data(
+                model='Promap',
+                n=150_000)
             self.generar_df()
             self.calcular_densidades()
 
-    def get_data(self):
-        """
-        Obtiene datos usando la Socrata API.
-        Luego los pasa al self.data
-        De momento solo se están utilizando datos de robos residenciales.
-        """
 
-        print("\nRequesting data...")
-
-        with Socrata(cre.socrata_domain,
-                     cre.API_KEY_S,
-                     username=cre.USERNAME_S,
-                     password=cre.PASSWORD_S) as client:
-            query = \
-                f"""
-                select
-                    incidentnum,
-                    year1,
-                    date1,
-                    time1,
-                    x_coordinate,
-                    y_cordinate,
-                    offincident
-                where
-                    year1 = {self.year}
-                    and date1 is not null
-                    and time1 is not null
-                    and x_coordinate is not null
-                    and y_cordinate is not null
-                    and offincident = 'BURGLARY OF HABITATION - FORCED ENTRY'
-                order by date1
-                limit
-                    {self.n}
-                """  #  571000 max. 09/07/2019
-
-            results = client.get(cre.socrata_dataset_identifier,
-                                 query=query,
-                                 content_type='json')
-
-            pd.set_option('display.max_columns', None)
-            pd.set_option('display.max_rows', None)
-
-            df = pd.DataFrame.from_records(results)
-
-            # DB Cleaning & Formatting
-
-            df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
-                lambda x: float(x))
-            df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
-                lambda x: float(x))
-            df.loc[:, 'date1'] = df['date1'].apply(
-                lambda x: datetime.datetime.strptime(
-                    x.split(' ')[0], '%Y-%m-%d')
-            )
-
-            df = df[['x_coordinate', 'y_cordinate', 'date1']]
-            df.loc[:, 'y_day'] = df["date1"].apply(
-                lambda x: x.timetuple().tm_yday
-            )
-
-            df.rename(columns={'x_coordinate': 'x',
-                               'y_cordinate': 'y',
-                               'date1': 'date'},
-                      inplace=True)
-
-            # Reducción del tamaño de la DB
-
-            df = df.sample(n=3600,
-                           replace=False,
-                           random_state=250499)
-
-            df.sort_values(by=['date'], inplace=True)
-            df.reset_index(drop=True, inplace=True)
-
-            self.data = df
-
-            # Hasta este punto tenemos los datos en un formato que no nos
-            # srve, ahora se pasaran a un formato (X,Y)
-
-            geometry = [Point(xy) for xy in zip(
-                np.array(self.data[['x']]),
-                np.array(self.data[['y']]))
-                        ]
-
-            self.geo_data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
-                                             crs=2276,
-                                             geometry=geometry)
-
-            self.geo_data.to_crs(epsg=3857, inplace=True)
-
-            # Ahora debemos juntar los datos del geo data y los day_y
-
-            data = defaultdict(list)
-
-            for i in range(len(self.data)):
-                data['x'].append(self.geo_data.geometry[i].x)
-                data['y'].append(self.geo_data.geometry[i].y)
-                data['date'].append(self.data['date'][i])
-                data['y_day'].append(self.data['y_day'][i])
-                data['month1'].append(self.data['date'][i].month_name())
-
-            data_ok = pd.DataFrame(data=data)
-
-            self.data = data_ok
-
-            # División en training y testing data
-
-            self.training_data = self.data[
-                self.data["date"].apply(lambda x: x.month) <= 10
-                ]
-
-            self.testing_data = self.data[
-                self.data["date"].apply(lambda x: x.month) > 10
-                ]
-
-            self.data.to_pickle("data.pkl")
-            self.training_data.to_pickle("training_data.pkl")
-            self.testing_data.to_pickle("testing_data.pkl")
-
-            print("\n"
-                  f"\tn = {self.n} incidents requested  Year = {self.year}"
-                  "\n"
-                  f"\t{self.data.shape[0]} incidents successfully retrieved!")
 
     def generar_df(self):
 
@@ -218,6 +102,43 @@ class Promap:
         '''''
 
         print("\nGenerando dataframe...\n")
+
+
+        geometry = [Point(xy) for xy in zip(
+            np.array(self.data[['x']]),
+            np.array(self.data[['y']]))
+                    ]
+
+        self.geo_data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
+                                         crs=2276,
+                                         geometry=geometry)
+
+        self.geo_data.to_crs(epsg=3857, inplace=True)
+
+        # Ahora debemos juntar los datos del geo data y los day_y
+
+        data = defaultdict(list)
+
+        for i in range(len(self.data)):
+            data['x'].append(self.geo_data.geometry[i].x)
+            data['y'].append(self.geo_data.geometry[i].y)
+            data['date'].append(self.data['date'][i])
+            data['y_day'].append(self.data['y_day'][i])
+
+        data_ok = pd.DataFrame(data=data)
+
+        self.df = data_ok
+
+        # División en training y testing data
+
+        self.df_training_data = self.df[
+            self.data["date"].apply(lambda x: x.month) <= 10
+            ]
+
+        self.df_testing_data = self.df[
+            self.data["date"].apply(lambda x: x.month) > 10
+            ]
+
 
         self.x_min = parameters.dallas_limits['x_min']
         self.x_max = parameters.dallas_limits['x_max']
@@ -243,7 +164,7 @@ class Promap:
                                                   2:self.bins_y *
                                                     1j]
 
-        self.total_dias_training = self.training_data['y_day'].max()
+        self.total_dias_training = self.df_training_data['y_day'].max()
 
     def calcular_densidades(self):
 
@@ -255,17 +176,18 @@ class Promap:
 
         print('\nCalculando densidades...')
         print(
-            f'\n\tNº de datos para entrenar el modelo: {len(self.training_data)}')
+            f'\n\tNº de datos para entrenar el modelo: {len(self.df_training_data)}')
         print(f'\tNº de días usados para entrenar el modelo: '
               f'{self.total_dias_training}')
         print(
-            f'\tNº de datos para testear el modelo: {len(self.testing_data)}')
+            f'\tNº de datos para testear el modelo: {len(self.df_testing_data)}')
 
         matriz_con_ceros = np.zeros((self.bins_x, self.bins_y))
 
-        for k in range(len(self.training_data)):
-            x, y, t = self.training_data['x'][k], self.training_data['y'][k], \
-                      self.training_data['y_day'][k]
+        for k in range(len(self.df_training_data)):
+            x, y, t = self.df_training_data['x'][k], self.df_training_data['y'][
+                k], \
+                      self.df_training_data['y_day'][k]
             x_in_matrix, y_in_matrix = aux.find_position(self.x, self.y, x, y,
                                                          self.hx, self.hy)
             ancho_x = aux.radio_pintar(self.hx, self.bw_x)
@@ -326,7 +248,7 @@ class Promap:
         """
 
         self.training_matrix = np.zeros((self.bins_x, self.bins_y))
-        for index, row in self.training_data.iterrows():
+        for index, row in self.df_training_data.iterrows():
             x, y, t = row['x'], row['y'], row['y_day']
 
             if t >= (self.total_dias_training - self.bw_t):
@@ -351,7 +273,7 @@ class Promap:
         """
 
         self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
-        for index, row in self.testing_data.iterrows():
+        for index, row in self.df_testing_data.iterrows():
             x, y, t = row['x'], row['y'], row['y_day']
 
             if t <= (self.total_dias_training + ventana_dias):
