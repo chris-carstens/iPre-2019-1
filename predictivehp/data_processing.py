@@ -63,90 +63,89 @@ def get_data(model='STKDE', year=2017, n=1000):
                              query=query,
                              content_type='json')
 
-        df = pd.DataFrame.from_records(results)
-        print("\n"
-              f"\tn = {n} incidents requested  Year = {year}"
-              "\n"
-              f"\t{df.shape[0]} incidents successfully retrieved!")
+    df = pd.DataFrame.from_records(results)
+    print("\n"
+          f"\tn = {n} incidents requested  Year = {year}"
+          "\n"
+          f"\t{df.shape[0]} incidents successfully retrieved!")
 
-        # DB Cleaning & Formatting
-        df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
-            lambda x: float(x))
-        df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
-            lambda x: float(x))
-        df.loc[:, 'date1'] = df['date1'].apply(  # OJO AL SEPARADOR ' '
-            lambda x: datetime.datetime.strptime(
-                x.split(' ')[0], '%Y-%m-%d')
-        )
+    # DB Cleaning & Formatting
+    df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
+        lambda x: float(x))
+    df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
+        lambda x: float(x))
+    df.loc[:, 'date1'] = df['date1'].apply(  # OJO AL SEPARADOR ' '
+        lambda x: datetime.datetime.strptime(
+            x.split(' ')[0], '%Y-%m-%d')
+    )
 
-        df = df[['x_coordinate', 'y_cordinate', 'date1']]
-        df.loc[:, 'y_day'] = df["date1"].apply(
-            lambda x: x.timetuple().tm_yday
-        )
+    df = df[['x_coordinate', 'y_cordinate', 'date1']]
+    df.loc[:, 'y_day'] = df["date1"].apply(
+        lambda x: x.timetuple().tm_yday
+    )
 
-        df.rename(columns={'x_coordinate': 'x',
-                           'y_cordinate': 'y',
-                           'date1': 'date'},
-                  inplace=True)
+    df.rename(columns={'x_coordinate': 'x',
+                       'y_cordinate': 'y',
+                       'date1': 'date'},
+              inplace=True)
 
-        df.sort_values(by=['date'], inplace=True)
-        df.reset_index(drop=True, inplace=True)
+    df.sort_values(by=['date'], inplace=True)
+    df.reset_index(drop=True, inplace=True)
 
-        if model == 'STKDE' or model == 'ProMap':
-            # Reducción del tamaño de la DB
-            df = df.sample(n=3600,
-                           replace=False,
-                           random_state=250499)
+    if model == 'STKDE' or model == 'ProMap':
+        # Reducción del tamaño de la DB
+        df = df.sample(n=3600,
+                       replace=False,
+                       random_state=250499)
 
-            # División en training data (X) y testing data (y)
-            X = df[df["date"].apply(lambda x: x.month) <= 10]
-            y = df[df["date"].apply(lambda x: x.month) > 10]
+        # División en training data (X) y testing data (y)
+        X = df[df["date"].apply(lambda x: x.month) <= 10]
+        y = df[df["date"].apply(lambda x: x.month) > 10]
 
-            if model == 'STKDE':
-                aux = {'t1_data': [], 't2_data': [], 'STKDE': None}
-                predict_groups = {f"group_{i}": aux for i in range(1, 9)}
+        if model == 'STKDE':
+            aux = {'t1_data': [], 't2_data': [], 'STKDE': None}
+            predict_groups = {f"group_{i}": aux for i in range(1, 9)}
 
-                # Time 1 Data for building STKDE models : 1 Month
-                group_n = 1
-                for i in range(1, len(days_oct_nov_dic))[::7]:
-                    predict_groups[f"group_{group_n}"]['t1_data'] = \
-                        days_oct_nov_dic[i - 1:i - 1 + days_oct]
+            # Time 1 Data for building STKDE models : 1 Month
+            group_n = 1
+            for i in range(1, len(days_oct_nov_dic))[::7]:
+                predict_groups[f"group_{group_n}"]['t1_data'] = \
+                    days_oct_nov_dic[i - 1:i - 1 + days_oct]
 
-                    group_n += 1
-                    if group_n > 8:
-                        break
-                # Time 2 Data for Prediction            : 1 Week
-                group_n = 1
-                for i in range(1, len(days_oct_nov_dic))[::7]:
-                    predict_groups[f"group_{group_n}"]['t2_data'] = \
-                        days_oct_nov_dic[i - 1 + days_oct:i - 1 + days_oct + 7]
+                group_n += 1
+                if group_n > 8:
+                    break
+            # Time 2 Data for Prediction            : 1 Week
+            group_n = 1
+            for i in range(1, len(days_oct_nov_dic))[::7]:
+                predict_groups[f"group_{group_n}"]['t2_data'] = \
+                    days_oct_nov_dic[i - 1 + days_oct:i - 1 + days_oct + 7]
 
-                    group_n += 1
-                    if group_n > 8:
-                        break
-                # Time 1 Data for building STKDE models : 1 Month
-                for group in predict_groups:
-                    print(group)
-                    predict_groups[group]['t1_data'] = \
-                        df[df['date'].apply(
-                            lambda x:
-                            predict_groups[group]['t1_data'][0]
-                            <= x.date() <=
-                            predict_groups[group]['t1_data'][-1]
-                        )
-                        ]
-                # Time 2 Data for Prediction            : 1 Week
-                for group in predict_groups:
-                    predict_groups[group]['t2_data'] = \
-                        df[df['date'].apply(
-                            lambda x:
-                            predict_groups[group]['t2_data'][0]
-                            <= x.date() <=
-                            predict_groups[group]['t2_data'][-1]
-                        )
-                        ]
-                return df, X, y, predict_groups
-            return df, X, y
+                group_n += 1
+                if group_n > 8:
+                    break
+            # Time 1 Data for building STKDE models : 1 Month
+            for group in predict_groups:
+                predict_groups[group]['t1_data'] = \
+                    df[df['date'].apply(
+                        lambda x:
+                        predict_groups[group]['t1_data'][0]
+                        <= x.date() <=
+                        predict_groups[group]['t1_data'][-1]
+                    )
+                    ]
+            # Time 2 Data for Prediction            : 1 Week
+            for group in predict_groups:
+                predict_groups[group]['t2_data'] = \
+                    df[df['date'].apply(
+                        lambda x:
+                        predict_groups[group]['t2_data'][0]
+                        <= x.date() <=
+                        predict_groups[group]['t2_data'][-1]
+                    )
+                    ]
+            return df, X, y, predict_groups
+        return df, X, y
     return df
 
 
