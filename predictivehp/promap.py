@@ -56,7 +56,6 @@ class Promap:
 
         """
 
-
         self.data = None
         self.training_data = None  # 3000
         self.testing_data = None  # 600
@@ -78,7 +77,8 @@ class Promap:
             self.training_data = pd.read_pickle('training_data.pkl')
             self.testing_data = pd.read_pickle('testing_data.pkl')
             self.generar_df()
-            self.matriz_con_densidades = np.load('matriz_de_densidades.pkl.npy')
+            self.matriz_con_densidades = np.load(
+                'matriz_de_densidades.pkl.npy')
 
         else:
             self.get_data()
@@ -160,7 +160,7 @@ class Promap:
             df.reset_index(drop=True, inplace=True)
 
             self.data = df
-            
+
             # Hasta este punto tenemos los datos en un formato que no nos
             # srve, ahora se pasaran a un formato (X,Y)
 
@@ -189,7 +189,6 @@ class Promap:
             data_ok = pd.DataFrame(data=data)
 
             self.data = data_ok
-
 
             # División en training y testing data
 
@@ -255,10 +254,12 @@ class Promap:
         """""
 
         print('\nCalculando densidades...')
-        print(f'\n\tNº de datos para entrenar el modelo: {len(self.training_data)}')
+        print(
+            f'\n\tNº de datos para entrenar el modelo: {len(self.training_data)}')
         print(f'\tNº de días usados para entrenar el modelo: '
               f'{self.total_dias_training}')
-        print(f'\tNº de datos para testear el modelo: {len(self.testing_data)}')
+        print(
+            f'\tNº de datos para testear el modelo: {len(self.testing_data)}')
 
         matriz_con_ceros = np.zeros((self.bins_x, self.bins_y))
 
@@ -276,7 +277,8 @@ class Promap:
                 for j in range(y_abajo, y_up):
                     elemento_x = self.x[i][0]
                     elemento_y = self.y[0][j]
-                    time_weight = 1 / aux.n_semanas(self.total_dias_training, t)
+                    time_weight = 1 / aux.n_semanas(self.total_dias_training,
+                                                    t)
                     if aux.linear_distance(elemento_x, x) > self.bw_x or \
                             aux.linear_distance(
                                 elemento_y, y) > self.bw_y:
@@ -396,7 +398,8 @@ class Promap:
         for i in range(k.size):
             hits_n.append(
                 np.sum(
-                    (self.matriz_con_densidades >= k[i]) * self.testing_matrix))
+                    (self.matriz_con_densidades >= k[
+                        i]) * self.testing_matrix))
 
         """
         1. Solo considera las celdas que son mayor a un K
@@ -421,9 +424,10 @@ class Promap:
         self.area_percentaje = [i / (100_000) for i in
                                 area_hits]
 
-        self.PAI = [0 if float(self.area_percentaje[i]) == 0 else float(self.HR[
-                                                                            i]) / float(
-            self.area_percentaje[i]) for i in range(len(self.HR))]
+        self.PAI = [
+            0 if float(self.area_percentaje[i]) == 0 else float(self.HR[
+                                                                    i]) / float(
+                self.area_percentaje[i]) for i in range(len(self.HR))]
 
     def plot_HR(self):
         if self.HR is None:
@@ -617,25 +621,25 @@ class Promap:
 
         # Legends
         handles = [Line2D([], [],
-                   marker='o',
-                   color='darkorange',
-                   label='Incident',
-                   linestyle='None'),
-            Line2D([], [],
-                   marker='o',
-                   color='red',
-                   label='TP Incident',
-                   linestyle='None'),
-            Line2D([], [],
-                   marker='o',
-                   color="blue",
-                   label="FN Incident",
-                   linestyle='None'),
-            Line2D([], [],
-                   marker='o',
-                   color='y',
-                   label='Predicted Incidents',
-                   linestyle='None')]
+                          marker='o',
+                          color='darkorange',
+                          label='Incident',
+                          linestyle='None'),
+                   Line2D([], [],
+                          marker='o',
+                          color='red',
+                          label='TP Incident',
+                          linestyle='None'),
+                   Line2D([], [],
+                          marker='o',
+                          color="blue",
+                          label="FN Incident",
+                          linestyle='None'),
+                   Line2D([], [],
+                          marker='o',
+                          color='y',
+                          label='Predicted Incidents',
+                          linestyle='None')]
 
         plt.legend(loc="best",
                    bbox_to_anchor=(0.1, 0.7),
@@ -654,10 +658,7 @@ class Promap:
         plt.close()
 
 
-
-
 if __name__ == "__main__":
     st = time()
     promap = Promap(n=150_000, year="2017", bw=parameters.bw, read_files=False)
     promap.plot_incidents()
-

@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 import geopandas as gpd
 from shapely.geometry import Point
 
-#from pyevtk.hl import gridToVTK
-#from paraview.simple import *
+# from pyevtk.hl import gridToVTK
+# from paraview.simple import *
 
 from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
     EstimatorSettings
@@ -22,7 +22,6 @@ import credentials as cre
 from predictivehp import parameters as params
 
 from aux_functions import checked_points as checked_points, _time as _time
-
 
 # Observaciones
 #
@@ -91,13 +90,12 @@ class Framework:
 
         self.get_data()
 
-        #esto le pasa los datos al KDE
+        # esto le pasa los datos al KDE
         self.kde = KDEMultivariate(
-                [np.array(self.training_data[['x']]),
-                 np.array(self.training_data[['y']]),
-                 np.array(self.training_data[['y_day']])],
-                'ccc')
-
+            [np.array(self.training_data[['x']]),
+             np.array(self.training_data[['y']]),
+             np.array(self.training_data[['y_day']])],
+            'ccc')
 
     @_time
     def get_data(self):
@@ -146,18 +144,17 @@ class Framework:
             # DB Cleaning & Formatting
 
             df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
-                    lambda x: float(x))
+                lambda x: float(x))
             df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
-                    lambda x: float(x))
-            # print(df['date1'])
+                lambda x: float(x))
             df.loc[:, 'date1'] = df['date1'].apply(
-                    lambda x: datetime.datetime.strptime(
-                            x.split(' ')[0], '%Y-%m-%d')
+                lambda x: datetime.datetime.strptime(
+                    x.split(' ')[0], '%Y-%m-%d')
             )
 
             df = df[['x_coordinate', 'y_cordinate', 'date1']]
             df.loc[:, 'y_day'] = df["date1"].apply(
-                    lambda x: x.timetuple().tm_yday
+                lambda x: x.timetuple().tm_yday
             )
 
             df.rename(columns={'x_coordinate': 'x',
@@ -187,16 +184,16 @@ class Framework:
                 ]
 
             # Time 1 Data for building STKDE models : 1 Month
-#
+            #
 
             for group in self.predict_groups:
                 self.predict_groups[group]['t1_data'] = \
                     self.data[
                         self.data['date'].apply(
-                                lambda x:
-                                self.predict_groups[group]['t1_data'][0]
-                                <= x.date() <=
-                                self.predict_groups[group]['t1_data'][-1]
+                            lambda x:
+                            self.predict_groups[group]['t1_data'][0]
+                            <= x.date() <=
+                            self.predict_groups[group]['t1_data'][-1]
                         )
                     ]
 
@@ -206,10 +203,10 @@ class Framework:
                 self.predict_groups[group]['t2_data'] = \
                     self.data[
                         self.data['date'].apply(
-                                lambda x:
-                                self.predict_groups[group]['t2_data'][0]
-                                <= x.date() <=
-                                self.predict_groups[group]['t2_data'][-1]
+                            lambda x:
+                            self.predict_groups[group]['t2_data'][0]
+                            <= x.date() <=
+                            self.predict_groups[group]['t2_data'][-1]
                         )
                     ]
 
@@ -242,16 +239,16 @@ class Framework:
             for group in self.predict_groups:
                 self.predict_groups[group]['STKDE'] = \
                     MyKDEMultivariate(
-                            data=[
-                                np.array(self.predict_groups[group]['t1_data'][
-                                             ['x']]),
-                                np.array(self.predict_groups[group]['t1_data'][
-                                             ['y']]),
-                                np.array(self.predict_groups[group]['t1_data'][
-                                             ['y_day']])
-                            ],
-                            var_type='ccc',
-                            bw=bw)
+                        data=[
+                            np.array(self.predict_groups[group]['t1_data'][
+                                         ['x']]),
+                            np.array(self.predict_groups[group]['t1_data'][
+                                         ['y']]),
+                            np.array(self.predict_groups[group]['t1_data'][
+                                         ['y_day']])
+                        ],
+                        var_type='ccc',
+                        bw=bw)
 
         else:
             self.kde = KDEMultivariate(data=[x, y, t],
@@ -279,7 +276,6 @@ class Framework:
         ax.tick_params(axis='x', length=0)
 
         for i in range(1, 13):
-
             count = self.data[
                 (self.data["date"].apply(lambda x: x.month) == i)
             ].shape[0]
@@ -288,9 +284,9 @@ class Framework:
             plt.text(x=i - 0.275, y=count + 5, s=str(count))
 
         plt.xticks(
-                [i for i in range(1, 13)],
-                [datetime.datetime.strptime(str(i), "%m").strftime('%b')
-                 for i in range(1, 13)]
+            [i for i in range(1, 13)],
+            [datetime.datetime.strptime(str(i), "%m").strftime('%b')
+             for i in range(1, 13)]
         )
 
         sb.despine()
@@ -536,11 +532,11 @@ class Framework:
         print("\n\tEstimating densities...")
 
         d = dallas_stkde.kde.pdf(
-                np.vstack([
-                    x.flatten(),
-                    y.flatten(),
-                    t.flatten()
-                ])).reshape((100, 100, 60))
+            np.vstack([
+                x.flatten(),
+                y.flatten(),
+                t.flatten()
+            ])).reshape((100, 100, 60))
 
         print("\nExporting 3D grid...")
 
@@ -922,17 +918,29 @@ class Framework:
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['y']), \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['y_day'])
 
-
             if i == 1:
-                x_training = pd.Series(self.training_data["x"]).tolist() + pd.Series(self.predict_groups[f'group_{i}']['t1_data']['x']).tolist()
-                y_training = pd.Series(self.training_data["y"]).tolist() + pd.Series(self.predict_groups[f'group_{i}']['t1_data']['y']).tolist()
-                t_training = pd.Series(self.training_data["y_day"]).tolist() + pd.Series(self.predict_groups[f'group_{i}']['t1_data']['y_day']).tolist()
+                x_training = pd.Series(
+                    self.training_data["x"]).tolist() + pd.Series(
+                    self.predict_groups[f'group_{i}']['t1_data']['x']).tolist()
+                y_training = pd.Series(
+                    self.training_data["y"]).tolist() + pd.Series(
+                    self.predict_groups[f'group_{i}']['t1_data']['y']).tolist()
+                t_training = pd.Series(
+                    self.training_data["y_day"]).tolist() + pd.Series(
+                    self.predict_groups[f'group_{i}']['t1_data'][
+                        'y_day']).tolist()
 
             else:
                 for j in range(1, i):
-                    x_training += pd.Series(self.predict_groups[f'group_{j}']['t2_data']['x']).tolist()
-                    y_training += pd.Series(self.predict_groups[f'group_{j}']['t2_data']['y']).tolist()
-                    t_training += pd.Series(self.predict_groups[f'group_{j}']['t2_data']['y_day']).tolist()
+                    x_training += pd.Series(
+                        self.predict_groups[f'group_{j}']['t2_data'][
+                            'x']).tolist()
+                    y_training += pd.Series(
+                        self.predict_groups[f'group_{j}']['t2_data'][
+                            'y']).tolist()
+                    t_training += pd.Series(
+                        self.predict_groups[f'group_{j}']['t2_data'][
+                            'y_day']).tolist()
 
             self.kde = MyKDEMultivariate(
                 [np.array(x_training),
@@ -946,7 +954,6 @@ class Framework:
 
             f_delitos = stkde.pdf([x, y, t])
 
-
             x, y, t = np.mgrid[
                       np.array(x_training).min():
                       np.array(x_training).max():100 * 1j,
@@ -955,11 +962,11 @@ class Framework:
                       np.array(t_training).max():
                       np.array(t_training).max():1 * 1j
                       ]
-            #print(t.max())
-            #print(t.min())
+            # print(t.max())
+            # print(t.min())
 
             f_nodos = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
-            c = np.linspace(0,  f_nodos.max(), 100)
+            c = np.linspace(0, f_nodos.max(), 100)
 
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
 
@@ -967,7 +974,8 @@ class Framework:
 
             HR = [i / len(f_delitos) for i in hits]
             area_percentaje = [i / len(f_nodos) for i in area_h]
-            PAI = [float(HR[i]) / float(area_percentaje[i]) for i in range(len(HR))]
+            PAI = [float(HR[i]) / float(area_percentaje[i]) for i in
+                   range(len(HR))]
             HRs[i] = [HR, area_percentaje, c]
             PAIs[i] = [PAI, area_percentaje]
 
@@ -987,7 +995,6 @@ class Framework:
         plt.savefig("HRvsArea", format='pdf')
         plt.show()
 
-
     def plot_PAI(self):
         if not self.results_HR_PAI:
             self.results_HR_PAI = self.calculate_HR_PAI()
@@ -1001,7 +1008,6 @@ class Framework:
         plt.legend()
         plt.savefig("PAIvsArea", format='pdf')
         plt.show()
-
 
     def plot_mean(self, hr_or_pai="PAI"):
         if not self.results_HR_PAI:
@@ -1027,8 +1033,6 @@ class Framework:
         plt.show()
 
 
-
-
 # Data
 #
 # 2012 - 58     incidents
@@ -1049,9 +1053,6 @@ if __name__ == "__main__":
     dallas_stkde.plot_HR()
     dallas_stkde.plot_PAI()
     dallas_stkde.plot_mean()
-
-
-
 
     #  BAR AND MAP PLOTS
 
@@ -1075,9 +1076,6 @@ if __name__ == "__main__":
     # s_points = dallas_stkde.predict_groups['group_1']['STKDE'] \
     #     .resample(size=1000)
 
-
-
-
     # def significance(data, stkde, sig):
     #     all = []
     #     for i, incident in data.iterrows():
@@ -1100,5 +1098,3 @@ if __name__ == "__main__":
     # max_pdfs = sorted(pdfs, reverse=True)[:int(len(pdfs) * significance /
     #                                            100)]
     # test = list(zip(x, y, t, max_pdfs))
-
-

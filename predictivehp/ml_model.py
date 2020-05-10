@@ -32,7 +32,6 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.width', 1000)
 
 
-
 class Framework:
     def __init__(self, n=1000, year="2017", read_df=False, read_data=False):
         self.n, self.year = n, year
@@ -114,7 +113,7 @@ class Framework:
                 lambda x: float(x))
             df.loc[:, 'date1'] = df['date1'].apply(
                 lambda x: datetime.datetime.strptime(
-                    x.split('T')[0], '%Y-%m-%d')
+                    x.split(' ')[0], '%Y-%m-%d')
             )
             df.loc[:, 'y_day'] = df["date1"].apply(
                 lambda x: x.timetuple().tm_yday
@@ -1140,8 +1139,8 @@ if __name__ == "__main__":
     #   - c vs HR, c vs Area Percentage , c vs PAI, a/A vs PAI, a/A vs HR   √
     #   - (a/A, PAI), (a/A, HR) añadir en los plots del clf         PREGUNTAR
 
-    fwork = Framework(n=150000, year="2017", read_df=True, read_data=True)
-    fwork.plot_statistics(n=1000)
+    fwork = Framework(n=150000, year="2017", read_df=False, read_data=False)
+    # fwork.plot_statistics(n=1000)
     # fwork.ml_algorithm_2()
 
     # aux_df = fwork.df
