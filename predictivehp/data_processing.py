@@ -7,10 +7,12 @@ Created by Mauro S. Mendoza Elguera at 10-05-20
 Pontifical Catholic University of Chile
 
 """
+from calendar import monthrange
 
 from aux_functions import *
 
 import datetime
+from datetime import date
 import credentials as cre
 from sodapy import Socrata
 
@@ -102,8 +104,39 @@ def get_data(model='STKDE', year=2017, n=1000):
             y = df[df["date"].apply(lambda x: x.month) > 10]
 
             if model == 'STKDE':
+                # Oct - Nov - Dic
+                w_day_oct, days_oct = monthrange(2017, 10)
+                w_day_nov, days_nov = monthrange(2017, 11)
+                w_day_dic, days_dic = monthrange(2017, 12)
+                days_oct_nov_dic = [date(2017, 10, i) for i in
+                                    range(1, days_oct + 1)] + \
+                                   [date(2017, 11, i) for i in
+                                    range(1, days_nov + 1)] + \
+                                   [date(2017, 12, i) for i in
+                                    range(1, days_dic + 1)]
+
                 aux = {'t1_data': [], 't2_data': [], 'STKDE': None}
                 predict_groups = {f"group_{i}": aux for i in range(1, 9)}
+
+                # Time 1 Data for building STKDE models : 1 Month
+                group_n = 1
+                for i in range(1, len(days_oct_nov_dic))[::7]:
+                    predict_groups[f"group_{group_n}"]['t1_data'] = \
+                        days_oct_nov_dic[i - 1:i - 1 + days_oct]
+
+                    group_n += 1
+                    if group_n > 8:
+                        break
+
+                # Time 2 Data for Prediction            : 1 Week
+                group_n = 1
+                for i in range(1, len(days_oct_nov_dic))[::7]:
+                    predict_groups[f"group_{group_n}"]['t2_data'] = \
+                        days_oct_nov_dic[i - 1 + days_oct:i - 1 + days_oct + 7]
+
+                    group_n += 1
+                    if group_n > 8:
+                        break
 
                 # Time 1 Data for building STKDE models : 1 Month
                 for group in predict_groups:
@@ -127,8 +160,7 @@ def get_data(model='STKDE', year=2017, n=1000):
                         ]
                 return df, X, y, predict_groups
             return df, X, y
-        return df
-
+    return df
 
 
 if __name__ == '__main__':
