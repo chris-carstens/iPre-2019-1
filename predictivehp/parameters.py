@@ -47,7 +47,6 @@ days_oct_nov_dic = [date(2017, 10, i) for i in range(1, days_oct + 1)] + \
                    [date(2017, 11, i) for i in range(1, days_nov + 1)] + \
                    [date(2017, 12, i) for i in range(1, days_dic + 1)]
 
-
 # Obs. Limites de dallas en epsg: 3857
 
 # ML
@@ -59,7 +58,7 @@ dallas_limits = {
 
 # ProMap
 
-#bw = {'x': 1577.681, 'y': 1167.16, 't': 35.549}
+# bw = {'x': 1577.681, 'y': 1167.16, 't': 35.549}
 hx = 100
 hy = 100
 

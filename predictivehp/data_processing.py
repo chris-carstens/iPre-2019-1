@@ -7,7 +7,6 @@ Created by Mauro S. Mendoza Elguera at 10-05-20
 Pontifical Catholic University of Chile
 
 """
-from calendar import monthrange
 
 from aux_functions import *
 
