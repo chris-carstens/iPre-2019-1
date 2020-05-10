@@ -13,6 +13,7 @@ from aux_functions import *
 import datetime
 import credentials as cre
 from sodapy import Socrata
+from parameters import *
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -107,7 +108,32 @@ def get_data(model='STKDE', year=2017, n=1000):
                 predict_groups = {f"group_{i}": aux for i in range(1, 9)}
 
                 # Time 1 Data for building STKDE models : 1 Month
+
+                group_n = 1
+                for i in range(1, len(days_oct_nov_dic))[::7]:
+                    predict_groups[f"group_{group_n}"]['t1_data'] = \
+                        days_oct_nov_dic[i - 1:i - 1 + days_oct]
+
+                    group_n += 1
+                    if group_n > 8:
+                        break
+
+                # Time 2 Data for Prediction            : 1 Week
+
+                group_n = 1
+                for i in range(1, len(days_oct_nov_dic))[::7]:
+                    predict_groups[f"group_{group_n}"]['t2_data'] = \
+                        days_oct_nov_dic[i - 1 + days_oct:i - 1 + days_oct + 7]
+
+                    group_n += 1
+                    if group_n > 8:
+                        break
+
+                # Time 1 Data for building STKDE models : 1 Month
+
+
                 for group in predict_groups:
+                    print(group)
                     predict_groups[group]['t1_data'] = \
                         df[df['date'].apply(
                             lambda x:
@@ -116,6 +142,7 @@ def get_data(model='STKDE', year=2017, n=1000):
                             predict_groups[group]['t1_data'][-1]
                         )
                         ]
+
                 # Time 2 Data for Prediction            : 1 Week
                 for group in predict_groups:
                     predict_groups[group]['t2_data'] = \
@@ -126,7 +153,7 @@ def get_data(model='STKDE', year=2017, n=1000):
                             predict_groups[group]['t2_data'][-1]
                         )
                         ]
-                    return df, X, y, predict_groups
+                return df, X, y, predict_groups
             return df, X, y
         return df
 

@@ -17,11 +17,11 @@ from shapely.geometry import Point
 from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
     EstimatorSettings
 
-from sodapy import Socrata
-import credentials as cre
-from predictivehp import parameters as params
+from parameters import *
 
 from aux_functions import checked_points as checked_points, _time as _time
+
+from data_processing import *
 
 # Observaciones
 #
@@ -80,15 +80,12 @@ class Framework:
         usar los métodos contour_plot o heatmap.
         """
         self.results_HR_PAI = None
-        self.data = []
-        self.training_data = []  # 3000
-        self.testing_data = []  # 600
-
-        self.predict_groups = params.predict_groups
+        self.data, self.training_data, self.testing_data,  self.predict_groups = get_data(model='STKDE', year=year, n=n)
+         # training data 3000
+         # testing data  600
         self.n = n
         self.year = year
 
-        self.get_data()
 
         # esto le pasa los datos al KDE
         self.kde = KDEMultivariate(
@@ -97,126 +94,6 @@ class Framework:
              np.array(self.training_data[['y_day']])],
             'ccc')
 
-    @_time
-    def get_data(self):
-        """
-        Requests data using the Socrata API and saves in the
-        self.data variable
-        """
-
-        print("\nRequesting data...")
-
-        with Socrata(cre.socrata_domain,
-                     cre.API_KEY_S,
-                     username=cre.USERNAME_S,
-                     password=cre.PASSWORD_S) as client:
-            query = \
-                f"""
-                select
-                    incidentnum,
-                    year1,
-                    date1,
-                    time1,
-                    x_coordinate,
-                    y_cordinate,
-                    offincident
-                where
-                    year1 = {self.year}
-                    and date1 is not null
-                    and time1 is not null
-                    and x_coordinate is not null
-                    and y_cordinate is not null
-                    and offincident = 'BURGLARY OF HABITATION - FORCED ENTRY'
-                order by date1
-                limit
-                    {self.n}
-                """  #  571000 max. 09/07/2019
-
-            results = client.get(cre.socrata_dataset_identifier,
-                                 query=query,
-                                 content_type='json')
-
-            pd.set_option('display.max_columns', None)
-            pd.set_option('display.max_rows', None)
-
-            df = pd.DataFrame.from_records(results)
-
-            # DB Cleaning & Formatting
-
-            df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
-                lambda x: float(x))
-            df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
-                lambda x: float(x))
-            df.loc[:, 'date1'] = df['date1'].apply(
-                lambda x: datetime.datetime.strptime(
-                    x.split(' ')[0], '%Y-%m-%d')
-            )
-
-            df = df[['x_coordinate', 'y_cordinate', 'date1']]
-            df.loc[:, 'y_day'] = df["date1"].apply(
-                lambda x: x.timetuple().tm_yday
-            )
-
-            df.rename(columns={'x_coordinate': 'x',
-                               'y_cordinate': 'y',
-                               'date1': 'date'},
-                      inplace=True)
-
-            # Reducción del tamaño de la DB
-
-            df = df.sample(n=3600,
-                           replace=False,
-                           random_state=250499)
-
-            df.sort_values(by=['date'], inplace=True)
-            df.reset_index(drop=True, inplace=True)
-
-            self.data = df
-
-            # División en training y testing data
-
-            self.training_data = self.data[
-                self.data["date"].apply(lambda x: x.month) <= 10
-                ]
-
-            self.testing_data = self.data[
-                self.data["date"].apply(lambda x: x.month) > 10
-                ]
-
-            # Time 1 Data for building STKDE models : 1 Month
-            #
-
-            for group in self.predict_groups:
-                self.predict_groups[group]['t1_data'] = \
-                    self.data[
-                        self.data['date'].apply(
-                            lambda x:
-                            self.predict_groups[group]['t1_data'][0]
-                            <= x.date() <=
-                            self.predict_groups[group]['t1_data'][-1]
-                        )
-                    ]
-
-            # Time 2 Data for Prediction            : 1 Week
-
-            for group in self.predict_groups:
-                self.predict_groups[group]['t2_data'] = \
-                    self.data[
-                        self.data['date'].apply(
-                            lambda x:
-                            self.predict_groups[group]['t2_data'][0]
-                            <= x.date() <=
-                            self.predict_groups[group]['t2_data'][-1]
-                        )
-                    ]
-
-            # print(self.predict_groups['group_8']['t2_data'].shape[0])
-            # print(self.predict_groups['group_8']['t2_data'].tail())
-
-            print("\n"
-                  f"\tn = {self.n} incidents requested  Year = {self.year}"
-                  "\n"
-                  f"\t{self.data.shape[0]} incidents successfully retrieved!")
 
     @_time
     def train_model(self, x, y, t, bw=None):
