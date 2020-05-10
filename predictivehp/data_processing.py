@@ -78,7 +78,7 @@ def get_data(model='STKDE', year=2017, n=1000):
                 x.split(' ')[0], '%Y-%m-%d')
         )
 
-        df = df[['x_coordinate', 'y_cordinate', 'date1']]
+        df = df[['x_coordinate', 'y_cordinate', 'date1', 'month1']]
         df.loc[:, 'y_day'] = df["date1"].apply(
             lambda x: x.timetuple().tm_yday
         )
