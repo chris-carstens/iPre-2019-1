@@ -105,7 +105,10 @@ def get_data(model='STKDE', year=2017, n=150000):
             y = df[df["date"].apply(lambda x: x.month) > 10]
 
             if model == 'STKDE':
-                predict_groups = {f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None} for i in range(1, 9)}
+                predict_groups = {
+                    f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None}
+                    for i in range(1, 9)
+                }
 
                 # Time 1 Data for building STKDE models : 1 Month
                 group_n = 1
@@ -125,7 +128,6 @@ def get_data(model='STKDE', year=2017, n=150000):
                     group_n += 1
                     if group_n > 8:
                         break
-
                 # Time 1 Data for building STKDE models : 1 Month
                 for group in predict_groups:
                     predict_groups[group]['t1_data'] = \
