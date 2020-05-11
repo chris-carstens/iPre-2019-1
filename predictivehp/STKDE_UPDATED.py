@@ -17,8 +17,6 @@ from shapely.geometry import Point
 from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
     EstimatorSettings
 
-from parameters import *
-
 from aux_functions import checked_points as checked_points, _time as _time
 
 from data_processing import *
@@ -80,12 +78,11 @@ class Framework:
         usar los métodos contour_plot o heatmap.
         """
         self.results_HR_PAI = None
-        self.data, self.training_data, self.testing_data,  self.predict_groups = get_data(model='STKDE', year=year, n=n)
-         # training data 3000
-         # testing data  600
+        self.data, self.training_data, self.testing_data, self.predict_groups = get_data(model='STKDE', year=year, n=n)
+        # training data 3000
+        # testing data  600
         self.n = n
         self.year = year
-
 
         # esto le pasa los datos al KDE
         self.kde = KDEMultivariate(
@@ -93,7 +90,6 @@ class Framework:
              np.array(self.training_data[['y']]),
              np.array(self.training_data[['y_day']])],
             'ccc')
-
 
     @_time
     def train_model(self, x, y, t, bw=None):
