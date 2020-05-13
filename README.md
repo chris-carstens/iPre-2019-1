@@ -6,3 +6,5 @@
 - [ ] Modularizar funciones
 - [ ] Pre-Processing Class
 - [ ] Post-Processing Class: Recibe una lista de modelos y la pueda editar.
+
+## Reunión 20/05
