@@ -91,66 +91,68 @@ def get_data(model='STKDE', year=2017, n=150000):
         df.sort_values(by=['date'], inplace=True)
         df.reset_index(drop=True, inplace=True)
 
-        if model == 'STKDE' or model == 'ProMap':
-            # Reducción del tamaño de la DB
-            if n >= 3600:
-                df = df.sample(n=3600,
-                               replace=False,
-                               random_state=250499)
-                df.sort_values(by=['date'], inplace=True)
-                df.reset_index(drop=True, inplace=True)
-
-            # División en training data (X) y testing data (y)
-            X = df[df["date"].apply(lambda x: x.month) <= 10]
-            y = df[df["date"].apply(lambda x: x.month) > 10]
-
-            if model == 'STKDE':
-                predict_groups = {
-                    f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None}
-                    for i in range(1, 9)
-                }
-
-                # Time 1 Data for building STKDE models : 1 Month
-                group_n = 1
-                for i in range(1, len(days_oct_nov_dic))[::7]:
-                    predict_groups[f"group_{group_n}"]['t1_data'] = \
-                        days_oct_nov_dic[i - 1:i - 1 + days_oct]
-
-                    group_n += 1
-                    if group_n > 8:
-                        break
-                # Time 2 Data for Prediction            : 1 Week
-                group_n = 1
-                for i in range(1, len(days_oct_nov_dic))[::7]:
-                    predict_groups[f"group_{group_n}"]['t2_data'] = \
-                        days_oct_nov_dic[i - 1 + days_oct:i - 1 + days_oct + 7]
-
-                    group_n += 1
-                    if group_n > 8:
-                        break
-                # Time 1 Data for building STKDE models : 1 Month
-                for group in predict_groups:
-                    predict_groups[group]['t1_data'] = \
-                        df[df['date'].apply(
-                            lambda x:
-                            predict_groups[group]['t1_data'][0]
-                            <= x.date() <=
-                            predict_groups[group]['t1_data'][-1]
-                        )
-                        ]
-                # Time 2 Data for Prediction            : 1 Week
-                for group in predict_groups:
-                    predict_groups[group]['t2_data'] = \
-                        df[df['date'].apply(
-                            lambda x:
-                            predict_groups[group]['t2_data'][0]
-                            <= x.date() <=
-                            predict_groups[group]['t2_data'][-1]
-                        )
-                        ]
-                return df, X, y, predict_groups
-            return df, X, y
         return df
+
+        # if model == 'STKDE' or model == 'ProMap':
+        #     # Reducción del tamaño de la DB
+        #     if n >= 3600:
+        #         df = df.sample(n=3600,
+        #                        replace=False,
+        #                        random_state=250499)
+        #         df.sort_values(by=['date'], inplace=True)
+        #         df.reset_index(drop=True, inplace=True)
+        #
+        #     # División en training data (X) y testing data (y)
+        #     X = df[df["date"].apply(lambda x: x.month) <= 10]
+        #     y = df[df["date"].apply(lambda x: x.month) > 10]
+        #
+        #     if model == 'STKDE':
+        #         predict_groups = {
+        #             f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None}
+        #             for i in range(1, 9)
+        #         }
+        #
+        #         # Time 1 Data for building STKDE models : 1 Month
+        #         group_n = 1
+        #         for i in range(1, len(days_oct_nov_dic))[::7]:
+        #             predict_groups[f"group_{group_n}"]['t1_data'] = \
+        #                 days_oct_nov_dic[i - 1:i - 1 + days_oct]
+        #
+        #             group_n += 1
+        #             if group_n > 8:
+        #                 break
+        #         # Time 2 Data for Prediction            : 1 Week
+        #         group_n = 1
+        #         for i in range(1, len(days_oct_nov_dic))[::7]:
+        #             predict_groups[f"group_{group_n}"]['t2_data'] = \
+        #                 days_oct_nov_dic[i - 1 + days_oct:i - 1 + days_oct + 7]
+        #
+        #             group_n += 1
+        #             if group_n > 8:
+        #                 break
+        #         # Time 1 Data for building STKDE models : 1 Month
+        #         for group in predict_groups:
+        #             predict_groups[group]['t1_data'] = \
+        #                 df[df['date'].apply(
+        #                     lambda x:
+        #                     predict_groups[group]['t1_data'][0]
+        #                     <= x.date() <=
+        #                     predict_groups[group]['t1_data'][-1]
+        #                 )
+        #                 ]
+        #         # Time 2 Data for Prediction            : 1 Week
+        #         for group in predict_groups:
+        #             predict_groups[group]['t2_data'] = \
+        #                 df[df['date'].apply(
+        #                     lambda x:
+        #                     predict_groups[group]['t2_data'][0]
+        #                     <= x.date() <=
+        #                     predict_groups[group]['t2_data'][-1]
+        #                 )
+        #                 ]
+        #         return df, X, y, predict_groups
+        #     return df, X, y
+        # return df
 
 
 if __name__ == '__main__':

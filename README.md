@@ -1,6 +1,7 @@
 # iPre - Predictive Hotspots Crime Mapping
 
-## Por hacer
+## Reunión 11/05
 
-1. Arreglar direcciones en **todos** los archivos
-2. Pensar en un framework **general**
+- [] Modularizar funciones
+- [] Pre-Processing Class
+- [] Post-Processing Class: Recibe una lista de modelos y la pueda editar.

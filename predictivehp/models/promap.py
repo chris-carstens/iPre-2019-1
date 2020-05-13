@@ -77,7 +77,7 @@ class Promap:
         self.df_training_data = None
 
         if read_files:
-            self.df = pd.read_pickle('data.pkl')
+            self.df = pd.read_pickle('../data.pkl')
             self.df_training_data = pd.read_pickle('training_data.pkl')
             self.df_testing_data = pd.read_pickle('testing_data.pkl')
             self.generar_df()
@@ -86,11 +86,9 @@ class Promap:
 
         else:
             self.data, self.training_data, self.testing_data = get_data(
-                 model='ProMap', n=150_000)
+                model='ProMap', n=150_000)
             self.generar_df()
             self.calcular_densidades()
-
-
 
     def generar_df(self):
 
@@ -102,7 +100,6 @@ class Promap:
 
         print("\nGenerando dataframe...\n")
 
-
         geometry = [Point(xy) for xy in zip(
             np.array(self.data[['x']]),
             np.array(self.data[['y']]))
@@ -111,7 +108,6 @@ class Promap:
         self.geo_data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
                                          crs=2276,
                                          geometry=geometry)
-
 
         self.geo_data.to_crs(epsg=3857, inplace=True)
 
@@ -138,7 +134,6 @@ class Promap:
         self.df_testing_data = self.df[
             self.data["date"].apply(lambda x: x.month) > 10
             ]
-
 
         self.x_min = parameters.dallas_limits['x_min']
         self.x_max = parameters.dallas_limits['x_max']
@@ -185,8 +180,9 @@ class Promap:
         matriz_con_ceros = np.zeros((self.bins_x, self.bins_y))
 
         for k in range(len(self.df_training_data)):
-            x, y, t = self.df_training_data['x'][k], self.df_training_data['y'][
-                k], \
+            x, y, t = self.df_training_data['x'][k], \
+                      self.df_training_data['y'][
+                          k], \
                       self.df_training_data['y_day'][k]
             x_in_matrix, y_in_matrix = aux.find_position(self.x, self.y, x, y,
                                                          self.hx, self.hy)
@@ -583,4 +579,4 @@ class Promap:
 if __name__ == "__main__":
     st = time()
     promap = Promap(n=150_000, year="2017", bw=parameters.bw, read_files=False)
-    #promap.plot_incidents()
+    # promap.plot_incidents()

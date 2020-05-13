@@ -328,7 +328,7 @@ class Framework:
         print("\tReading Streets...", end=" ")
         dallas_districts = gpd.GeoDataFrame.from_file(
             "../Data/Councils/Councils.shp")
-        dallas = gpd.read_file('Data/Streets/STREETS.shp')
+        dallas = gpd.read_file('../Data/Streets/STREETS.shp')
         print("finished!")
 
         fig, ax = plt.subplots(figsize=(15, 15))
@@ -417,7 +417,7 @@ class Framework:
 
         print("\nPlotting Contours...")
 
-        dallas = gpd.read_file('Data/Streets/STREETS.shp')
+        dallas = gpd.read_file('../Data/Streets/STREETS.shp')
 
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
@@ -473,7 +473,7 @@ class Framework:
 
         print("\nPlotting Heatmap...")
 
-        dallas = gpd.read_file('Data/Streets/STREETS.shp')
+        dallas = gpd.read_file('../Data/Streets/STREETS.shp')
 
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
@@ -617,7 +617,7 @@ class Framework:
         print("\tLoading Dallas Street shapefile...", end=" ")
 
         dallasMap = GDALVectorReader(
-            FileName='Data/Streets/STREETS.shp'
+            FileName='../Data/Streets/STREETS.shp'
         )
 
         print("finished!")
