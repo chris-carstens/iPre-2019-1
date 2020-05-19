@@ -1237,13 +1237,10 @@ class Promap:
 
         print('\nCalculando densidades...')
         print(
-            f'\n\tNº de datos para entrenar el modelo: {len(
-                self.df_training_data)}')
-        print(f'\tNº de días usados para entrenar el modelo: '
-              f'{self.total_dias_training}')
+            f'\n\tNº de datos para entrenar el modelo: {len(self.df_training_data)}')
+        print(f'\tNº de días usados para entrenar el modelo: {self.total_dias_training}')
         print(
-            f'\tNº de datos para testear el modelo: {len(
-                self.df_testing_data)}')
+            f'\tNº de datos para testear el modelo: {len(self.df_testing_data)}')
 
         matriz_con_ceros = np.zeros((self.bins_x, self.bins_y))
 
@@ -1252,27 +1249,27 @@ class Promap:
                       self.df_training_data['y'][
                           k], \
                       self.df_training_data['y_day'][k]
-            x_in_matrix, y_in_matrix = aux.find_position(self.x, self.y, x, y,
+            x_in_matrix, y_in_matrix = find_position(self.x, self.y, x, y,
                                                          self.hx, self.hy)
-            ancho_x = aux.radio_pintar(self.hx, self.bw_x)
-            ancho_y = aux.radio_pintar(self.hx, self.bw_x)
-            x_left, x_right = aux.limites_x(ancho_x, x_in_matrix, self.x)
-            y_abajo, y_up = aux.limites_y(ancho_y, y_in_matrix, self.y)
+            ancho_x = radio_pintar(self.hx, self.bw_x)
+            ancho_y = radio_pintar(self.hx, self.bw_x)
+            x_left, x_right = limites_x(ancho_x, x_in_matrix, self.x)
+            y_abajo, y_up = limites_y(ancho_y, y_in_matrix, self.y)
 
             for i in range(x_left, x_right + 1):
                 for j in range(y_abajo, y_up):
                     elemento_x = self.x[i][0]
                     elemento_y = self.y[0][j]
-                    time_weight = 1 / aux.n_semanas(self.total_dias_training,
+                    time_weight = 1 / n_semanas(self.total_dias_training,
                                                     t)
-                    if aux.linear_distance(elemento_x, x) > self.bw_x or \
-                            aux.linear_distance(
+                    if linear_distance(elemento_x, x) > self.bw_x or \
+                            linear_distance(
                                 elemento_y, y) > self.bw_y:
 
                         cell_weight = 0
                         pass
                     else:
-                        cell_weight = 1 / aux.cells_distance(x, y, elemento_x,
+                        cell_weight = 1 / cells_distance(x, y, elemento_x,
                                                              elemento_y,
                                                              self.hx,
                                                              self.hy)
@@ -1316,7 +1313,7 @@ class Promap:
             x, y, t = row['x'], row['y'], row['y_day']
 
             if t >= (self.total_dias_training - self.bw_t):
-                x_pos, y_pos = aux.find_position(self.x, self.y, x, y, self.hx,
+                x_pos, y_pos = find_position(self.x, self.y, x, y, self.hx,
                                                  self.hy)
                 self.training_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
@@ -1342,7 +1339,7 @@ class Promap:
 
             if t <= (self.total_dias_training + ventana_dias):
 
-                x_pos, y_pos = aux.find_position(self.x, self.y, x, y, self.hx,
+                x_pos, y_pos = find_position(self.x, self.y, x, y, self.hx,
                                                  self.hy)
                 self.testing_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
@@ -1420,14 +1417,14 @@ class Promap:
             self.calcular_hr_and_pai()
 
         print('\n--- HITRATE ---\n')
-        aux.grafico(self.area_percentaje, self.HR, '% Area', 'HR')
+        grafico(self.area_percentaje, self.HR, '% Area', 'HR')
 
     def plot_PAI(self):
         if self.PAI is None:
             self.calcular_hr_and_pai()
 
         print('\n--- PAI ---\n')
-        aux.grafico(self.area_percentaje, self.PAI, '% Area', 'PAI')
+        grafico(self.area_percentaje, self.PAI, '% Area', 'PAI')
 
     def plot_delitos_meses(self):
         meses_training = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
