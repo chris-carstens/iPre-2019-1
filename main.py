@@ -11,7 +11,7 @@ Pontifical Catholic University of Chile
 from predictivehp.models.models import *
 
 stkde = STKDE(n=1000, year='2017')
-rfr = RForestRegressor()
+rfr = RForestRegressor(n=1000, year='2017', read_df=False, read_data=False)
 pm = ProMap()
 
 if __name__ == '__main__':
