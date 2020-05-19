@@ -14,11 +14,12 @@ import geopandas as gpd
 import shutil
 from collections import defaultdict
 
-from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
-    EstimatorSettings
-
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.metrics import precision_score, recall_score
+from statsmodels.nonparametric.kernel_density \
+    import KDEMultivariate, EstimatorSettings
+from sklearn.ensemble \
+    import RandomForestClassifier, RandomForestRegressor
+from sklearn.metrics \
+    import precision_score, recall_score
 
 import seaborn as sb
 import matplotlib as mpl
