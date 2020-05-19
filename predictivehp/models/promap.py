@@ -5,7 +5,7 @@ import matplotlib.pyplot as pl
 from predictivehp.models import parameters
 import predictivehp.aux_functions as aux
 from collections import defaultdict
-from processing.data_processing import *
+from predictivehp.processing.data_processing import *
 
 
 # Observaciones
