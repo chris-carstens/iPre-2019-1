@@ -11,6 +11,7 @@ Pontifical Catholic University of Chile
 from calendar import month_name
 
 import geopandas as gpd
+import shutil
 from collections import defaultdict
 
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
