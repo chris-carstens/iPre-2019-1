@@ -1,8 +1,13 @@
 """STKDE"""
 
 import seaborn as sb
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import matplotlib.patches as mpatches
+from matplotlib.lines import Line2D
 
-# from pyevtk.hl import gridToVTK
+from pyevtk.hl import gridToVTK
 # from paraview.simple import *
 
 from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
@@ -11,6 +16,7 @@ from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
 from aux_functions import _time as _time
 
 from processing.data_processing import *
+
 
 # Observaciones
 #
@@ -69,7 +75,8 @@ class Framework:
         usar los métodos contour_plot o heatmap.
         """
         self.results_HR_PAI = None
-        self.data, self.training_data, self.testing_data, self.predict_groups = get_data(model='STKDE', year=year, n=n)
+        self.data, self.training_data, self.testing_data, self.predict_groups = get_data(
+            model='STKDE', year=year, n=n)
         # training data 3000
         # testing data  600
         self.n = n
@@ -171,208 +178,208 @@ class Framework:
 
         plt.show()
 
-    # @_time
-    # def spatial_pattern(self,
-    #                     pdf: bool = False):
-    #     """
-    #     Spatial pattern of incidents
-    #
-    #     pdf: True si se desea guardar el plot en formato pdf
-    #     """
-    #
-    #     print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
-    #
-    #     print("\tReading shapefiles...", end=" ")
-    #     dallas_districts = gpd.GeoDataFrame.from_file(
-    #             "../Data/Councils/councils.shp")
-    #     dallas = gpd.read_file('../Data/shapefiles/streets.shp')
-    #     print("finished!")
-    #
-    #     fig, ax = plt.subplots(figsize=(15, 15))
-    #     ax.set_facecolor('xkcd:black')
-    #
-    #     # US Survey Foot: 0.3048 m
-    #     # print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")  # 2276
-    #
-    #     geometry = [Point(xy) for xy in zip(
-    #             np.array(self.testing_data[['x']]),
-    #             np.array(self.testing_data[['y']]))
-    #                 ]
-    #     geo_df = gpd.GeoDataFrame(self.testing_data,
-    #                               crs=dallas.crs,
-    #                               geometry=geometry)
-    #
-    #     print("\tPlotting Districts...", end=" ")
-    #
-    #     handles = []
-    #
-    #     for district, data in dallas_districts.groupby('DISTRICT'):
-    #         data.plot(ax=ax,
-    #                   color=params.d_colors[district],
-    #                   linewidth=2.5,
-    #                   edgecolor="black")
-    #         handles.append(mpatches.Patch(color=params.d_colors[district],
-    #                                       label=f"Dallas District {district}"))
-    #
-    #     handles.sort(key=lambda x: int(x._label.split(' ')[2]))
-    #     handles = [Line2D([], [], marker='o', color='red', label='Incident',
-    #                       linestyle="None"),
-    #                Line2D([0], [0], color="steelblue", label="Streets")] + \
-    #               handles
-    #
-    #     print("finished!")
-    #
-    #     print("\tPlotting Streets...", end=" ")
-    #     dallas.plot(ax=ax,
-    #                 alpha=0.4,
-    #                 color="steelblue",
-    #                 zorder=2,
-    #                 label="Streets")
-    #     print("finished!")
-    #
-    #     print("\tPlotting Incidents...", end=" ")
-    #
-    #     geo_df.plot(ax=ax,
-    #                 markersize=17.5,
-    #                 color='red',
-    #                 marker='o',
-    #                 zorder=3,
-    #                 label="Incidents")
-    #
-    #     print("finished!")
-    #
-    #     plt.title(f"Dallas Incidents - Spatial Pattern\n"
-    #               f"{self.year}",
-    #               fontdict={'fontsize': 20},
-    #               pad=25)
-    #
-    #     plt.legend(loc="lower right",
-    #                frameon=False,
-    #                fontsize=13.5,
-    #                handles=handles)
-    #
-    #     ax.set_axis_off()
-    #     plt.show()
-    #
-    #     if pdf:
-    #         plt.savefig("output/spatial_pattern.pdf", format='pdf')
-    #     plt.show()
+    @_time
+    def spatial_pattern(self,
+                        pdf: bool = False):
+        """
+        Spatial pattern of incidents
 
-    # @_time
-    # def contour_plot(self,
-    #                  bins: int,
-    #                  ti: int,
-    #                  pdf: bool = False):
-    #     """
-    #     Draw the contour lines
-    #
-    #     bins:
-    #
-    #     ti:
-    #
-    #     pdf: True si se desea guardar el plot en formato pdf
-    #     """
-    #
-    #     print("\nPlotting Contours...")
-    #
-    #     dallas = gpd.read_file('../Data/shapefiles/streets.shp')
-    #
-    #     fig, ax = plt.subplots(figsize=(15, 12))
-    #     ax.set_facecolor('xkcd:black')
-    #
-    #     dallas.plot(ax=ax,
-    #                 alpha=.4,
-    #                 color="gray",
-    #                 zorder=1)
-    #
-    #     x, y = np.mgrid[
-    #            np.array(self.testing_data[['x']]).min():
-    #            np.array(self.testing_data[['x']]).max():bins * 1j,
-    #            np.array(self.testing_data[['y']]).min():
-    #            np.array(self.testing_data[['y']]).max():bins * 1j
-    #            ]
-    #
-    #     z = self.kde.pdf(np.vstack([x.flatten(),
-    #                                 y.flatten(),
-    #                                 ti * np.ones(x.size)]))
-    #     # z_2 = z * 3000 * (10 ** 6) / (.304) # P. Elwin
-    #
-    #     contourplot = plt.contour(x, y, z.reshape(x.shape),
-    #                               cmap='jet',
-    #                               zorder=2)
-    #
-    #     plt.title(f"Dallas Incidents - Contourplot\n"
-    #               f"n = {self.data.shape[0]}    Year = {self.year}",
-    #               fontdict={'fontsize': 20},
-    #               pad=20)
-    #     plt.colorbar(contourplot,
-    #                  ax=ax,
-    #                  shrink=.4,
-    #                  aspect=10)
-    #
-    #     if pdf:
-    #         plt.savefig("output/dallas_contourplot.pdf", format='pdf')
-    #     plt.show()
-    #
-    # @_time
-    # def heatmap(self,
-    #             bins: int,
-    #             ti: int,
-    #             pdf: bool = False):
-    #     """
-    #     Plots the heatmap associated to a given t_i
-    #
-    #     bins:
-    #
-    #     ti:
-    #
-    #     pdf:
-    #     """
-    #
-    #     print("\nPlotting Heatmap...")
-    #
-    #     dallas = gpd.read_file('../Data/shapefiles/streets.shp')
-    #
-    #     fig, ax = plt.subplots(figsize=(15, 12))
-    #     ax.set_facecolor('xkcd:black')
-    #
-    #     dallas.plot(ax=ax,
-    #                 alpha=.4,  # Ancho de las calles
-    #                 color="gray",
-    #                 zorder=1)
-    #
-    #     x, y = np.mgrid[
-    #            np.array(self.testing_data[['x']]).min():
-    #            np.array(self.testing_data[['x']]).max():bins * 1j,
-    #            np.array(self.testing_data[['y']]).min():
-    #            np.array(self.testing_data[['y']]).max():bins * 1j
-    #            ]
-    #
-    #     z = self.kde.pdf(np.vstack([x.flatten(),
-    #                                 y.flatten(),
-    #                                 ti * np.ones(x.size)]))
-    #     # z = np.ma.masked_array(z, z < .1e-11)
-    #
-    #     heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
-    #                              shading='gouraud',
-    #                              alpha=.2,
-    #                              cmap=mpl.cm.get_cmap("jet"),
-    #                              zorder=2)
-    #
-    #     plt.title(f"Dallas Incidents - Heatmap\n"
-    #               f"n = {self.data.shape[0]}   Year = {self.year}",
-    #               fontdict={'fontsize': 20},
-    #               pad=20)
-    #     cbar = plt.colorbar(heatmap,
-    #                         ax=ax,
-    #                         shrink=.5,
-    #                         aspect=10)
-    #     cbar.solids.set(alpha=1)
-    #     # ax.set_axis_off()
-    #
-    #     if pdf:
-    #         plt.savefig("output/dallas_heatmap.pdf", format='pdf')
-    #     plt.show()
+        pdf: True si se desea guardar el plot en formato pdf
+        """
+
+        print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
+
+        print("\tReading shapefiles...", end=" ")
+        dallas_districts = gpd.GeoDataFrame.from_file(
+            "../Data/Councils/councils.shp")
+        dallas = gpd.read_file('../Data/shapefiles/streets.shp')
+        print("finished!")
+
+        fig, ax = plt.subplots(figsize=(15, 15))
+        ax.set_facecolor('xkcd:black')
+
+        # US Survey Foot: 0.3048 m
+        # print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")  # 2276
+
+        geometry = [Point(xy) for xy in zip(
+            np.array(self.testing_data[['x']]),
+            np.array(self.testing_data[['y']]))
+                    ]
+        geo_df = gpd.GeoDataFrame(self.testing_data,
+                                  crs=dallas.crs,
+                                  geometry=geometry)
+
+        print("\tPlotting Districts...", end=" ")
+
+        handles = []
+
+        for district, data in dallas_districts.groupby('DISTRICT'):
+            data.plot(ax=ax,
+                      color=params.d_colors[district],
+                      linewidth=2.5,
+                      edgecolor="black")
+            handles.append(mpatches.Patch(color=params.d_colors[district],
+                                          label=f"Dallas District {district}"))
+
+        handles.sort(key=lambda x: int(x._label.split(' ')[2]))
+        handles = [Line2D([], [], marker='o', color='red', label='Incident',
+                          linestyle="None"),
+                   Line2D([0], [0], color="steelblue", label="Streets")] + \
+                  handles
+
+        print("finished!")
+
+        print("\tPlotting Streets...", end=" ")
+        dallas.plot(ax=ax,
+                    alpha=0.4,
+                    color="steelblue",
+                    zorder=2,
+                    label="Streets")
+        print("finished!")
+
+        print("\tPlotting Incidents...", end=" ")
+
+        geo_df.plot(ax=ax,
+                    markersize=17.5,
+                    color='red',
+                    marker='o',
+                    zorder=3,
+                    label="Incidents")
+
+        print("finished!")
+
+        plt.title(f"Dallas Incidents - Spatial Pattern\n"
+                  f"{self.year}",
+                  fontdict={'fontsize': 20},
+                  pad=25)
+
+        plt.legend(loc="lower right",
+                   frameon=False,
+                   fontsize=13.5,
+                   handles=handles)
+
+        ax.set_axis_off()
+        plt.show()
+
+        if pdf:
+            plt.savefig("output/spatial_pattern.pdf", format='pdf')
+        plt.show()
+
+    @_time
+    def contour_plot(self,
+                     bins: int,
+                     ti: int,
+                     pdf: bool = False):
+        """
+        Draw the contour lines
+
+        bins:
+
+        ti:
+
+        pdf: True si se desea guardar el plot en formato pdf
+        """
+
+        print("\nPlotting Contours...")
+
+        dallas = gpd.read_file('../Data/shapefiles/streets.shp')
+
+        fig, ax = plt.subplots(figsize=(15, 12))
+        ax.set_facecolor('xkcd:black')
+
+        dallas.plot(ax=ax,
+                    alpha=.4,
+                    color="gray",
+                    zorder=1)
+
+        x, y = np.mgrid[
+               np.array(self.testing_data[['x']]).min():
+               np.array(self.testing_data[['x']]).max():bins * 1j,
+               np.array(self.testing_data[['y']]).min():
+               np.array(self.testing_data[['y']]).max():bins * 1j
+               ]
+
+        z = self.kde.pdf(np.vstack([x.flatten(),
+                                    y.flatten(),
+                                    ti * np.ones(x.size)]))
+        # z_2 = z * 3000 * (10 ** 6) / (.304) # P. Elwin
+
+        contourplot = plt.contour(x, y, z.reshape(x.shape),
+                                  cmap='jet',
+                                  zorder=2)
+
+        plt.title(f"Dallas Incidents - Contourplot\n"
+                  f"n = {self.data.shape[0]}    Year = {self.year}",
+                  fontdict={'fontsize': 20},
+                  pad=20)
+        plt.colorbar(contourplot,
+                     ax=ax,
+                     shrink=.4,
+                     aspect=10)
+
+        if pdf:
+            plt.savefig("output/dallas_contourplot.pdf", format='pdf')
+        plt.show()
+
+    @_time
+    def heatmap(self,
+                bins: int,
+                ti: int,
+                pdf: bool = False):
+        """
+        Plots the heatmap associated to a given t_i
+
+        bins:
+
+        ti:
+
+        pdf:
+        """
+
+        print("\nPlotting Heatmap...")
+
+        dallas = gpd.read_file('../Data/shapefiles/streets.shp')
+
+        fig, ax = plt.subplots(figsize=(15, 12))
+        ax.set_facecolor('xkcd:black')
+
+        dallas.plot(ax=ax,
+                    alpha=.4,  # Ancho de las calles
+                    color="gray",
+                    zorder=1)
+
+        x, y = np.mgrid[
+               np.array(self.testing_data[['x']]).min():
+               np.array(self.testing_data[['x']]).max():bins * 1j,
+               np.array(self.testing_data[['y']]).min():
+               np.array(self.testing_data[['y']]).max():bins * 1j
+               ]
+
+        z = self.kde.pdf(np.vstack([x.flatten(),
+                                    y.flatten(),
+                                    ti * np.ones(x.size)]))
+        # z = np.ma.masked_array(z, z < .1e-11)
+
+        heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
+                                 shading='gouraud',
+                                 alpha=.2,
+                                 cmap=mpl.cm.get_cmap("jet"),
+                                 zorder=2)
+
+        plt.title(f"Dallas Incidents - Heatmap\n"
+                  f"n = {self.data.shape[0]}   Year = {self.year}",
+                  fontdict={'fontsize': 20},
+                  pad=20)
+        cbar = plt.colorbar(heatmap,
+                            ax=ax,
+                            shrink=.5,
+                            aspect=10)
+        cbar.solids.set(alpha=1)
+        # ax.set_axis_off()
+
+        if pdf:
+            plt.savefig("output/dallas_heatmap.pdf", format='pdf')
+        plt.show()
 
     @_time
     def generate_grid(self,

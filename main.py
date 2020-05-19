@@ -8,7 +8,10 @@ Pontifical Catholic University of Chile
 
 """
 
-import predictivehp as pp
+from predictivehp.models import *
+
+ml_model = None
+
 
 if __name__ == '__main__':
     pass
