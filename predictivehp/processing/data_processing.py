@@ -8,11 +8,11 @@ Pontifical Catholic University of Chile
 
 """
 
-from aux_functions import *
-
 import datetime
-import credentials as cre
+import predictivehp.credentials as cre
 from sodapy import Socrata
+
+from predictivehp.aux_functions import *
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
