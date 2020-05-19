@@ -1,13 +1,7 @@
 """STKDE"""
 
-import numpy as np
-import pandas as pd
-import geopandas as gpd
-from shapely.geometry import Point
-
 import seaborn as sb
 import matplotlib as mpl
-import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
