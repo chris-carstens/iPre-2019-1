@@ -3,7 +3,7 @@
 import shutil
 import matplotlib.pyplot as pl
 from predictivehp.models import parameters
-import auxiliar_functions_promap as aux
+import predictivehp.aux_functions as aux
 from collections import defaultdict
 from processing.data_processing import *
 
