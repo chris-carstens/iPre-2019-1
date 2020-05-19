@@ -1,11 +1,10 @@
 """PROMAP"""
 
 import shutil
-
-from models import parameters
+import matplotlib.pyplot as pl
+from predictivehp.models import parameters
 import auxiliar_functions_promap as aux
 from collections import defaultdict
-from matplotlib.lines import Line2D
 from processing.data_processing import *
 
 
@@ -421,147 +420,7 @@ class Promap:
             else:
                 print(df_split[i].center(columns))
 
-    def plot_incidents(self, i_type="real", month="October"):
-        """
-        Plotea los incidentes almacenados en self.data en el mes dado.
-        Asegurarse que al momento de realizar el ploteo, ya se haya
-        hecho un llamado al método ml_algorithm() para identificar los
-        incidentes TP y FN
 
-        :param str i_type: Tipo de incidente a plotear (e.g. TP, FN, TP & FN)
-        :param str month: String con el nombre del mes que se predijo
-            con ml_algorithm()
-        :return:
-        """
-
-        print(f"\nPlotting {month} Incidents...")
-        print("\tFiltering incidents...")
-
-        tp_data, fn_data, data = None, None, None
-
-        # if i_type == "TP & FN":
-        #     data = gpd.GeoDataFrame(self.df)
-        #     tp_data = data[self.df.TP == 1]
-        #     fn_data = data[self.df.FN == 1]
-        # if i_type == "TP":
-        #     data = gpd.GeoDataFrame(self.df)
-        #     tp_data = self.df[self.df.TP == 1]
-        # if i_type == "FN":
-        #     data = gpd.GeoDataFrame(self.df)
-        #     fn_data = self.df[self.df.FN == 1]
-        if i_type == "real":
-            data = self.data[self.data.month1 == month]
-            n_incidents = data.shape[0]
-            print(f"\tNumber of Incidents in {month}: {n_incidents}")
-        # if i_type == "pred":
-        #     data = gpd.GeoDataFrame(self.df)
-        #     all_hp = data[self.df[('Dangerous_pred_Oct', '')] == 1]
-
-        print("\tReading shapefile...")
-        d_streets = gpd.GeoDataFrame.from_file(
-            "../Data/Streets/streets.shp")
-        d_streets.to_crs(epsg=2276, inplace=True)
-
-        print("\tRendering Plot...")
-        fig, ax = plt.subplots(figsize=(20, 15))
-
-        d_streets.plot(ax=ax,
-                       alpha=0.4,
-                       color="dimgrey",
-                       zorder=2,
-                       label="Streets")
-
-        # if i_type == 'pred':
-        #     all_hp.plot(
-        #         ax=ax,
-        #         markersize=2.5,
-        #         color='y',
-        #         marker='o',
-        #         zorder=3,
-        #         label="TP Incidents"
-        #     )
-        if i_type == "real":
-            data.plot(
-                ax=ax,
-                markersize=10,
-                color='darkorange',
-                marker='o',
-                zorder=3,
-                label="TP Incidents"
-            )
-        # if i_type == "TP":
-        #     tp_data.plot(
-        #         ax=ax,
-        #         markersize=2.5,
-        #         color='red',
-        #         marker='o',
-        #         zorder=3,
-        #         label="TP Incidents"
-        #     )
-        # if i_type == "FN":
-        #     fn_data.plot(
-        #         ax=ax,
-        #         markersize=2.5,
-        #         color='blue',
-        #         marker='o',
-        #         zorder=3,
-        #         label="FN Incidents"
-        #     )
-        # if i_type == "TP & FN":
-        #     tp_data.plot(
-        #         ax=ax,
-        #         markersize=2.5,
-        #         color='red',
-        #         marker='o',
-        #         zorder=3,
-        #         label="TP Incidents"
-        #     )
-        #     fn_data.plot(
-        #         ax=ax,
-        #         markersize=2.5,
-        #         color='blue',
-        #         marker='o',
-        #         zorder=3,
-        #         label="FN Incidents"
-        #     )
-
-        # Legends
-        handles = [Line2D([], [],
-                          marker='o',
-                          color='darkorange',
-                          label='Incident',
-                          linestyle='None'),
-                   Line2D([], [],
-                          marker='o',
-                          color='red',
-                          label='TP Incident',
-                          linestyle='None'),
-                   Line2D([], [],
-                          marker='o',
-                          color="blue",
-                          label="FN Incident",
-                          linestyle='None'),
-                   Line2D([], [],
-                          marker='o',
-                          color='y',
-                          label='Predicted Incidents',
-                          linestyle='None')]
-
-        plt.legend(loc="best",
-                   bbox_to_anchor=(0.1, 0.7),
-                   frameon=False,
-                   fontsize=13.5,
-                   handles=handles)
-
-        legends = ax.get_legend()
-        for text in legends.get_texts():
-            text.set_color('white')
-
-        # Background
-        ax.set_axis_off()
-        fig.set_facecolor('black')
-        plt.show()
-        plt.close()
 
 
 if __name__ == "__main__":
