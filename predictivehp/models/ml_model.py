@@ -13,6 +13,7 @@ Notes
 
 from calendar import month_name
 
+import pandas as pd
 import geopandas as gpd
 
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -20,8 +21,9 @@ from sklearn.metrics import precision_score, recall_score
 
 # import seaborn as sns
 from matplotlib.lines import Line2D
-from processing.data_processing import *
-from models.parameters import dallas_limits, d_colors
+from predictivehp.processing.data_processing import *
+from predictivehp.models.parameters import dallas_limits, d_colors
+from predictivehp.aux_functions import timer
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
