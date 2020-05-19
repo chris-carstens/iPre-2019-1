@@ -13,7 +13,6 @@ Notes
 
 from calendar import month_name
 
-import pandas as pd
 import geopandas as gpd
 
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
