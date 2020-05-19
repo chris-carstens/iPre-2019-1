@@ -111,17 +111,6 @@ def checked_points(points):
     return v_points
 
 
-def _time(fn):
-    def inner_1(*args, **kwargs):
-        start = time()
-
-        fn(*args, **kwargs)
-
-        print(f"\nFinished in {round(time() - start, 3)} sec")
-
-    return inner_1
-
-
 # ML
 
 def n_i(xi, x_min, hx):
