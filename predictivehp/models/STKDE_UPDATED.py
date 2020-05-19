@@ -902,17 +902,6 @@ class Framework:
         plt.show()
 
 
-# Data
-#
-# 2012 - 58     incidents
-# 2013 - 186    incidents
-# 2014 - 54985  incidents
-# 2015 - 94923  incidents   √
-# 2016 - 102132 incidents   √
-# 2017 - 96411  incidents   √
-# 2018 - 98477  incidents
-# 2019 - 64380  incidents (y creciendo)
-
 if __name__ == "__main__":
     dallas_stkde = Framework(n=150000,
                              year="2017")
