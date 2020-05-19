@@ -17,8 +17,8 @@ from sklearn.metrics import precision_score, recall_score
 
 from matplotlib.lines import Line2D
 from predictivehp.processing.data_processing import *
-from predictivehp.models.parameters import dallas_limits, d_colors
-from predictivehp.aux_functions import timer
+from predictivehp.aux_functions import *
+from predictivehp.models.parameters import *
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
