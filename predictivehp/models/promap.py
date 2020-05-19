@@ -1,24 +1,12 @@
 """PROMAP"""
 
-import numpy as np
-import pandas as pd
-from time import time
-import datetime
-
-import matplotlib.pyplot as plt
-
-import geopandas as gpd
-from shapely.geometry import Point, shape
-
 import shutil
 
-from sodapy import Socrata
-import credentials as cre
-import parameters
+from models import parameters
 import auxiliar_functions_promap as aux
 from collections import defaultdict
 from matplotlib.lines import Line2D
-from data_processing import *
+from processing.data_processing import *
 
 
 # Observaciones
@@ -77,7 +65,7 @@ class Promap:
         self.df_training_data = None
 
         if read_files:
-            self.df = pd.read_pickle('../data.pkl')
+            self.df = pd.read_pickle('data.pkl')
             self.df_training_data = pd.read_pickle('training_data.pkl')
             self.df_testing_data = pd.read_pickle('testing_data.pkl')
             self.generar_df()
@@ -471,7 +459,7 @@ class Promap:
 
         print("\tReading shapefile...")
         d_streets = gpd.GeoDataFrame.from_file(
-            "../Data/Streets/STREETS.shp")
+            "../Data/Streets/streets.shp")
         d_streets.to_crs(epsg=2276, inplace=True)
 
         print("\tRendering Plot...")

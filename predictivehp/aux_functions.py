@@ -81,7 +81,7 @@ def lineplot(x, y, x_label=None, y_label=None, title=None):
 # STKDE
 
 def checked_points(points):
-    dallas_shp = gpd.read_file('Data/Councils/Councils.shp')
+    dallas_shp = gpd.read_file('Data/Councils/councils.shp')
 
     df_points = pd.DataFrame(
         {'x': points[0, :], 'y': points[1, :], 't': points[2, :]}
@@ -222,7 +222,7 @@ def filter_cells(df):
     print('\tFiltering cells...')
 
     print('\t\tLoading shapefile...')
-    dallas_shp = gpd.read_file("Data/Councils/Councils.shp")
+    dallas_shp = gpd.read_file("Data/Councils/councils.shp")
     dallas_shp.to_crs(epsg=3857, inplace=True)
 
     print('\t\tCreating GeoDataframe...')

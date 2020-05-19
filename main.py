@@ -8,5 +8,7 @@ Pontifical Catholic University of Chile
 
 """
 
+import predictivehp as pp
+
 if __name__ == '__main__':
     pass

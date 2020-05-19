@@ -1,15 +1,6 @@
 """STKDE"""
 
-import numpy as np
-import pandas as pd
-from time import time
-import datetime
-
 import seaborn as sb
-import matplotlib.pyplot as plt
-
-import geopandas as gpd
-from shapely.geometry import Point
 
 # from pyevtk.hl import gridToVTK
 # from paraview.simple import *
@@ -17,9 +8,9 @@ from shapely.geometry import Point
 from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
     EstimatorSettings
 
-from aux_functions import checked_points as checked_points, _time as _time
+from aux_functions import _time as _time
 
-from data_processing import *
+from processing.data_processing import *
 
 # Observaciones
 #
@@ -193,8 +184,8 @@ class Framework:
     #
     #     print("\tReading shapefiles...", end=" ")
     #     dallas_districts = gpd.GeoDataFrame.from_file(
-    #             "../Data/Councils/Councils.shp")
-    #     dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
+    #             "../Data/Councils/councils.shp")
+    #     dallas = gpd.read_file('../Data/shapefiles/streets.shp')
     #     print("finished!")
     #
     #     fig, ax = plt.subplots(figsize=(15, 15))
@@ -284,7 +275,7 @@ class Framework:
     #
     #     print("\nPlotting Contours...")
     #
-    #     dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
+    #     dallas = gpd.read_file('../Data/shapefiles/streets.shp')
     #
     #     fig, ax = plt.subplots(figsize=(15, 12))
     #     ax.set_facecolor('xkcd:black')
@@ -340,7 +331,7 @@ class Framework:
     #
     #     print("\nPlotting Heatmap...")
     #
-    #     dallas = gpd.read_file('../Data/shapefiles/STREETS.shp')
+    #     dallas = gpd.read_file('../Data/shapefiles/streets.shp')
     #
     #     fig, ax = plt.subplots(figsize=(15, 12))
     #     ax.set_facecolor('xkcd:black')
@@ -488,7 +479,7 @@ class Framework:
     #     dallasMap = GDALVectorReader(
     #             FileName='/Users/msmendozaelguera/Desktop/iPre/Modeling/Data'
     #                      '/shapefiles'
-    #                      '/STREETS.shp')
+    #                      '/streets.shp')
     #
     #     print("finished!")
     #

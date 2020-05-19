@@ -11,7 +11,6 @@ Notes
 -
 """
 
-import datetime
 from calendar import month_name
 
 import geopandas as gpd
@@ -19,14 +18,10 @@ import geopandas as gpd
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import precision_score, recall_score
 
-from sodapy import Socrata
-import credentials as cre
-
 # import seaborn as sns
 from matplotlib.lines import Line2D
-from aux_functions import *
-from data_processing import *
-from parameters import dallas_limits, d_colors
+from processing.data_processing import *
+from models.parameters import dallas_limits, d_colors
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -58,12 +53,12 @@ class Framework:
         if read_df:
             st = time()
             print("\nReading df pickle...", end=" ")
-            self.df = pd.read_pickle('../df.pkl')
+            self.df = pd.read_pickle('df.pkl')
             print(f"finished! ({time() - st:3.1f} sec)")
         if read_data:
             st = time()
             print("Reading data pickle...", end=" ")
-            self.data = pd.read_pickle('../data.pkl')
+            self.data = pd.read_pickle('data.pkl')
             print(f"finished! ({time() - st:3.1f} sec)")
         else:
             self.data = get_data(model='ML', year=2017, n=1000)
@@ -495,7 +490,7 @@ class Framework:
 
         print("\tReading shapefile...")
         d_streets = gpd.GeoDataFrame.from_file(
-            "../Data/Streets/STREETS.shp")
+            "../Data/Streets/streets.shp")
         d_streets.to_crs(epsg=3857, inplace=True)
 
         print("\tRendering Plot...")
@@ -703,7 +698,7 @@ class Framework:
 
         print("\tReading shapefile...")
         d_streets = gpd.GeoDataFrame.from_file(
-            "../Data/Streets/STREETS.shp")
+            "../Data/Streets/streets.shp")
         d_streets.to_crs(epsg=3857, inplace=True)
 
         print("\tRendering Plot...")
@@ -992,10 +987,10 @@ class Framework:
 
         print('Reading shapefiles...')
         d_streets = gpd.GeoDataFrame.from_file(
-            filename='../Data/Streets/STREETS.shp'
+            filename='../Data/Streets/streets.shp'
         )
         d_districts = gpd.GeoDataFrame.from_file(
-            filename='../Data/Councils/Councils.shp'
+            filename='../Data/Councils/councils.shp'
         )
         d_streets.to_crs(epsg=3857, inplace=True)
         d_districts.to_crs(epsg=3857, inplace=True)
@@ -1065,7 +1060,7 @@ class Framework:
         gpd_ans = gpd.GeoDataFrame(ans, geometry=ans[('geometry', '')])
 
         d_streets = gpd.GeoDataFrame.from_file(
-            "../Data/Streets/STREETS.shp")
+            "../Data/Streets/streets.shp")
         d_streets.to_crs(epsg=3857, inplace=True)
 
         fig, ax = plt.subplots(figsize=(20, 15))
