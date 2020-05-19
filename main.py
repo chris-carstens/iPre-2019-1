@@ -8,10 +8,11 @@ Pontifical Catholic University of Chile
 
 """
 
-from predictivehp.models import *
+from predictivehp.models.models import *
 
-ml_model = None
-
+stkde = STKDE(n=1000, year='2017')
+rfr = RForestRegressor()
+pm = ProMap()
 
 if __name__ == '__main__':
     pass
