@@ -917,14 +917,11 @@ class STKDE:
 
 
 class RForestRegressor:
-    def __init__(self, i_df=None, n=1000, year="2017",
+    def __init__(self, i_df=None, xc_size=None, yc_size=None,
                  read_df=False, read_data=False):
-        self.n, self.year = n, year
-
-        self.data = None  # Incidentes, geolocalización, dates, etc.
-        self.df = None  # Nro. de incidentes por capas, etc.
 
         self.x, self.y = None, None
+        self.xc_size, self.yc_size = xc_size, yc_size
         self.nx, self.ny, self.hx, self.hy = None, None, None, None
 
         m_dict = {month_name[i]: None for i in range(1, 13)}
@@ -940,9 +937,6 @@ class RForestRegressor:
         }
 
         if read_df:
-            import os
-            print(os.path.abspath(os.getcwd()))
-
             st = time()
             print("\nReading df pickle...", end=" ")
             self.df = pd.read_pickle('predictivehp/data/data.pkl')
@@ -956,65 +950,65 @@ class RForestRegressor:
             self.data = i_df
             self.generate_df()
 
-    @timer
-    def get_data(self):
-        """
-        Obtención de datos a partir de la Socrata API.
-
-        Por ahora se está realizando un filtro para obtener solo  incidentes
-        asociados a robos residenciales
-
-        :return:
-        """
-
-        print("\nRequesting data...")
-
-        with Socrata(cre.socrata_domain,
-                     cre.API_KEY_S,
-                     username=cre.USERNAME_S,
-                     password=cre.PASSWORD_S) as client:
-            # Actualmente estamos filtrando por robos a domicilios
-            where = \
-                f"""
-                    year1 = {self.year}
-                    and date1 is not null
-                    and time1 is not null
-                    and x_coordinate is not null
-                    and y_cordinate is not null
-                    and offincident = 'BURGLARY OF HABITATION - FORCED ENTRY'
-                """  #  571000 max. 09/07/2019
-
-            results = client.get(cre.socrata_dataset_identifier,
-                                 where=where,
-                                 order="date1 ASC",
-                                 limit=self.n,
-                                 content_type='json')
-
-            df = pd.DataFrame.from_records(results)
-
-            print(f"\n\t{df.shape[0]} records successfully retrieved!")
-
-            # DB Cleaning & Formatting
-            df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
-                lambda x: float(x))
-            df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
-                lambda x: float(x))
-            df.loc[:, 'date1'] = df['date1'].apply(
-                lambda x: datetime.datetime.strptime(
-                    x.split(' ')[0], '%Y-%m-%d')
-            )
-            df.loc[:, 'y_day'] = df["date1"].apply(
-                lambda x: x.timetuple().tm_yday
-            )
-
-            df.rename(columns={'x_coordinate': 'x',
-                               'y_cordinate': 'y',
-                               'date1': 'date'},
-                      inplace=True)
-            df.sort_values(by=['date'], inplace=True)
-            df.reset_index(drop=True, inplace=True)
-
-            self.data = df
+    # @timer
+    # def get_data(self):
+    #     """
+    #     Obtención de datos a partir de la Socrata API.
+    #
+    #     Por ahora se está realizando un filtro para obtener solo  incidentes
+    #     asociados a robos residenciales
+    #
+    #     :return:
+    #     """
+    #
+    #     print("\nRequesting data...")
+    #
+    #     with Socrata(cre.socrata_domain,
+    #                  cre.API_KEY_S,
+    #                  username=cre.USERNAME_S,
+    #                  password=cre.PASSWORD_S) as client:
+    #         # Actualmente estamos filtrando por robos a domicilios
+    #         where = \
+    #             f"""
+    #                 year1 = {self.year}
+    #                 and date1 is not null
+    #                 and time1 is not null
+    #                 and x_coordinate is not null
+    #                 and y_cordinate is not null
+    #                 and offincident = 'BURGLARY OF HABITATION - FORCED ENTRY'
+    #             """  #  571000 max. 09/07/2019
+    #
+    #         results = client.get(cre.socrata_dataset_identifier,
+    #                              where=where,
+    #                              order="date1 ASC",
+    #                              limit=self.n,
+    #                              content_type='json')
+    #
+    #         df = pd.DataFrame.from_records(results)
+    #
+    #         print(f"\n\t{df.shape[0]} records successfully retrieved!")
+    #
+    #         # DB Cleaning & Formatting
+    #         df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
+    #             lambda x: float(x))
+    #         df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
+    #             lambda x: float(x))
+    #         df.loc[:, 'date1'] = df['date1'].apply(
+    #             lambda x: datetime.datetime.strptime(
+    #                 x.split(' ')[0], '%Y-%m-%d')
+    #         )
+    #         df.loc[:, 'y_day'] = df["date1"].apply(
+    #             lambda x: x.timetuple().tm_yday
+    #         )
+    #
+    #         df.rename(columns={'x_coordinate': 'x',
+    #                            'y_cordinate': 'y',
+    #                            'date1': 'date'},
+    #                   inplace=True)
+    #         df.sort_values(by=['date'], inplace=True)
+    #         df.reset_index(drop=True, inplace=True)
+    #
+    #         self.data = df
 
     @timer
     def generate_df(self):
@@ -1045,14 +1039,14 @@ class RForestRegressor:
         # Creación de la malla
         print("\tCreating mgrid...")
 
-        x_bins = abs(dallas_limits['x_max'] - dallas_limits['x_min']) / 100
-        y_bins = abs(dallas_limits['y_max'] - dallas_limits['y_min']) / 100
+        x_bins = abs(d_limits['x_max'] - d_limits['x_min']) / self.xc_size
+        y_bins = abs(d_limits['y_max'] - d_limits['y_min']) / self.yc_size
 
         self.x, self.y = np.mgrid[
-                         dallas_limits['x_min']:
-                         dallas_limits['x_max']:x_bins * 1j,
-                         dallas_limits['y_min']:
-                         dallas_limits['y_max']:y_bins * 1j,
+                         d_limits['x_min']:
+                         d_limits['x_max']:x_bins * 1j,
+                         d_limits['y_min']:
+                         d_limits['y_max']:y_bins * 1j,
                          ]
 
         # Creación del esqueleto del dataframe
@@ -1160,14 +1154,14 @@ class RForestRegressor:
 
         data = self.data[self.data.month1 == month]
 
-        x_bins = abs(dallas_limits['x_max'] - dallas_limits['x_min']) / 100
-        y_bins = abs(dallas_limits['y_max'] - dallas_limits['y_min']) / 100
+        x_bins = abs(d_limits['x_max'] - d_limits['x_min']) / 100
+        y_bins = abs(d_limits['y_max'] - d_limits['y_min']) / 100
 
         x, y = np.mgrid[
-               dallas_limits['x_min']:
-               dallas_limits['x_max']:x_bins * 1j,
-               dallas_limits['y_min']:
-               dallas_limits['y_max']:y_bins * 1j,
+               d_limits['x_min']:
+               d_limits['x_max']:x_bins * 1j,
+               d_limits['y_min']:
+               d_limits['y_max']:y_bins * 1j,
                ]
 
         nx = x.shape[0] - 1
@@ -2090,10 +2084,10 @@ class ProMap:
             self.data["date"].apply(lambda x: x.month) > 10
             ]
 
-        self.x_min = dallas_limits['x_min']
-        self.x_max = dallas_limits['x_max']
-        self.y_min = dallas_limits['y_min']
-        self.y_max = dallas_limits['y_max']
+        self.x_min = d_limits['x_min']
+        self.x_max = d_limits['x_max']
+        self.y_min = d_limits['y_min']
+        self.y_max = d_limits['y_max']
 
         self.hx = hx
         self.hy = hy

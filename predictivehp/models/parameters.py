@@ -51,7 +51,7 @@ days_oct_nov_dic = [date(2017, 10, i) for i in range(1, days_oct + 1)] + \
 
 # ML
 
-dallas_limits = {
+d_limits = {
     'x_min': -10804957.65128928, 'x_max': -10735466.29163222,
     'y_min': 3840201.8325116523, 'y_max': 3900214.267184315
 }

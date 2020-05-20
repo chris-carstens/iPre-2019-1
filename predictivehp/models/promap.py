@@ -121,10 +121,10 @@ class Promap:
             self.data["date"].apply(lambda x: x.month) > 10
             ]
 
-        self.x_min = parameters.dallas_limits['x_min']
-        self.x_max = parameters.dallas_limits['x_max']
-        self.y_min = parameters.dallas_limits['y_min']
-        self.y_max = parameters.dallas_limits['y_max']
+        self.x_min = parameters.d_limits['x_min']
+        self.x_max = parameters.d_limits['x_max']
+        self.y_min = parameters.d_limits['y_min']
+        self.y_max = parameters.d_limits['y_max']
 
         self.hx = parameters.hx
         self.hy = parameters.hy
