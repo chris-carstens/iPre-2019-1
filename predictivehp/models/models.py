@@ -917,7 +917,8 @@ class STKDE:
 
 
 class RForestRegressor:
-    def __init__(self, n=1000, year="2017", read_df=False, read_data=False):
+    def __init__(self, i_df=None, n=1000, year="2017",
+                 read_df=False, read_data=False):
         self.n, self.year = n, year
 
         self.data = None  # Incidentes, geolocalización, dates, etc.
@@ -952,7 +953,7 @@ class RForestRegressor:
             self.data = pd.read_pickle('predictivehp/data/data.pkl')
             print(f"finished! ({time() - st:3.1f} sec)")
         else:
-            self.data = get_data(model='ML', year=2017, n=1000)
+            self.data = i_df
             self.generate_df()
 
     @timer
@@ -1129,6 +1130,25 @@ class RForestRegressor:
 
         # Garbage recollection
         del self.incidents, self.x, self.y
+
+    @timer
+    def to_pickle(self, file_name):
+        """
+        Genera un pickle de self.df o self.data dependiendo el nombre
+        dado (data.pkl o df.pkl)
+
+        :param str file_name: Nombre del pickle a generar
+        :return: pickle de self.df o self.data
+        """
+
+        print("\nPickling dataframe...", end=" ")
+        if file_name == "df.pkl":
+            self.df.to_pickle(file_name)
+        if file_name == "data.pkl":
+            if self.data is None:
+                self.get_data()
+                self.generate_df()
+            self.data.to_pickle(file_name)
 
     @timer
     def assign_cells(self, month='October'):
@@ -1529,25 +1549,6 @@ class RForestRegressor:
             edgecolor='black'
         )
         plt.show()
-
-    @timer
-    def to_pickle(self, file_name):
-        """
-        Genera un pickle de self.df o self.data dependiendo el nombre
-        dado (data.pkl o df.pkl)
-
-        :param str file_name: Nombre del pickle a generar
-        :return: pickle de self.df o self.data
-        """
-
-        print("\nPickling dataframe...", end=" ")
-        if file_name == "df.pkl":
-            self.df.to_pickle(file_name)
-        if file_name == "data.pkl":
-            if self.data is None:
-                self.get_data()
-                self.generate_df()
-            self.data.to_pickle(file_name)
 
     @timer
     def plot_incidents(self, i_type="real", month="October"):

@@ -8,15 +8,22 @@ Pontifical Catholic University of Chile
 
 """
 
-# %%
-from predictivehp.models.parameters import *
-from predictivehp.models.models import STKDE, RForestRegressor, ProMap
 
 # %%
+from predictivehp.models.parameters import *
+from predictivehp.processing.data_processing import get_data
+from predictivehp.models.models import STKDE, RForestRegressor, ProMap
+
+
+# %% Initial Database
+df = get_data(year=2017, n=150000)
+
+# %% STKDE
 stkde = STKDE(n=1000, year='2017')
 
 # %%
-rfr = RForestRegressor(n=1000, year='2017', read_df=True, read_data=True)
+rfr = RForestRegressor(i_df=df, n=1000, year='2017',
+                       read_df=False, read_data=False)
 rfr.plot_statistics(n=500)
 
 # %%
@@ -24,5 +31,10 @@ pm = ProMap(n=150_000, year="2017", bw=bw, read_files=False)
 
 # %%
 
+
 if __name__ == '__main__':
+    # TODO Reu.20/05
+    #   - Acondicionar modelos para recibir la initial database
+    #   -
+
     pass

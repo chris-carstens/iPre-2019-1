@@ -19,7 +19,7 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.width', 1000)
 
 
-def get_data(model='STKDE', year=2017, n=150000):
+def get_data(year=2017, n=150000):
     """
     Obtiene los datos de la Socrata API
 
