@@ -917,7 +917,9 @@ class STKDE:
 
 
 class RForestRegressor:
-    def __init__(self, i_df=None, xc_size=None, yc_size=None,
+    def __init__(self, i_df=None,
+                 xc_size=None, yc_size=None,
+                 # nx=None, ny=None,
                  read_df=False, read_data=False):
 
         self.x, self.y = None, None
@@ -1338,7 +1340,7 @@ class RForestRegressor:
         print("\n\tPreparing input...")
 
         # Jan-Sep
-        x_ft = self.df.loc[
+        X = self.df.loc[
                :,
                [('Incidents_0', month_name[i]) for i in range(1, 10)] +
                [('Incidents_1', month_name[i]) for i in range(1, 10)] +
@@ -1350,25 +1352,25 @@ class RForestRegressor:
                [('Incidents_7', month_name[i]) for i in range(1, 10)]
                ]
         # Oct
-        x_lbl = self.df.loc[
+        y = self.df.loc[
                 :,
                 [('Incidents_0', 'October'), ('Incidents_1', 'October'),
                  ('Incidents_2', 'October'), ('Incidents_3', 'October'),
                  ('Incidents_4', 'October'), ('Incidents_5', 'October'),
                  ('Incidents_6', 'October'), ('Incidents_7', 'October')]
                 ]
-        x_lbl[('Dangerous', '')] = x_lbl.T.any().astype(int)
-        x_lbl = x_lbl[('Dangerous', '')]
+        y[('Dangerous', '')] = y.T.any().astype(int)
+        y = y[('Dangerous', '')]
 
         # Algoritmo
         print("\tRunning algorithms...")
 
         rfr = RandomForestRegressor(n_jobs=8)
-        rfr.fit(x_ft, x_lbl.to_numpy().ravel())
-        x_pred_rfc = rfr.predict(x_ft)
+        rfr.fit(X, y.to_numpy().ravel())
+        x_pred_rfc = rfr.predict(X)
 
         # Sirven para determinar celdas con TP/FN
-        self.df[('Dangerous_Oct_rfr', '')] = x_lbl
+        self.df[('Dangerous_Oct_rfr', '')] = y
         self.df[('Dangerous_pred_Oct_rfr', '')] = x_pred_rfc
 
         # Estadísticas
