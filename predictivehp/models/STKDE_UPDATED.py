@@ -73,7 +73,8 @@ class Framework:
         usar los métodos contour_plot o heatmap.
         """
         self.results_HR_PAI = None
-        self.data, self.training_data, self.testing_data, self.predict_groups = get_data(
+        self.data, self.training_data, self.testing_data, self.predict_groups = self.preparing_data()
+        self.df = get_data(
             model='STKDE', year=year, n=n)
         # training data 3000
         # testing data  600
@@ -86,6 +87,56 @@ class Framework:
              np.array(self.training_data[['y']]),
              np.array(self.training_data[['y_day']])],
             'ccc')
+
+    def preparing_data(self):
+        df = self.df
+        if self.n >= 3600:
+             df = df.sample(n=3600,
+                                replace=False,
+                                random_state=250499)
+             df.sort_values(by=['date'], inplace=True)
+             df.reset_index(drop=True, inplace=True)
+
+             # División en training data (X) y testing data (y)
+             X = df[df["date"].apply(lambda x: x.month) <= 10]
+             y = df[df["date"].apply(lambda x: x.month) > 10]
+
+            predict_groups = {
+                     f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None}
+                     for i in range(1, 9)}
+            # Time 1 Data for building STKDE models : 1 Month
+            group_n = 1
+            for i in range(1, len(params.days_oct_nov_dic))[::7]:
+                predict_groups[f"group_{group_n}"]['t1_data'] = \
+                     params.days_oct_nov_dic[i - 1:i - 1 + params.days_oct]
+
+                group_n += 1
+                if group_n > 8:
+                    break
+                 # Time 2 Data for Prediction            : 1 Week
+            group_n = 1
+            for i in range(1, len(params.days_oct_nov_dic))[::7]:
+                predict_groups[f"group_{group_n}"]['t2_data'] = \
+                         params.days_oct_nov_dic[i - 1 + params.days_oct:i - 1 + params.days_oct + 7]
+
+                group_n += 1
+                if group_n > 8:
+                    break
+            # Time 1 Data for building STKDE models : 1 Month
+            for group in predict_groups:
+                predict_groups[group]['t1_data'] = \
+                    df[df['date'].apply(lambda x:
+                             predict_groups[group]['t1_data'][0]
+                             <= x.date() <=
+                             predict_groups[group]['t1_data'][-1])]
+            # Time 2 Data for Prediction            : 1 Week
+            for group in predict_groups:
+                predict_groups[group]['t2_data'] = \
+                    df[df['date'].apply(lambda x:
+                    predict_groups[group]['t2_data'][0]
+                    <= x.date() <=
+                    predict_groups[group]['t2_data'][-1])]
+        return df, X, y, predict_groups
 
     @timer
     def train_model(self, x, y, t, bw=None):
