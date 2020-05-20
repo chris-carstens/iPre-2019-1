@@ -27,7 +27,7 @@ rfr = RForestRegressor(i_df=df, n=1000, year='2017',
 rfr.plot_statistics(n=500)
 
 # %%
-pm = ProMap(n=150_000, year="2017", bw=bw, read_files=False)
+pm = ProMap(n=150_000, year="2017", bw=bw, i_df=df, read_files=False)
 
 # %%
 

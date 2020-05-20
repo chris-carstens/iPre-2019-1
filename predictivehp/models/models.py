@@ -2003,7 +2003,7 @@ class ProMap:
 
     def __init__(self, bw,
                  n: int = 1000,
-                 year: str = "2017", read_files=True):
+                 year: str = "2017", i_df = None, read_files=False):
         """
         :param n: Número de registros que se piden a la database.
 
@@ -2013,7 +2013,7 @@ class ProMap:
 
         """
 
-        self.data = None
+        self.data = i_df
         self.training_data = None  # 3000
         self.testing_data = None  # 600
 
@@ -2032,6 +2032,7 @@ class ProMap:
         self.df_testing_data = None
         self.df_training_data = None
 
+
         if read_files:
             self.df = pd.read_pickle('../data/data.pkl')
             self.df_training_data = pd.read_pickle('training_data.pkl')
@@ -2041,8 +2042,6 @@ class ProMap:
                 'matriz_de_densidades.pkl.npy')
 
         else:
-            self.data, self.training_data, self.testing_data = get_data(
-                model='ProMap', n=150_000)
             self.generar_df()
             self.calcular_densidades()
 
