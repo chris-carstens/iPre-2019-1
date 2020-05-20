@@ -1,7 +1,6 @@
 """PROMAP"""
 
 import shutil
-import matplotlib.pyplot as pl
 from predictivehp.models import parameters
 import predictivehp.aux_functions as aux
 from collections import defaultdict
@@ -64,7 +63,7 @@ class Promap:
         self.df_training_data = None
 
         if read_files:
-            self.df = pd.read_pickle('data.pkl')
+            self.df = pd.read_pickle('../data/data.pkl')
             self.df_training_data = pd.read_pickle('training_data.pkl')
             self.df_testing_data = pd.read_pickle('testing_data.pkl')
             self.generar_df()

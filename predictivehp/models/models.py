@@ -81,7 +81,7 @@ class STKDE:
         usar los métodos contour_plot o heatmap.
         """
         self.results_HR_PAI = None
-        self.data, self.training_data, self.testing_data, self.predict_groups = get_data(
+        self.data, self.X, self.testing_data, self.predict_groups = get_data(
             model='STKDE', year=year, n=n)
         # training data 3000
         # testing data  600
@@ -90,9 +90,9 @@ class STKDE:
 
         # esto le pasa los datos al KDE
         self.kde = KDEMultivariate(
-            [np.array(self.training_data[['x']]),
-             np.array(self.training_data[['y']]),
-             np.array(self.training_data[['y_day']])],
+            [np.array(self.X[['x']]),
+             np.array(self.X[['y']]),
+             np.array(self.X[['y_day']])],
             'ccc')
 
     @timer
@@ -803,13 +803,13 @@ class STKDE:
 
             if i == 1:
                 x_training = pd.Series(
-                    self.training_data["x"]).tolist() + pd.Series(
+                    self.X["x"]).tolist() + pd.Series(
                     self.predict_groups[f'group_{i}']['t1_data']['x']).tolist()
                 y_training = pd.Series(
-                    self.training_data["y"]).tolist() + pd.Series(
+                    self.X["y"]).tolist() + pd.Series(
                     self.predict_groups[f'group_{i}']['t1_data']['y']).tolist()
                 t_training = pd.Series(
-                    self.training_data["y_day"]).tolist() + pd.Series(
+                    self.X["y_day"]).tolist() + pd.Series(
                     self.predict_groups[f'group_{i}']['t1_data'][
                         'y_day']).tolist()
 
@@ -939,14 +939,17 @@ class RForestRegressor:
         }
 
         if read_df:
+            import os
+            print(os.path.abspath(os.getcwd()))
+
             st = time()
             print("\nReading df pickle...", end=" ")
-            self.df = pd.read_pickle('df.pkl')
+            self.df = pd.read_pickle('predictivehp/data/data.pkl')
             print(f"finished! ({time() - st:3.1f} sec)")
         if read_data:
             st = time()
             print("Reading data pickle...", end=" ")
-            self.data = pd.read_pickle('data.pkl')
+            self.data = pd.read_pickle('predictivehp/data/data.pkl')
             print(f"finished! ({time() - st:3.1f} sec)")
         else:
             self.data = get_data(model='ML', year=2017, n=1000)
@@ -2029,7 +2032,7 @@ class ProMap:
         self.df_training_data = None
 
         if read_files:
-            self.df = pd.read_pickle('data.pkl')
+            self.df = pd.read_pickle('../data/data.pkl')
             self.df_training_data = pd.read_pickle('training_data.pkl')
             self.df_testing_data = pd.read_pickle('testing_data.pkl')
             self.generar_df()

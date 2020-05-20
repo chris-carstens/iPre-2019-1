@@ -9,14 +9,15 @@ Pontifical Catholic University of Chile
 """
 
 # %%
-from predictivehp.models.models import *
 from predictivehp.models.parameters import *
+from predictivehp.models.models import STKDE, RForestRegressor, ProMap
 
 # %%
 stkde = STKDE(n=1000, year='2017')
 
 # %%
-rfr = RForestRegressor(n=1000, year='2017', read_df=False, read_data=False)
+rfr = RForestRegressor(n=1000, year='2017', read_df=True, read_data=True)
+rfr.plot_statistics(n=500)
 
 # %%
 pm = ProMap(n=150_000, year="2017", bw=bw, read_files=False)
