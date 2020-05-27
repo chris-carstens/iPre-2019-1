@@ -81,6 +81,7 @@ def lineplot(x, y, x_label=None, y_label=None, title=None):
 # STKDE
 
 def checked_points(points):
+
     dallas_shp = gpd.read_file('predictivehp/data/councils.shp')
 
     df_points = pd.DataFrame(

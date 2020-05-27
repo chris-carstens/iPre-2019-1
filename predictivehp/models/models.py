@@ -58,6 +58,9 @@ from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
 from predictivehp.processing.data_processing import *
 import predictivehp.models.parameters as params
 
+from predictivehp.processing.data_processing import get_data
+
+
 # Observaciones
 #
 # 1. 3575 Incidents
@@ -101,13 +104,17 @@ class STKDE:
     def __init__(self,
                  n: int = 1000,
                  year: str = "2017",
-                 bw=None, df=None):
+                 bw=None, df=None, training_months=10, number_of_groups=8, window_days=7):
+
         """
         n: Número de registros que se piden a la database.
         year: Año de los registros pedidos
         t_model: Entrenamiento del modelo, True en caso de que se quieran
         usar los métodos contour_plot o heatmap.
         """
+        self.training_months = training_months
+        self.number_of_groups = number_of_groups
+        self.window_days = window_days
         self.results_HR_PAI = None
         #self.data, self.training_data, self.testing_data, self.predict_groups = get_data(
          #   model='STKDE', year=year, n=n)
@@ -131,7 +138,6 @@ class STKDE:
     def preparing_data(self):
         df = self.df
         if self.n >= 3600:
-            print(True)
             df = df.sample(n=3600,
                                 replace=False,
                                 random_state=250499)
@@ -140,25 +146,24 @@ class STKDE:
 
             # División en training data (X) y testing data (y)
             X = df[df["date"].apply(lambda x: x.month) <= 10]
-            y = df[df["date"].apply(lambda x: x.month) > 10]
-            predict_groups = { f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None} for i in range(1, 9) }
+            X = X[X["date"].apply(lambda x: x.month) >= 10 - self.training_months]
+            y = df[df["date"].apply(lambda x: x.month) > self.training_months]
+            predict_groups = { f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None} for i in range(1, self.number_of_groups + 1) }
             # Time 1 Data for building STKDE models : 1 Month
             group_n = 1
-            for i in range(1, len(days_oct_nov_dic))[::7]:
+            for i in range(1, len(days_oct_nov_dic))[::self.window_days]:
                 predict_groups[f"group_{group_n}"]['t1_data'] = \
                      days_oct_nov_dic[i - 1:i - 1 + days_oct]
-
                 group_n += 1
-                if group_n > 8:
+                if group_n > self.number_of_groups:
                     break
                  # Time 2 Data for Prediction            : 1 Week
             group_n = 1
-            for i in range(1, len(days_oct_nov_dic))[::7]:
+            for i in range(1, len(days_oct_nov_dic))[::self.window_days]:
                 predict_groups[f"group_{group_n}"]['t2_data'] = \
-                         days_oct_nov_dic[i - 1 + days_oct:i - 1 + days_oct + 7]
-
+                         days_oct_nov_dic[i - 1 + days_oct:i - 1 + days_oct + self.window_days]
                 group_n += 1
-                if group_n > 8:
+                if group_n > self.number_of_groups:
                     break
             # Time 1 Data for building STKDE models : 1 Month
             for group in predict_groups:
@@ -866,7 +871,7 @@ class STKDE:
     def calculate_HR_PAI(self):
         PAIs = {}
         HRs = {}
-        for i in range(1, 9):
+        for i in range(1, self.number_of_groups):
             x, y, t = \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['x']), \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['y']), \
@@ -942,7 +947,7 @@ class STKDE:
         plt.xlabel('Area percentage')
         plt.ylabel('HR')
         plt.title("HR vs Area")
-        for i in range(1, 9):
+        for i in range(1, self.number_of_groups + 1):
             HRs, area_percentaje = results_HR[i][0], results_HR[i][1]
             plt.plot(area_percentaje, HRs, label=f'group {i}')
         plt.legend()
@@ -956,7 +961,7 @@ class STKDE:
         plt.xlabel('Area percentage')
         plt.ylabel('PAI')
         plt.title("PAI vs Area")
-        for i in range(1, 9):
+        for i in range(1, self.number_of_groups + 1):
             PAIs, area_percentaje = results_PAI[i][0], results_PAI[i][1]
             plt.plot(area_percentaje, PAIs, label=f'group {i}')
         plt.legend()
@@ -2063,8 +2068,6 @@ class RForestRegressor:
 
 
 class ProMap:
-
-
     def __init__(self, bw, i_df = None, read_files=False, hx = 100, hy = 100,
                  radio=None, ventana_dias = 7, tiempo_entrenamiento = None):
 
