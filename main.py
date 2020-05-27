@@ -17,12 +17,12 @@ from predictivehp.models.models import STKDE, RForestRegressor, ProMap
 df = get_data(year=2017, n=150000)
 
 # %% STKDE
-stkde = STKDE(n=1000, year='2017')
+#stkde = STKDE(n=1000, year='2017')
 
 # %%
-rfr = RForestRegressor(i_df=df, xc_size=None, yc_size=None,
-                       read_df=False, read_data=False)
-rfr.plot_statistics(n=500)
+#rfr = RForestRegressor(i_df=df, xc_size=None, yc_size=None,
+#                       read_df=False, read_data=False)
+#rfr.plot_statistics(n=500)
 
 # %%
 pm = ProMap(n=150_000, year="2017", bw=bw, i_df=df, read_files=False)
