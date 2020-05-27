@@ -81,8 +81,13 @@ class STKDE:
         usar los métodos contour_plot o heatmap.
         """
         self.results_HR_PAI = None
+<<<<<<< HEAD
         #self.data, self.training_data, self.testing_data, self.predict_groups = get_data(
          #   model='STKDE', year=year, n=n)
+=======
+        self.data, self.X, self.testing_data, self.predict_groups = get_data(
+            model='STKDE', year=year, n=n)
+>>>>>>> c3cc4a27a15eb8d0c532c1d740c667a90277ec21
         # training data 3000
         # testing data  600
         self.n = n
@@ -94,9 +99,9 @@ class STKDE:
 
         # esto le pasa los datos al KDE
         self.kde = KDEMultivariate(
-            [np.array(self.training_data[['x']]),
-             np.array(self.training_data[['y']]),
-             np.array(self.training_data[['y_day']])],
+            [np.array(self.X[['x']]),
+             np.array(self.X[['y']]),
+             np.array(self.X[['y_day']])],
             'ccc')
 
     def preparing_data(self):
@@ -854,13 +859,13 @@ class STKDE:
 
             if i == 1:
                 x_training = pd.Series(
-                    self.training_data["x"]).tolist() + pd.Series(
+                    self.X["x"]).tolist() + pd.Series(
                     self.predict_groups[f'group_{i}']['t1_data']['x']).tolist()
                 y_training = pd.Series(
-                    self.training_data["y"]).tolist() + pd.Series(
+                    self.X["y"]).tolist() + pd.Series(
                     self.predict_groups[f'group_{i}']['t1_data']['y']).tolist()
                 t_training = pd.Series(
-                    self.training_data["y_day"]).tolist() + pd.Series(
+                    self.X["y_day"]).tolist() + pd.Series(
                     self.predict_groups[f'group_{i}']['t1_data'][
                         'y_day']).tolist()
 
@@ -968,13 +973,13 @@ class STKDE:
 
 
 class RForestRegressor:
-    def __init__(self, n=1000, year="2017", read_df=False, read_data=False):
-        self.n, self.year = n, year
-
-        self.data = None  # Incidentes, geolocalización, dates, etc.
-        self.df = None  # Nro. de incidentes por capas, etc.
+    def __init__(self, i_df=None,
+                 xc_size=None, yc_size=None,
+                 # nx=None, ny=None,
+                 read_df=False, read_data=False):
 
         self.x, self.y = None, None
+        self.xc_size, self.yc_size = xc_size, yc_size
         self.nx, self.ny, self.hx, self.hy = None, None, None, None
 
         m_dict = {month_name[i]: None for i in range(1, 13)}
@@ -992,76 +997,76 @@ class RForestRegressor:
         if read_df:
             st = time()
             print("\nReading df pickle...", end=" ")
-            self.df = pd.read_pickle('df.pkl')
+            self.df = pd.read_pickle('predictivehp/data/data.pkl')
             print(f"finished! ({time() - st:3.1f} sec)")
         if read_data:
             st = time()
             print("Reading data pickle...", end=" ")
-            self.data = pd.read_pickle('data.pkl')
+            self.data = pd.read_pickle('predictivehp/data/data.pkl')
             print(f"finished! ({time() - st:3.1f} sec)")
         else:
-            self.data = get_data(model='ML', year=2017, n=1000)
+            self.data = i_df
             self.generate_df()
 
-    @timer
-    def get_data(self):
-        """
-        Obtención de datos a partir de la Socrata API.
-
-        Por ahora se está realizando un filtro para obtener solo  incidentes
-        asociados a robos residenciales
-
-        :return:
-        """
-
-        print("\nRequesting data...")
-
-        with Socrata(cre.socrata_domain,
-                     cre.API_KEY_S,
-                     username=cre.USERNAME_S,
-                     password=cre.PASSWORD_S) as client:
-            # Actualmente estamos filtrando por robos a domicilios
-            where = \
-                f"""
-                    year1 = {self.year}
-                    and date1 is not null
-                    and time1 is not null
-                    and x_coordinate is not null
-                    and y_cordinate is not null
-                    and offincident = 'BURGLARY OF HABITATION - FORCED ENTRY'
-                """  #  571000 max. 09/07/2019
-
-            results = client.get(cre.socrata_dataset_identifier,
-                                 where=where,
-                                 order="date1 ASC",
-                                 limit=self.n,
-                                 content_type='json')
-
-            df = pd.DataFrame.from_records(results)
-
-            print(f"\n\t{df.shape[0]} records successfully retrieved!")
-
-            # DB Cleaning & Formatting
-            df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
-                lambda x: float(x))
-            df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
-                lambda x: float(x))
-            df.loc[:, 'date1'] = df['date1'].apply(
-                lambda x: datetime.datetime.strptime(
-                    x.split(' ')[0], '%Y-%m-%d')
-            )
-            df.loc[:, 'y_day'] = df["date1"].apply(
-                lambda x: x.timetuple().tm_yday
-            )
-
-            df.rename(columns={'x_coordinate': 'x',
-                               'y_cordinate': 'y',
-                               'date1': 'date'},
-                      inplace=True)
-            df.sort_values(by=['date'], inplace=True)
-            df.reset_index(drop=True, inplace=True)
-
-            self.data = df
+    # @timer
+    # def get_data(self):
+    #     """
+    #     Obtención de datos a partir de la Socrata API.
+    #
+    #     Por ahora se está realizando un filtro para obtener solo  incidentes
+    #     asociados a robos residenciales
+    #
+    #     :return:
+    #     """
+    #
+    #     print("\nRequesting data...")
+    #
+    #     with Socrata(cre.socrata_domain,
+    #                  cre.API_KEY_S,
+    #                  username=cre.USERNAME_S,
+    #                  password=cre.PASSWORD_S) as client:
+    #         # Actualmente estamos filtrando por robos a domicilios
+    #         where = \
+    #             f"""
+    #                 year1 = {self.year}
+    #                 and date1 is not null
+    #                 and time1 is not null
+    #                 and x_coordinate is not null
+    #                 and y_cordinate is not null
+    #                 and offincident = 'BURGLARY OF HABITATION - FORCED ENTRY'
+    #             """  #  571000 max. 09/07/2019
+    #
+    #         results = client.get(cre.socrata_dataset_identifier,
+    #                              where=where,
+    #                              order="date1 ASC",
+    #                              limit=self.n,
+    #                              content_type='json')
+    #
+    #         df = pd.DataFrame.from_records(results)
+    #
+    #         print(f"\n\t{df.shape[0]} records successfully retrieved!")
+    #
+    #         # DB Cleaning & Formatting
+    #         df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
+    #             lambda x: float(x))
+    #         df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
+    #             lambda x: float(x))
+    #         df.loc[:, 'date1'] = df['date1'].apply(
+    #             lambda x: datetime.datetime.strptime(
+    #                 x.split(' ')[0], '%Y-%m-%d')
+    #         )
+    #         df.loc[:, 'y_day'] = df["date1"].apply(
+    #             lambda x: x.timetuple().tm_yday
+    #         )
+    #
+    #         df.rename(columns={'x_coordinate': 'x',
+    #                            'y_cordinate': 'y',
+    #                            'date1': 'date'},
+    #                   inplace=True)
+    #         df.sort_values(by=['date'], inplace=True)
+    #         df.reset_index(drop=True, inplace=True)
+    #
+    #         self.data = df
 
     @timer
     def generate_df(self):
@@ -1092,14 +1097,14 @@ class RForestRegressor:
         # Creación de la malla
         print("\tCreating mgrid...")
 
-        x_bins = abs(dallas_limits['x_max'] - dallas_limits['x_min']) / 100
-        y_bins = abs(dallas_limits['y_max'] - dallas_limits['y_min']) / 100
+        x_bins = abs(d_limits['x_max'] - d_limits['x_min']) / self.xc_size
+        y_bins = abs(d_limits['y_max'] - d_limits['y_min']) / self.yc_size
 
         self.x, self.y = np.mgrid[
-                         dallas_limits['x_min']:
-                         dallas_limits['x_max']:x_bins * 1j,
-                         dallas_limits['y_min']:
-                         dallas_limits['y_max']:y_bins * 1j,
+                         d_limits['x_min']:
+                         d_limits['x_max']:x_bins * 1j,
+                         d_limits['y_min']:
+                         d_limits['y_max']:y_bins * 1j,
                          ]
 
         # Creación del esqueleto del dataframe
@@ -1179,6 +1184,25 @@ class RForestRegressor:
         del self.incidents, self.x, self.y
 
     @timer
+    def to_pickle(self, file_name):
+        """
+        Genera un pickle de self.df o self.data dependiendo el nombre
+        dado (data.pkl o df.pkl)
+
+        :param str file_name: Nombre del pickle a generar
+        :return: pickle de self.df o self.data
+        """
+
+        print("\nPickling dataframe...", end=" ")
+        if file_name == "df.pkl":
+            self.df.to_pickle(file_name)
+        if file_name == "data.pkl":
+            if self.data is None:
+                self.get_data()
+                self.generate_df()
+            self.data.to_pickle(file_name)
+
+    @timer
     def assign_cells(self, month='October'):
         """
         Asigna el número de celda asociado a cada incidente en self.data
@@ -1188,14 +1212,14 @@ class RForestRegressor:
 
         data = self.data[self.data.month1 == month]
 
-        x_bins = abs(dallas_limits['x_max'] - dallas_limits['x_min']) / 100
-        y_bins = abs(dallas_limits['y_max'] - dallas_limits['y_min']) / 100
+        x_bins = abs(d_limits['x_max'] - d_limits['x_min']) / 100
+        y_bins = abs(d_limits['y_max'] - d_limits['y_min']) / 100
 
         x, y = np.mgrid[
-               dallas_limits['x_min']:
-               dallas_limits['x_max']:x_bins * 1j,
-               dallas_limits['y_min']:
-               dallas_limits['y_max']:y_bins * 1j,
+               d_limits['x_min']:
+               d_limits['x_max']:x_bins * 1j,
+               d_limits['y_min']:
+               d_limits['y_max']:y_bins * 1j,
                ]
 
         nx = x.shape[0] - 1
@@ -1372,7 +1396,7 @@ class RForestRegressor:
         print("\n\tPreparing input...")
 
         # Jan-Sep
-        x_ft = self.df.loc[
+        X = self.df.loc[
                :,
                [('Incidents_0', month_name[i]) for i in range(1, 10)] +
                [('Incidents_1', month_name[i]) for i in range(1, 10)] +
@@ -1384,25 +1408,25 @@ class RForestRegressor:
                [('Incidents_7', month_name[i]) for i in range(1, 10)]
                ]
         # Oct
-        x_lbl = self.df.loc[
+        y = self.df.loc[
                 :,
                 [('Incidents_0', 'October'), ('Incidents_1', 'October'),
                  ('Incidents_2', 'October'), ('Incidents_3', 'October'),
                  ('Incidents_4', 'October'), ('Incidents_5', 'October'),
                  ('Incidents_6', 'October'), ('Incidents_7', 'October')]
                 ]
-        x_lbl[('Dangerous', '')] = x_lbl.T.any().astype(int)
-        x_lbl = x_lbl[('Dangerous', '')]
+        y[('Dangerous', '')] = y.T.any().astype(int)
+        y = y[('Dangerous', '')]
 
         # Algoritmo
         print("\tRunning algorithms...")
 
         rfr = RandomForestRegressor(n_jobs=8)
-        rfr.fit(x_ft, x_lbl.to_numpy().ravel())
-        x_pred_rfc = rfr.predict(x_ft)
+        rfr.fit(X, y.to_numpy().ravel())
+        x_pred_rfc = rfr.predict(X)
 
         # Sirven para determinar celdas con TP/FN
-        self.df[('Dangerous_Oct_rfr', '')] = x_lbl
+        self.df[('Dangerous_Oct_rfr', '')] = y
         self.df[('Dangerous_pred_Oct_rfr', '')] = x_pred_rfc
 
         # Estadísticas
@@ -1577,25 +1601,6 @@ class RForestRegressor:
             edgecolor='black'
         )
         plt.show()
-
-    @timer
-    def to_pickle(self, file_name):
-        """
-        Genera un pickle de self.df o self.data dependiendo el nombre
-        dado (data.pkl o df.pkl)
-
-        :param str file_name: Nombre del pickle a generar
-        :return: pickle de self.df o self.data
-        """
-
-        print("\nPickling dataframe...", end=" ")
-        if file_name == "df.pkl":
-            self.df.to_pickle(file_name)
-        if file_name == "data.pkl":
-            if self.data is None:
-                self.get_data()
-                self.generate_df()
-            self.data.to_pickle(file_name)
 
     @timer
     def plot_incidents(self, i_type="real", month="October"):
@@ -2050,7 +2055,7 @@ class ProMap:
 
     def __init__(self, bw,
                  n: int = 1000,
-                 year: str = "2017", read_files=True):
+                 year: str = "2017", i_df = None, read_files=False):
         """
         :param n: Número de registros que se piden a la database.
 
@@ -2060,7 +2065,7 @@ class ProMap:
 
         """
 
-        self.data = None
+        self.data = i_df
         self.training_data = None  # 3000
         self.testing_data = None  # 600
 
@@ -2079,8 +2084,9 @@ class ProMap:
         self.df_testing_data = None
         self.df_training_data = None
 
+
         if read_files:
-            self.df = pd.read_pickle('data.pkl')
+            self.df = pd.read_pickle('../data/data.pkl')
             self.df_training_data = pd.read_pickle('training_data.pkl')
             self.df_testing_data = pd.read_pickle('testing_data.pkl')
             self.generar_df()
@@ -2088,8 +2094,6 @@ class ProMap:
                 'matriz_de_densidades.pkl.npy')
 
         else:
-            self.data, self.training_data, self.testing_data = get_data(
-                model='ProMap', n=150_000)
             self.generar_df()
             self.calcular_densidades()
 
@@ -2138,10 +2142,10 @@ class ProMap:
             self.data["date"].apply(lambda x: x.month) > 10
             ]
 
-        self.x_min = dallas_limits['x_min']
-        self.x_max = dallas_limits['x_max']
-        self.y_min = dallas_limits['y_min']
-        self.y_max = dallas_limits['y_max']
+        self.x_min = d_limits['x_min']
+        self.x_max = d_limits['x_max']
+        self.y_min = d_limits['y_min']
+        self.y_max = d_limits['y_max']
 
         self.hx = hx
         self.hy = hy

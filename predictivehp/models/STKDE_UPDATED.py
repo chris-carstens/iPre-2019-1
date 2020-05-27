@@ -12,7 +12,6 @@ from pyevtk.hl import gridToVTK
 from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
     EstimatorSettings
 
-from predictivehp.aux_functions import *
 from predictivehp.processing.data_processing import *
 import predictivehp.models.parameters as params
 
