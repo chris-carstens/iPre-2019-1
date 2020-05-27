@@ -80,7 +80,15 @@ def lineplot(x, y, x_label=None, y_label=None, title=None):
 
 # STKDE
 
-def checked_points(points):
+def checked_points(points, shp):
+    """
+    Chequea si la lista de puntos está dentro de Dallas.
+
+    :param list points:
+    :param str shp: Path del shapefile asociado
+    :return np.ndarray :
+    """
+    # 'predictivehp/data/councils.shp'
     dallas_shp = gpd.read_file('predictivehp/data/councils.shp')
 
     df_points = pd.DataFrame(
@@ -194,13 +202,14 @@ def to_df_col(D):
     return D.flatten()
 
 
-def filter_cells(df):
+def filter_cells(df, shp):
     """
     Completa la columna "in_dallas" del dataframe, explicitando cuales de las
     celdas se encuentran dentro de Dallas.
 
     :param pandas.DataFrame df: Dataframe que contiene información de celdas
         que no necesariamente están en Dallas
+    :param str shp: PATH al shapefile asociado
     :return: Dataframe con celdas filtradas, i.e., que están
         dentro de Dallas
     :rtype: pandas.DataFrame
@@ -211,7 +220,8 @@ def filter_cells(df):
     print('\tFiltering cells...')
 
     print('\t\tLoading shapefile...')
-    dallas_shp = gpd.read_file("Data/Councils/councils.shp")
+    # Data/Councils/councils.shp
+    dallas_shp = gpd.read_file(shp)
     dallas_shp.to_crs(epsg=3857, inplace=True)
 
     print('\t\tCreating GeoDataframe...')

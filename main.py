@@ -5,7 +5,7 @@ from predictivehp.models.models import STKDE, RForestRegressor, ProMap
 from predictivehp.visualization.plotter import Plotter
 
 # %% Initial Database
-df = get_data(year=2017, n=150000)
+df,  = get_data(year=2017, n=150000)
 
 # %% STKDE
 stkde = STKDE(n=1000, year='2017')
@@ -43,6 +43,8 @@ if __name__ == '__main__':
     #           en x e y.
 
     # TODO Reu.27/05
-    #   -
+    #   - d_limits: Automatizar desde los .shp
+    #   - STKDE:
+    #       Estudiar umbral (3600) para nro. máximo de
 
     pass

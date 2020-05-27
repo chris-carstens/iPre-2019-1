@@ -108,21 +108,22 @@ class STKDE:
             y = df[df["date"].apply(lambda x: x.month) > self.training_months]
             predict_groups = {
                 f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None} for
-                i in range(1, self.number_of_groups + 1)}
+                i in range(1, self.number_of_groups + 1)
+            }
             # Time 1 Data for building STKDE models : 1 Month
             group_n = 1
-            for i in range(1, len(days_oct_nov_dic))[::self.window_days]:
+            for i in range(1, len(prm.days_oct_nov_dic))[::self.window_days]:
                 predict_groups[f"group_{group_n}"]['t1_data'] = \
-                    days_oct_nov_dic[i - 1:i - 1 + days_oct]
+                    prm.days_oct_nov_dic[i - 1:i - 1 + prm.days_oct]
                 group_n += 1
                 if group_n > self.number_of_groups:
                     break
                 # Time 2 Data for Prediction            : 1 Week
             group_n = 1
-            for i in range(1, len(days_oct_nov_dic))[::self.window_days]:
+            for i in range(1, len(prm.days_oct_nov_dic))[::self.window_days]:
                 predict_groups[f"group_{group_n}"]['t2_data'] = \
-                    days_oct_nov_dic[
-                    i - 1 + days_oct:i - 1 + days_oct + self.window_days]
+                    prm.days_oct_nov_dic[
+                    i - 1 + prm.days_oct:i - 1 + prm.days_oct + self.window_days]
                 group_n += 1
                 if group_n > self.number_of_groups:
                     break
@@ -1136,7 +1137,7 @@ class RForestRegressor:
             for i in range(n_capas + 1):
                 self.df.loc[:, (f"Incidents_{i}", month)] = \
                     to_df_col(D) if i == 0 else \
-                    to_df_col(il_neighbors(matrix=D, i=i))
+                        to_df_col(il_neighbors(matrix=D, i=i))
 
             print('finished!')
 

@@ -19,7 +19,7 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.width', 1000)
 
 
-def get_data(year=2017, n=150000):
+def get_data(s_shp, c_shp, cl_shp, year=2017, n=150000):
     """
     Obtiene los datos de la Socrata API
 
@@ -27,6 +27,10 @@ def get_data(year=2017, n=150000):
     :param int n: Número máximo de muestras a extraer de la db
     :return:
     """
+
+    streets = gpd.read_file(filename=s_shp)
+    councils = gpd.read_file(filename=c_shp)
+    c_limits = gpd.read_file(filename=cl_shp)
 
     print("\nRequesting data...")
 
@@ -89,7 +93,7 @@ def get_data(year=2017, n=150000):
         df.sort_values(by=['date'], inplace=True)
         df.reset_index(drop=True, inplace=True)
 
-        return df
+        return df, streets, councils, c_limits
 
         # if model == 'STKDE' or model == 'ProMap':
         #     # Reducción del tamaño de la DB
