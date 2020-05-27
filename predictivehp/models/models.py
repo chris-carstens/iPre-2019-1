@@ -1096,17 +1096,14 @@ class RForestRegressor:
 
         # Creación del esqueleto del dataframe
         print("\tCreating dataframe columns...")
-
         months = [month_name[i] for i in range(1, 13)]
         columns = pd.MultiIndex.from_product(
-            [[f"Incidents_{i}" for i in range(n_capas + 1)],
-             months]
+            [[f"Incidents_{i}" for i in range(n_capas + 1)], months]
         )
         self.df = pd.DataFrame(columns=columns)
 
         # Creación de los parámetros para el cálculo de los índices
         print("\tFilling df...")
-
         self.nx = self.x.shape[0] - 1
         self.ny = self.y.shape[1] - 1
         self.hx = (self.x.max() - self.x.min()) / self.nx
@@ -1156,7 +1153,7 @@ class RForestRegressor:
         self.df.drop(columns=[('in_dallas', '')], inplace=True)
 
         # Garbage recollection
-        del self.incidents, self.x, self.y
+        # del self.incidents, self.x, self.y
 
     @timer
     def to_pickle(self, file_name):
