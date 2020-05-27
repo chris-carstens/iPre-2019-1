@@ -10,14 +10,16 @@ Pontifical Catholic University of Chile
 
 
 class Plotter:
-    def __init__(self, models):
+    def __init__(self, models=None):
         """
 
         :param list models: Lista con los objetos de los diferentes
             modelos. e.g. [stkde, rfr, pm]
         """
+        self.models = [] if not models else models
 
-        self.models = models
+    def add_model(self, model):
+        self.models.append(model)
 
     def heatmap(self):
         pass
