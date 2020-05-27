@@ -81,7 +81,6 @@ def lineplot(x, y, x_label=None, y_label=None, title=None):
 # STKDE
 
 def checked_points(points):
-
     dallas_shp = gpd.read_file('predictivehp/data/councils.shp')
 
     df_points = pd.DataFrame(
@@ -283,7 +282,6 @@ def n_celdas_pintar(xi, yi, x, y, hx, hy):
 
 def radio_pintar(ancho_celda, bw):
     return ceil(bw / ancho_celda)
-
 
 
 def square_matrix(lado):

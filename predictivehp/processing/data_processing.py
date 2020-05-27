@@ -23,7 +23,6 @@ def get_data(year=2017, n=150000):
     """
     Obtiene los datos de la Socrata API
 
-    :param str model: Uno entre 'STKDE', 'ProMap, 'ML'
     :param int year: Año de la db (e.g. 2017)
     :param int n: Número máximo de muestras a extraer de la db
     :return:

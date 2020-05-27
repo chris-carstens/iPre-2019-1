@@ -11,7 +11,7 @@ df = get_data(year=2017, n=150000)
 stkde = STKDE(n=1000, year='2017')
 
 # %% Random Forest Regressor
-rfr = RForestRegressor(i_df=df, xc_size=None, yc_size=None,
+rfr = RForestRegressor(i_df=df, xc_size=100, yc_size=100,
                        read_df=False, read_data=False)
 rfr.plot_statistics(n=500)
 
@@ -24,15 +24,15 @@ pm = ProMap(bw=bw, i_df=df, read_files=False)
 pltr = Plotter(models=[stkde, rfr, pm])
 
 if __name__ == '__main__':
-    # TODO Reu.20/05
+    # TODO Reu. 20/05
     #   - Acondicionar modelos para recibir la initial database
     #   - self.set_params()
     #   - Implementar ambas opciones: ancho/largo celda y nro. celdas en x e y.
     #   - STKDE:
     #       None
     #   - rfr:
-    #       Automatizar con parámetros las capas (evitar el hardcodeo)
-    #       Implementar ambas opciones: ancho/largo celda y nro. celdas
+    #       √ Automatizar con parámetros las capas (evitar el hardcodeo)
+    #       √ Implementar ambas opciones: ancho/largo celda y nro. celdas
     #       en x e y.
     #       Nro de capas: calcular en base al tamaño/nro de celdas
     #           y el radio de influencia (obs. redondear floats,
@@ -42,5 +42,8 @@ if __name__ == '__main__':
     #   - ProMap:
     #       Implementar ambas opciones: ancho/largo celda y nro. celdas
     #           en x e y.
+
+    # TODO Reu.27/05
+    #   -
 
     pass

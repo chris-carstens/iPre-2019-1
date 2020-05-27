@@ -1,16 +1,3 @@
-"""
-parameters.py:
-Python Version: 3.8.1
-
-iPre - Big Data para Criminología
-Created by Mauro S. Mendoza Elguera at 27-09-19
-Pontifical Catholic University of Chile
-
-Notes
-
--
-"""
-
 # STKDE
 
 import numpy as np

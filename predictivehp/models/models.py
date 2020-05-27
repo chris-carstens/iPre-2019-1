@@ -1,13 +1,3 @@
-"""
-models.py
-Python Version: 3.8.1
-
-iPre - Big Data para Criminología
-Created by Mauro S. Mendoza Elguera at 18-05-20
-Pontifical Catholic University of Chile
-
-"""
-
 from calendar import month_name
 
 import geopandas as gpd
@@ -32,46 +22,13 @@ from pyevtk.hl import gridToVTK
 
 from predictivehp.processing.data_processing import *
 from predictivehp.aux_functions import *
-from predictivehp.models.parameters import *
+import predictivehp.models.parameters as prm
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 pd.set_option('display.width', 1000)
 settings = EstimatorSettings(efficient=True,
                              n_jobs=8)
-
-
-"""STKDE"""
-
-import seaborn as sb
-import matplotlib as mpl
-import matplotlib.image as mpimg
-import matplotlib.patches as mpatches
-from matplotlib.lines import Line2D
-
-from pyevtk.hl import gridToVTK
-# from paraview.simple import *
-
-from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
-    EstimatorSettings
-
-from predictivehp.processing.data_processing import *
-import predictivehp.models.parameters as params
-
-from predictivehp.processing.data_processing import get_data
-
-
-# Observaciones
-#
-# 1. 3575 Incidents
-# Training data 2926 incidents (January 1st - October 31st)
-# Testing data 649 incidents (November 1st - December 31st)
-#
-# 2. Se requiere que la muestra sea "estable" en el periodo analizado
-
-
-settings = EstimatorSettings(efficient=True,
-                             n_jobs=4)
 
 
 class MyKDEMultivariate(KDEMultivariate):
@@ -104,7 +61,8 @@ class STKDE:
     def __init__(self,
                  n: int = 1000,
                  year: str = "2017",
-                 bw=None, df=None, training_months=10, number_of_groups=8, window_days=7):
+                 bw=None, df=None, training_months=10, number_of_groups=8,
+                 window_days=7):
 
         """
         n: Número de registros que se piden a la database.
@@ -116,17 +74,16 @@ class STKDE:
         self.number_of_groups = number_of_groups
         self.window_days = window_days
         self.results_HR_PAI = None
-        #self.data, self.training_data, self.testing_data, self.predict_groups = get_data(
-         #   model='STKDE', year=year, n=n)
+        # self.data, self.training_data, self.testing_data, self.predict_groups = get_data(
+        #   model='STKDE', year=year, n=n)
         # training data 3000
         # testing data  600
         self.n = n
         self.year = year
-        #self.df = get_data(
-         #   model='STKDE', year=year, n=n)
+        # self.df = get_data(
+        #   model='STKDE', year=year, n=n)
         self.df = df
         self.data, self.training_data, self.testing_data, self.predict_groups = self.preparing_data()
-
 
         # esto le pasa los datos al KDE
         self.kde = KDEMultivariate(
@@ -139,29 +96,33 @@ class STKDE:
         df = self.df
         if self.n >= 3600:
             df = df.sample(n=3600,
-                                replace=False,
-                                random_state=250499)
+                           replace=False,
+                           random_state=250499)
             df.sort_values(by=['date'], inplace=True)
             df.reset_index(drop=True, inplace=True)
 
             # División en training data (X) y testing data (y)
             X = df[df["date"].apply(lambda x: x.month) <= 10]
-            X = X[X["date"].apply(lambda x: x.month) >= 10 - self.training_months]
+            X = X[X["date"].apply(
+                lambda x: x.month) >= 10 - self.training_months]
             y = df[df["date"].apply(lambda x: x.month) > self.training_months]
-            predict_groups = { f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None} for i in range(1, self.number_of_groups + 1) }
+            predict_groups = {
+                f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None} for
+                i in range(1, self.number_of_groups + 1)}
             # Time 1 Data for building STKDE models : 1 Month
             group_n = 1
             for i in range(1, len(days_oct_nov_dic))[::self.window_days]:
                 predict_groups[f"group_{group_n}"]['t1_data'] = \
-                     days_oct_nov_dic[i - 1:i - 1 + days_oct]
+                    days_oct_nov_dic[i - 1:i - 1 + days_oct]
                 group_n += 1
                 if group_n > self.number_of_groups:
                     break
-                 # Time 2 Data for Prediction            : 1 Week
+                # Time 2 Data for Prediction            : 1 Week
             group_n = 1
             for i in range(1, len(days_oct_nov_dic))[::self.window_days]:
                 predict_groups[f"group_{group_n}"]['t2_data'] = \
-                         days_oct_nov_dic[i - 1 + days_oct:i - 1 + days_oct + self.window_days]
+                    days_oct_nov_dic[
+                    i - 1 + days_oct:i - 1 + days_oct + self.window_days]
                 group_n += 1
                 if group_n > self.number_of_groups:
                     break
@@ -169,17 +130,18 @@ class STKDE:
             for group in predict_groups:
                 predict_groups[group]['t1_data'] = \
                     df[df['date'].apply(lambda x:
-                             predict_groups[group]['t1_data'][0]
-                             <= x.date() <=
-                             predict_groups[group]['t1_data'][-1])]
+                                        predict_groups[group]['t1_data'][0]
+                                        <= x.date() <=
+                                        predict_groups[group]['t1_data'][-1])]
             # Time 2 Data for Prediction            : 1 Week
             for group in predict_groups:
                 predict_groups[group]['t2_data'] = \
                     df[df['date'].apply(lambda x:
-                    predict_groups[group]['t2_data'][0]
-                    <= x.date() <=
-                    predict_groups[group]['t2_data'][-1])]
+                                        predict_groups[group]['t2_data'][0]
+                                        <= x.date() <=
+                                        predict_groups[group]['t2_data'][-1])]
         return df, X, y, predict_groups
+
     @timer
     def train_model(self, x, y, t, bw=None):
         """
@@ -991,27 +953,30 @@ class STKDE:
         plt.savefig(hr_or_pai + " vs Area", format='pdf')
         plt.show()
 
+
 class RForestRegressor:
     def __init__(self, i_df=None,
                  xc_size=None, yc_size=None,
                  # nx=None, ny=None,
-                 read_df=False, read_data=False):
+                 read_data=False, read_df=False):
+        """
+
+        :param pd.DataFrame i_df:
+        :param int xc_size: Ancho de las celdas en metros
+        :param int yc_size: Largo de las celdas en metros
+        :param bool read_data: True si se desea
+        :param bool read_df: True para leer el df con la
+            información de las celdas
+        """
 
         self.x, self.y = None, None
         self.xc_size, self.yc_size = xc_size, yc_size
         self.nx, self.ny, self.hx, self.hy = None, None, None, None
 
-        m_dict = {month_name[i]: None for i in range(1, 13)}
-        self.incidents = {
-            'Incidents': m_dict,
-            'NC Incidents_1': m_dict,
-            'NC Incidents_2': m_dict,
-            'NC Incidents_3': m_dict,
-            'NC Incidents_4': m_dict,
-            'NC Incidents_5': m_dict,
-            'NC Incidents_6': m_dict,
-            'NC Incidents_7': m_dict,
-        }
+        # m_dict = {month_name[i]: None for i in range(1, 13)}
+        # self.incidents = {'Incidents': m_dict}
+        # for i in range(1, n_capas + 1):
+        #     self.incidents.update({f"NC Incidents_{i}": m_dict})
 
         if read_df:
             st = time()
@@ -1088,7 +1053,7 @@ class RForestRegressor:
     #         self.data = df
 
     @timer
-    def generate_df(self):
+    def generate_df(self, n_capas):
         """
         La malla se genera de la esquina inf-izquierda a la esquina sup-derecha,
         partiendo con id = 0.
@@ -1108,6 +1073,7 @@ class RForestRegressor:
         operaciones trasposición y luego up-down del nd-array entregan las
         posiciones reales para el pandas dataframe.
 
+        :param int n_capas: Número de capas
         :return: Pandas Dataframe con la información
         """
 
@@ -1115,8 +1081,9 @@ class RForestRegressor:
 
         # Creación de la malla
         print("\tCreating mgrid...")
+        d_limits = prm.d_limits
 
-        x_bins = abs(d_limits['x_max'] - d_limits['x_min']) / self.xc_size
+        x_bins = abs(prm.d_limits['x_max'] - d_limits['x_min']) / self.xc_size
         y_bins = abs(d_limits['y_max'] - d_limits['y_min']) / self.yc_size
 
         self.x, self.y = np.mgrid[
@@ -1131,8 +1098,7 @@ class RForestRegressor:
 
         months = [month_name[i] for i in range(1, 13)]
         columns = pd.MultiIndex.from_product(
-            [['Incidents_0', 'Incidents_1', 'Incidents_2', 'Incidents_3',
-              'Incidents_4', 'Incidents_5', 'Incidents_6', 'Incidents_7'],
+            [[f"Incidents_{i}" for i in range(n_capas + 1)],
              months]
         )
         self.df = pd.DataFrame(columns=columns)
@@ -1169,21 +1135,10 @@ class RForestRegressor:
                 D[nx_i, ny_i] += 1
 
             # Actualización del pandas dataframe
-            self.df.loc[:, ('Incidents_0', month)] = to_df_col(D)
-            self.df.loc[:, ('Incidents_1', month)] = \
-                to_df_col(il_neighbors(matrix=D, i=1))
-            self.df.loc[:, ('Incidents_2', month)] = \
-                to_df_col(il_neighbors(matrix=D, i=2))
-            self.df.loc[:, ('Incidents_3', month)] = \
-                to_df_col(il_neighbors(matrix=D, i=3))
-            self.df.loc[:, ('Incidents_4', month)] = \
-                to_df_col(il_neighbors(matrix=D, i=4))
-            self.df.loc[:, ('Incidents_5', month)] = \
-                to_df_col(il_neighbors(matrix=D, i=5))
-            self.df.loc[:, ('Incidents_6', month)] = \
-                to_df_col(il_neighbors(matrix=D, i=6))
-            self.df.loc[:, ('Incidents_7', month)] = \
-                to_df_col(il_neighbors(matrix=D, i=7))
+            for i in range(n_capas + 1):
+                self.df.loc[:, (f"Incidents_{i}", month)] = \
+                    to_df_col(D) if i == 0 else \
+                    to_df_col(il_neighbors(matrix=D, i=i))
 
             print('finished!')
 
@@ -1230,6 +1185,7 @@ class RForestRegressor:
         """
 
         data = self.data[self.data.month1 == month]
+        d_limits = prm.d_limits
 
         x_bins = abs(d_limits['x_max'] - d_limits['x_min']) / 100
         y_bins = abs(d_limits['y_max'] - d_limits['y_min']) / 100
@@ -1416,24 +1372,24 @@ class RForestRegressor:
 
         # Jan-Sep
         X = self.df.loc[
-               :,
-               [('Incidents_0', month_name[i]) for i in range(1, 10)] +
-               [('Incidents_1', month_name[i]) for i in range(1, 10)] +
-               [('Incidents_2', month_name[i]) for i in range(1, 10)] +
-               [('Incidents_3', month_name[i]) for i in range(1, 10)] +
-               [('Incidents_4', month_name[i]) for i in range(1, 10)] +
-               [('Incidents_5', month_name[i]) for i in range(1, 10)] +
-               [('Incidents_6', month_name[i]) for i in range(1, 10)] +
-               [('Incidents_7', month_name[i]) for i in range(1, 10)]
-               ]
+            :,
+            [('Incidents_0', month_name[i]) for i in range(1, 10)] +
+            [('Incidents_1', month_name[i]) for i in range(1, 10)] +
+            [('Incidents_2', month_name[i]) for i in range(1, 10)] +
+            [('Incidents_3', month_name[i]) for i in range(1, 10)] +
+            [('Incidents_4', month_name[i]) for i in range(1, 10)] +
+            [('Incidents_5', month_name[i]) for i in range(1, 10)] +
+            [('Incidents_6', month_name[i]) for i in range(1, 10)] +
+            [('Incidents_7', month_name[i]) for i in range(1, 10)]
+            ]
         # Oct
         y = self.df.loc[
-                :,
-                [('Incidents_0', 'October'), ('Incidents_1', 'October'),
-                 ('Incidents_2', 'October'), ('Incidents_3', 'October'),
-                 ('Incidents_4', 'October'), ('Incidents_5', 'October'),
-                 ('Incidents_6', 'October'), ('Incidents_7', 'October')]
-                ]
+            :,
+            [('Incidents_0', 'October'), ('Incidents_1', 'October'),
+             ('Incidents_2', 'October'), ('Incidents_3', 'October'),
+             ('Incidents_4', 'October'), ('Incidents_5', 'October'),
+             ('Incidents_6', 'October'), ('Incidents_7', 'October')]
+            ]
         y[('Dangerous', '')] = y.T.any().astype(int)
         y = y[('Dangerous', '')]
 
@@ -1962,7 +1918,7 @@ class RForestRegressor:
 
         for district, data in d_districts.groupby('DISTRICT'):
             data.plot(ax=ax,
-                      color=d_colors[district],
+                      color=prm.d_colors[district],
                       linewidth=2.5,
                       edgecolor="black")
 
@@ -2068,13 +2024,13 @@ class RForestRegressor:
 
 
 class ProMap:
-    def __init__(self, bw, i_df = None, read_files=False, hx = 100, hy = 100,
-                 radio=None, ventana_dias = 7, tiempo_entrenamiento = None,
-                 km2 = 1_000):
+    def __init__(self, bw, i_df=None, read_files=False, hx=100, hy=100,
+                 radio=None, ventana_dias=7, tiempo_entrenamiento=None,
+                 km2=1_000):
 
-        #por default es 1.000 km2 (área de dallas)
+        # por default es 1.000 km2 (área de dallas)
 
-        #data
+        # data
         self.data = i_df
         self.training_data = None  # 3000
         self.testing_data = None  # 600
@@ -2102,10 +2058,10 @@ class ProMap:
         self.radio = radio
         self.ventana_dias = ventana_dias
 
-        #matriz de riesgo
+        # matriz de riesgo
         self.matriz_con_densidades = None
 
-        #parametros para graficos
+        # parametros para graficos
         self.HR = None
         self.PAI = None
         self.area_percentaje = None
@@ -2124,7 +2080,6 @@ class ProMap:
 
         self.plot_HR()
         self.plot_PAI()
-
 
     def generar_df(self):
 
@@ -2174,7 +2129,6 @@ class ProMap:
         self.y_min = d_limits['y_min']
         self.y_max = d_limits['y_max']
 
-
         self.bins_x = round(abs(self.x_max - self.x_min) / self.hx)
         self.bins_y = round(abs(self.y_max - self.y_min) / self.hy)
 
@@ -2223,7 +2177,8 @@ class ProMap:
                       self.training_data['y'][
                           k], \
                       self.training_data['y_day'][k]
-            x_in_matrix, y_in_matrix = find_position(self.x, self.y, x, y,self.hx, self.hy)
+            x_in_matrix, y_in_matrix = find_position(self.x, self.y, x, y,
+                                                     self.hx, self.hy)
             x_left, x_right = limites_x(ancho_x, x_in_matrix, self.x)
             y_abajo, y_up = limites_y(ancho_y, y_in_matrix, self.y)
 
@@ -2327,7 +2282,6 @@ class ProMap:
 
     def calcular_hr_and_pai(self):
 
-
         self.delitos_por_celda_training()
         self.delitos_por_celda_testing(self.ventana_dias)
 
@@ -2375,12 +2329,10 @@ class ProMap:
 
         self.HR = [i / n_delitos_testing for i in hits_n]
 
-
         n_celdas = calcular_celdas(self.hx, self.hy, self.km2)
 
         self.area_percentaje = [1 if j > 1 else j for j in [i / n_celdas for
                                                             i in area_hits]]
-
 
         self.PAI = [
             0 if float(self.area_percentaje[i]) == 0 else float(self.HR[
