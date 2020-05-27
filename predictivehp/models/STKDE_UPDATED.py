@@ -65,9 +65,7 @@ class Framework:
                  bw=None):
         """
         n: Número de registros que se piden a la database.
-
         year: Año de los registros pedidos
-
         t_model: Entrenamiento del modelo, True en caso de que se quieran
         usar los métodos contour_plot o heatmap.
         """
@@ -90,7 +88,6 @@ class Framework:
     def train_model(self, x, y, t, bw=None):
         """
         Entrena el modelo y genera un KDE
-
         bw: Si es un arreglo, este debe contener los bandwidths
         dados por el usuario
         """
@@ -133,7 +130,6 @@ class Framework:
                      pdf: bool = False):
         """
         Bar Plot
-
         pdf: True si se desea guardar el plot en formato pdf
         """
 
@@ -180,7 +176,6 @@ class Framework:
                         pdf: bool = False):
         """
         Spatial pattern of incidents
-
         pdf: True si se desea guardar el plot en formato pdf
         """
 
@@ -269,11 +264,8 @@ class Framework:
                      pdf: bool = False):
         """
         Draw the contour lines
-
         bins:
-
         ti:
-
         pdf: True si se desea guardar el plot en formato pdf
         """
 
@@ -325,11 +317,8 @@ class Framework:
                 pdf: bool = False):
         """
         Plots the heatmap associated to a given t_i
-
         bins:
-
         ti:
-
         pdf:
         """
 

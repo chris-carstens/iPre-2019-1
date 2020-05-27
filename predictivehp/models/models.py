@@ -41,6 +41,38 @@ settings = EstimatorSettings(efficient=True,
                              n_jobs=8)
 
 
+"""STKDE"""
+
+import seaborn as sb
+import matplotlib as mpl
+import matplotlib.image as mpimg
+import matplotlib.patches as mpatches
+from matplotlib.lines import Line2D
+
+from pyevtk.hl import gridToVTK
+# from paraview.simple import *
+
+from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
+    EstimatorSettings
+
+from predictivehp.processing.data_processing import *
+import predictivehp.models.parameters as params
+
+from predictivehp.processing.data_processing import get_data
+
+# Observaciones
+#
+# 1. 3575 Incidents
+# Training data 2926 incidents (January 1st - October 31st)
+# Testing data 649 incidents (November 1st - December 31st)
+#
+# 2. Se requiere que la muestra sea "estable" en el periodo analizado
+
+
+settings = EstimatorSettings(efficient=True,
+                             n_jobs=4)
+
+
 class MyKDEMultivariate(KDEMultivariate):
     def resample(self, size: int):
         print("\nResampling...", end=" ")
@@ -71,35 +103,87 @@ class STKDE:
     def __init__(self,
                  n: int = 1000,
                  year: str = "2017",
-                 bw=None):
+                 bw=None, df=None, training_months=10, number_of_groups=8, window_days=7):
         """
         n: Número de registros que se piden a la database.
-
         year: Año de los registros pedidos
-
         t_model: Entrenamiento del modelo, True en caso de que se quieran
         usar los métodos contour_plot o heatmap.
         """
+        self.training_months = training_months
+        self.number_of_groups = number_of_groups
+        self.window_days = window_days
         self.results_HR_PAI = None
-        self.data, self.X, self.testing_data, self.predict_groups = get_data(
-            model='STKDE', year=year, n=n)
+        #self.data, self.training_data, self.testing_data, self.predict_groups = get_data(
+         #   model='STKDE', year=year, n=n)
         # training data 3000
         # testing data  600
         self.n = n
         self.year = year
+        #self.df = get_data(
+         #   model='STKDE', year=year, n=n)
+        self.df = df
+        self.data, self.training_data, self.testing_data, self.predict_groups = self.preparing_data()
+
 
         # esto le pasa los datos al KDE
         self.kde = KDEMultivariate(
-            [np.array(self.X[['x']]),
-             np.array(self.X[['y']]),
-             np.array(self.X[['y_day']])],
+            [np.array(self.training_data[['x']]),
+             np.array(self.training_data[['y']]),
+             np.array(self.training_data[['y_day']])],
             'ccc')
 
+    def preparing_data(self):
+        df = self.df
+        if self.n >= 3600:
+            df = df.sample(n=3600,
+                                replace=False,
+                                random_state=250499)
+            df.sort_values(by=['date'], inplace=True)
+            df.reset_index(drop=True, inplace=True)
+
+            # División en training data (X) y testing data (y)
+            X = df[df["date"].apply(lambda x: x.month) <= 10]
+            X = X[X["date"].apply(lambda x: x.month) >= 10 - self.training_months]
+            y = df[df["date"].apply(lambda x: x.month) > self.training_months]
+            predict_groups = { f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None} for i in range(1, self.number_of_groups + 1) }
+            # Time 1 Data for building STKDE models : 1 Month
+            group_n = 1
+            for i in range(1, len(days_oct_nov_dic))[::self.window_days]:
+                predict_groups[f"group_{group_n}"]['t1_data'] = \
+                     days_oct_nov_dic[i - 1:i - 1 + days_oct]
+
+                group_n += 1
+                if group_n > self.number_of_groups:
+                    break
+                 # Time 2 Data for Prediction            : 1 Week
+            group_n = 1
+            for i in range(1, len(days_oct_nov_dic))[::self.window_days]:
+                predict_groups[f"group_{group_n}"]['t2_data'] = \
+                         days_oct_nov_dic[i - 1 + days_oct:i - 1 + days_oct + self.window_days]
+                group_n += 1
+                if group_n > self.number_of_groups:
+                    break
+            # Time 1 Data for building STKDE models : 1 Month
+            for group in predict_groups:
+                predict_groups[group]['t1_data'] = \
+                    df[df['date'].apply(lambda x:
+                             predict_groups[group]['t1_data'][0]
+                             <= x.date() <=
+                             predict_groups[group]['t1_data'][-1])]
+            # Time 2 Data for Prediction            : 1 Week
+            for group in predict_groups:
+                predict_groups[group]['t2_data'] = \
+                    df[df['date'].apply(lambda x:
+                    predict_groups[group]['t2_data'][0]
+                    <= x.date() <=
+                    predict_groups[group]['t2_data'][-1])]
+            print(predict_groups)
+        return df, X, y, predict_groups
     @timer
     def train_model(self, x, y, t, bw=None):
         """
         Entrena el modelo y genera un KDE
-
         bw: Si es un arreglo, este debe contener los bandwidths
         dados por el usuario
         """
@@ -142,7 +226,6 @@ class STKDE:
                      pdf: bool = False):
         """
         Bar Plot
-
         pdf: True si se desea guardar el plot en formato pdf
         """
 
@@ -189,7 +272,6 @@ class STKDE:
                         pdf: bool = False):
         """
         Spatial pattern of incidents
-
         pdf: True si se desea guardar el plot en formato pdf
         """
 
@@ -278,11 +360,8 @@ class STKDE:
                      pdf: bool = False):
         """
         Draw the contour lines
-
         bins:
-
         ti:
-
         pdf: True si se desea guardar el plot en formato pdf
         """
 
@@ -334,11 +413,8 @@ class STKDE:
                 pdf: bool = False):
         """
         Plots the heatmap associated to a given t_i
-
         bins:
-
         ti:
-
         pdf:
         """
 
@@ -795,7 +871,7 @@ class STKDE:
     def calculate_HR_PAI(self):
         PAIs = {}
         HRs = {}
-        for i in range(1, 9):
+        for i in range(1, 2):
             x, y, t = \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['x']), \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['y']), \
@@ -803,13 +879,13 @@ class STKDE:
 
             if i == 1:
                 x_training = pd.Series(
-                    self.X["x"]).tolist() + pd.Series(
+                    self.training_data["x"]).tolist() + pd.Series(
                     self.predict_groups[f'group_{i}']['t1_data']['x']).tolist()
                 y_training = pd.Series(
-                    self.X["y"]).tolist() + pd.Series(
+                    self.training_data["y"]).tolist() + pd.Series(
                     self.predict_groups[f'group_{i}']['t1_data']['y']).tolist()
                 t_training = pd.Series(
-                    self.X["y_day"]).tolist() + pd.Series(
+                    self.training_data["y_day"]).tolist() + pd.Series(
                     self.predict_groups[f'group_{i}']['t1_data'][
                         'y_day']).tolist()
 
@@ -871,7 +947,7 @@ class STKDE:
         plt.xlabel('Area percentage')
         plt.ylabel('HR')
         plt.title("HR vs Area")
-        for i in range(1, 9):
+        for i in range(1, self.number_of_groups + 1):
             HRs, area_percentaje = results_HR[i][0], results_HR[i][1]
             plt.plot(area_percentaje, HRs, label=f'group {i}')
         plt.legend()
@@ -885,7 +961,7 @@ class STKDE:
         plt.xlabel('Area percentage')
         plt.ylabel('PAI')
         plt.title("PAI vs Area")
-        for i in range(1, 9):
+        for i in range(1, self.number_of_groups + 1):
             PAIs, area_percentaje = results_PAI[i][0], results_PAI[i][1]
             plt.plot(area_percentaje, PAIs, label=f'group {i}')
         plt.legend()
@@ -914,7 +990,6 @@ class STKDE:
         plt.plot(area_percentaje_mean, param_mean, label=f'group {i}')
         plt.savefig(hr_or_pai + " vs Area", format='pdf')
         plt.show()
-
 
 class RForestRegressor:
     def __init__(self, i_df=None,
