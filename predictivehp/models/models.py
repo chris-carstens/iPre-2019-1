@@ -956,7 +956,7 @@ class STKDE:
 
 class RForestRegressor:
     def __init__(self, i_df=None,
-                 xc_size=None, yc_size=None,
+                 xc_size=100, yc_size=100, n_capas=7,
                  # nx=None, ny=None,
                  read_data=False, read_df=False):
         """
@@ -964,6 +964,7 @@ class RForestRegressor:
         :param pd.DataFrame i_df:
         :param int xc_size: Ancho de las celdas en metros
         :param int yc_size: Largo de las celdas en metros
+        :param int n_capas: Nro. de capas
         :param bool read_data: True si se desea
         :param bool read_df: True para leer el df con la
             información de las celdas
@@ -990,7 +991,7 @@ class RForestRegressor:
             print(f"finished! ({time() - st:3.1f} sec)")
         else:
             self.data = i_df
-            self.generate_df()
+            self.generate_df(n_capas)
 
     # @timer
     # def get_data(self):
@@ -1053,7 +1054,7 @@ class RForestRegressor:
     #         self.data = df
 
     @timer
-    def generate_df(self, n_capas):
+    def generate_df(self, n_capas=7):
         """
         La malla se genera de la esquina inf-izquierda a la esquina sup-derecha,
         partiendo con id = 0.
@@ -1095,17 +1096,14 @@ class RForestRegressor:
 
         # Creación del esqueleto del dataframe
         print("\tCreating dataframe columns...")
-
         months = [month_name[i] for i in range(1, 13)]
         columns = pd.MultiIndex.from_product(
-            [[f"Incidents_{i}" for i in range(n_capas + 1)],
-             months]
+            [[f"Incidents_{i}" for i in range(n_capas + 1)], months]
         )
         self.df = pd.DataFrame(columns=columns)
 
         # Creación de los parámetros para el cálculo de los índices
         print("\tFilling df...")
-
         self.nx = self.x.shape[0] - 1
         self.ny = self.y.shape[1] - 1
         self.hx = (self.x.max() - self.x.min()) / self.nx
@@ -1155,7 +1153,7 @@ class RForestRegressor:
         self.df.drop(columns=[('in_dallas', '')], inplace=True)
 
         # Garbage recollection
-        del self.incidents, self.x, self.y
+        # del self.incidents, self.x, self.y
 
     @timer
     def to_pickle(self, file_name):
