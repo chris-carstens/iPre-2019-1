@@ -340,4 +340,5 @@ def calcular_celdas(hx, hy, superficie):
 
 
 if __name__ == '__main__':
+    print(calcular_celdas(100, 100, 1_000))
     pass

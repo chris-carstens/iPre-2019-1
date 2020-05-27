@@ -2069,7 +2069,10 @@ class RForestRegressor:
 
 class ProMap:
     def __init__(self, bw, i_df = None, read_files=False, hx = 100, hy = 100,
-                 radio=None, ventana_dias = 7, tiempo_entrenamiento = None):
+                 radio=None, ventana_dias = 7, tiempo_entrenamiento = None,
+                 km2 = 1_000):
+
+        #por default es 1.000 km2 (área de dallas)
 
         #data
         self.data = i_df
@@ -2086,6 +2089,7 @@ class ProMap:
 
         self.hx = hx
         self.hy = hy
+        self.km2 = km2
 
         self.x_min = None
         self.x_max = None
@@ -2371,8 +2375,12 @@ class ProMap:
 
         self.HR = [i / n_delitos_testing for i in hits_n]
 
-        self.area_percentaje = [i / (100_000) for i in
-                                area_hits]
+
+        n_celdas = calcular_celdas(self.hx, self.hy, self.km2)
+
+        self.area_percentaje = [1 if j > 1 else j for j in [i / n_celdas for
+                                                            i in area_hits]]
+
 
         self.PAI = [
             0 if float(self.area_percentaje[i]) == 0 else float(self.HR[
