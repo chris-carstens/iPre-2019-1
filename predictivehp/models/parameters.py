@@ -59,8 +59,8 @@ d_limits = {
 # ProMap
 
 # bw = {'x': 1577.681, 'y': 1167.16, 't': 35.549}
-hx = 100
-hy = 100
+# hx = 100
+# hy = 100
 
 if __name__ == '__main__':
     pass
