@@ -104,6 +104,7 @@ class STKDE:
                  n: int = 1000,
                  year: str = "2017",
                  bw=None, df=None, training_months=10, number_of_groups=8, window_days=7):
+                 bw=None, df=None):
         """
         n: Número de registros que se piden a la database.
         year: Año de los registros pedidos
@@ -164,21 +165,13 @@ class STKDE:
                 group_n += 1
                 if group_n > self.number_of_groups:
                     break
-            # Time 1 Data for building STKDE models : 1 Month
-            for group in predict_groups:
-                predict_groups[group]['t1_data'] = \
-                    df[df['date'].apply(lambda x:
-                             predict_groups[group]['t1_data'][0]
-                             <= x.date() <=
-                             predict_groups[group]['t1_data'][-1])]
-            # Time 2 Data for Prediction            : 1 Week
+
             for group in predict_groups:
                 predict_groups[group]['t2_data'] = \
                     df[df['date'].apply(lambda x:
                     predict_groups[group]['t2_data'][0]
                     <= x.date() <=
                     predict_groups[group]['t2_data'][-1])]
-            print(predict_groups)
         return df, X, y, predict_groups
     @timer
     def train_model(self, x, y, t, bw=None):
@@ -2068,52 +2061,61 @@ class RForestRegressor:
 
 
 class ProMap:
-    """
-    Class for a spatio-temporal using PromMap
-    """
 
-    def __init__(self, bw,
-                 n: int = 1000,
-                 year: str = "2017", i_df = None, read_files=False):
-        """
-        :param n: Número de registros que se piden a la database.
 
-        :param year: Año de los registros pedidos
+    def __init__(self, bw, i_df = None, read_files=False, hx = 100, hy = 100,
+                 radio=None, ventana_dias = 7, tiempo_entrenamiento = None):
 
-        :param bw: diccionario con las banwith calculadas previamente
-
-        """
-
+        #data
         self.data = i_df
         self.training_data = None  # 3000
         self.testing_data = None  # 600
 
         self.bw_x = bw[0]
         self.bw_y = bw[1]
-        self.bw_t = bw[2]
 
-        self.n = n
-        self.year = year
+        if tiempo_entrenamiento is None:
+            self.bw_t = bw[2]
+        else:
+            self.bw_t = tiempo_entrenamiento
 
+        self.hx = hx
+        self.hy = hy
+
+        self.x_min = None
+        self.x_max = None
+        self.y_min = None
+        self.y_max = None
+
+        self.bins_x = None
+        self.bins_y = None
+
+        self.radio = radio
+        self.ventana_dias = ventana_dias
+
+        #matriz de riesgo
         self.matriz_con_densidades = None
+
+        #parametros para graficos
         self.HR = None
         self.PAI = None
         self.area_percentaje = None
-        self.df = None
-        self.df_testing_data = None
-        self.df_training_data = None
 
         if read_files:
             self.df = pd.read_pickle('../data/data.pkl')
-            self.df_training_data = pd.read_pickle('training_data.pkl')
-            self.df_testing_data = pd.read_pickle('testing_data.pkl')
+            self.training_data = pd.read_pickle('training_data.pkl')
+            self.testing_data = pd.read_pickle('testing_data.pkl')
             self.generar_df()
             self.matriz_con_densidades = np.load(
                 'matriz_de_densidades.pkl.npy')
 
         else:
             self.generar_df()
-            #self.calcular_densidades()
+            self.calcular_densidades()
+
+        self.plot_HR()
+        self.plot_PAI()
+
 
     def generar_df(self):
 
@@ -2148,8 +2150,6 @@ class ProMap:
 
         data_ok = pd.DataFrame(data=data)
 
-
-
         # División en training y testing data
 
         self.training_data = data_ok[
@@ -2165,8 +2165,6 @@ class ProMap:
         self.y_min = d_limits['y_min']
         self.y_max = d_limits['y_max']
 
-        self.hx = hx
-        self.hy = hy
 
         self.bins_x = round(abs(self.x_max - self.x_min) / self.hx)
         self.bins_y = round(abs(self.y_max - self.y_min) / self.hy)
@@ -2185,9 +2183,6 @@ class ProMap:
                                                     1j]
 
         self.total_dias_training = self.training_data['y_day'].max()
-        print(self.data)
-        print(self.training_data)
-        print(self.testing_data)
 
     def calcular_densidades(self):
 
@@ -2199,41 +2194,45 @@ class ProMap:
 
         print('\nCalculando densidades...')
         print(
-            f'\n\tNº de datos para entrenar el modelo: {len(self.df_training_data)}')
+            f'\n\tNº de datos para entrenar el modelo: {len(self.training_data)}')
         print(
             f'\tNº de días usados para entrenar el modelo: {self.total_dias_training}')
         print(
-            f'\tNº de datos para testear el modelo: {len(self.df_testing_data)}')
+            f'\tNº de datos para testear el modelo: {len(self.testing_data)}')
 
         matriz_con_ceros = np.zeros((self.bins_x, self.bins_y))
 
-        for k in range(len(self.df_training_data)):
-            x, y, t = self.df_training_data['x'][k], \
-                      self.df_training_data['y'][
-                          k], \
-                      self.df_training_data['y_day'][k]
-            x_in_matrix, y_in_matrix = find_position(self.x, self.y, x, y,
-                                                     self.hx, self.hy)
+        if self.radio is None:
             ancho_x = radio_pintar(self.hx, self.bw_x)
-            ancho_y = radio_pintar(self.hx, self.bw_x)
+            ancho_y = radio_pintar(self.hy, self.bw_y)
+        else:
+            ancho_x = self.radio
+            ancho_y = self.radio
+
+        for k in range(len(self.training_data)):
+            x, y, t = self.training_data['x'][k], \
+                      self.training_data['y'][
+                          k], \
+                      self.training_data['y_day'][k]
+            x_in_matrix, y_in_matrix = find_position(self.x, self.y, x, y,self.hx, self.hy)
             x_left, x_right = limites_x(ancho_x, x_in_matrix, self.x)
             y_abajo, y_up = limites_y(ancho_y, y_in_matrix, self.y)
 
             for i in range(x_left, x_right + 1):
                 for j in range(y_abajo, y_up):
-                    elemento_x = self.x[i][0]
-                    elemento_y = self.y[0][j]
+                    elem_x = self.x[i][0]
+                    elem_y = self.y[0][j]
                     time_weight = 1 / n_semanas(self.total_dias_training,
                                                 t)
-                    if linear_distance(elemento_x, x) > self.bw_x or \
+                    if linear_distance(elem_x, x) > self.bw_x or \
                             linear_distance(
-                                elemento_y, y) > self.bw_y:
+                                elem_y, y) > self.bw_y:
 
                         cell_weight = 0
                         pass
                     else:
-                        cell_weight = 1 / cells_distance(x, y, elemento_x,
-                                                         elemento_y,
+                        cell_weight = 1 / cells_distance(x, y, elem_x,
+                                                         elem_y,
                                                          self.hx,
                                                          self.hy)
 
@@ -2272,7 +2271,7 @@ class ProMap:
         """
 
         self.training_matrix = np.zeros((self.bins_x, self.bins_y))
-        for index, row in self.df_training_data.iterrows():
+        for index, row in self.training_data.iterrows():
             x, y, t = row['x'], row['y'], row['y_day']
 
             if t >= (self.total_dias_training - self.bw_t):
@@ -2297,7 +2296,7 @@ class ProMap:
         """
 
         self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
-        for index, row in self.df_testing_data.iterrows():
+        for index, row in self.testing_data.iterrows():
             x, y, t = row['x'], row['y'], row['y_day']
 
             if t <= (self.total_dias_training + ventana_dias):
@@ -2319,9 +2318,9 @@ class ProMap:
 
     def calcular_hr_and_pai(self):
 
-        ventana_dias = 7
+
         self.delitos_por_celda_training()
-        self.delitos_por_celda_testing(ventana_dias)
+        self.delitos_por_celda_testing(self.ventana_dias)
 
         nodos = self.matriz_con_densidades.flatten()
 
