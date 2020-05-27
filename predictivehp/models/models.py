@@ -2098,7 +2098,6 @@ class ProMap:
         self.df_testing_data = None
         self.df_training_data = None
 
-
         if read_files:
             self.df = pd.read_pickle('../data/data.pkl')
             self.df_training_data = pd.read_pickle('training_data.pkl')
@@ -2109,7 +2108,7 @@ class ProMap:
 
         else:
             self.generar_df()
-            self.calcular_densidades()
+            #self.calcular_densidades()
 
     def generar_df(self):
 
@@ -2144,15 +2143,15 @@ class ProMap:
 
         data_ok = pd.DataFrame(data=data)
 
-        self.df = data_ok
+
 
         # División en training y testing data
 
-        self.df_training_data = self.df[
+        self.training_data = data_ok[
             self.data["date"].apply(lambda x: x.month) <= 10
             ]
 
-        self.df_testing_data = self.df[
+        self.testing_data = data_ok[
             self.data["date"].apply(lambda x: x.month) > 10
             ]
 
@@ -2180,7 +2179,10 @@ class ProMap:
                                                   2:self.bins_y *
                                                     1j]
 
-        self.total_dias_training = self.df_training_data['y_day'].max()
+        self.total_dias_training = self.training_data['y_day'].max()
+        print(self.data)
+        print(self.training_data)
+        print(self.testing_data)
 
     def calcular_densidades(self):
 
