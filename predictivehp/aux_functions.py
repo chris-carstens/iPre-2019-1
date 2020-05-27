@@ -284,9 +284,6 @@ def radio_pintar(ancho_celda, bw):
     return ceil(bw / ancho_celda)
 
 
-def diamond2(r):
-    return np.add.outer(*[np.r_[:r, r:-1:-1]] * 2) >= r
-
 
 def square_matrix(lado):
     return np.ones((lado, lado), dtype=bool)

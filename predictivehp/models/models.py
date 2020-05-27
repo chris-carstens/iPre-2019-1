@@ -2115,6 +2115,9 @@ class ProMap:
             self.generar_df()
             self.calcular_densidades()
 
+        self.plot_HR()
+        self.plot_PAI()
+
 
     def generar_df(self):
 
