@@ -12,8 +12,7 @@ stkde = STKDE(n=1000, year='2017')
 
 # %% Random Forest Regressor
 rfr = RForestRegressor(i_df=df, xc_size=100, yc_size=100,
-                       read_df=False, read_data=False)
-rfr.plot_statistics(n=500)
+                       read_data=False, read_df=False)
 
 # %%
 # pm = ProMap(n=150_000, year="2017", bw=bw, i_df=df, read_files=False)
