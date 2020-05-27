@@ -60,6 +60,7 @@ import predictivehp.models.parameters as params
 
 from predictivehp.processing.data_processing import get_data
 
+
 # Observaciones
 #
 # 1. 3575 Incidents
@@ -104,7 +105,7 @@ class STKDE:
                  n: int = 1000,
                  year: str = "2017",
                  bw=None, df=None, training_months=10, number_of_groups=8, window_days=7):
-                 bw=None, df=None):
+
         """
         n: Número de registros que se piden a la database.
         year: Año de los registros pedidos
@@ -153,7 +154,6 @@ class STKDE:
             for i in range(1, len(days_oct_nov_dic))[::self.window_days]:
                 predict_groups[f"group_{group_n}"]['t1_data'] = \
                      days_oct_nov_dic[i - 1:i - 1 + days_oct]
-
                 group_n += 1
                 if group_n > self.number_of_groups:
                     break
@@ -165,7 +165,14 @@ class STKDE:
                 group_n += 1
                 if group_n > self.number_of_groups:
                     break
-
+            # Time 1 Data for building STKDE models : 1 Month
+            for group in predict_groups:
+                predict_groups[group]['t1_data'] = \
+                    df[df['date'].apply(lambda x:
+                             predict_groups[group]['t1_data'][0]
+                             <= x.date() <=
+                             predict_groups[group]['t1_data'][-1])]
+            # Time 2 Data for Prediction            : 1 Week
             for group in predict_groups:
                 predict_groups[group]['t2_data'] = \
                     df[df['date'].apply(lambda x:
@@ -864,7 +871,7 @@ class STKDE:
     def calculate_HR_PAI(self):
         PAIs = {}
         HRs = {}
-        for i in range(1, 2):
+        for i in range(1, self.number_of_groups):
             x, y, t = \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['x']), \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['y']), \
@@ -2061,8 +2068,6 @@ class RForestRegressor:
 
 
 class ProMap:
-
-
     def __init__(self, bw, i_df = None, read_files=False, hx = 100, hy = 100,
                  radio=None, ventana_dias = 7, tiempo_entrenamiento = None):
 

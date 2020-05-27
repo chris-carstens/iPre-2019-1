@@ -18,12 +18,8 @@ df = get_data(year=2017, n=150000)
 
 # %% STKDE
 
-<<<<<<< HEAD
-stkde = STKDE(n=100_000, year='2017', df=df)
-stkde.plot_PAI()
-=======
+
 #stkde = STKDE(n=1000, year='2017')
->>>>>>> 9843d3c25248fecaccca0c56f45dffe1f830990c
 
 # %%
 #rfr = RForestRegressor(i_df=df, xc_size=None, yc_size=None,
@@ -31,11 +27,10 @@ stkde.plot_PAI()
 #rfr.plot_statistics(n=500)
 
 # %%
-<<<<<<< HEAD
+
 #pm = ProMap(n=150_000, year="2017", bw=bw, i_df=df, read_files=False)
-=======
 pm = ProMap(bw=bw, i_df=df, read_files=False)
->>>>>>> 9843d3c25248fecaccca0c56f45dffe1f830990c
+
 
 # %%
 
