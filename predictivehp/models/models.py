@@ -2031,26 +2031,18 @@ class ProMap:
 
         # data
         self.data = i_df
-        self.training_data, self.testing_data = None, None
-
+        self.X, self.testing_data = None, None
 
         self.bw_x = bw[0]
         self.bw_y = bw[1]
+        self.bw_t = bw[2] if not tiempo_entrenamiento else tiempo_entrenamiento
 
-        if tiempo_entrenamiento is None:
-            self.bw_t = bw[2]
-        else:
-            self.bw_t = tiempo_entrenamiento
-
-        self.hx = hx
-        self.hy = hy
-        self.km2 = km2
+        self.hx, self.hy, self.km2 = hx, hy, km2
 
         self.x_min, self.x_max = None, None
         self.y_min, self.y_max = None, None
 
-        self.bins_x = None
-        self.bins_y = None
+        self.bins_x, self.bins_y = None, None
 
         self.radio = radio
         self.ventana_dias = ventana_dias
@@ -2058,14 +2050,12 @@ class ProMap:
         # matriz de riesgo
         self.matriz_con_densidades = None
 
-        # parametros para graficos
-        self.HR = None
-        self.PAI = None
-        self.area_percentaje = None
+        # Parámetros para gráficos
+        self.HR, self.PAI, self.area_percentaje = None, None, None
 
         if read_files:
             self.df = pd.read_pickle('../data/data.pkl')
-            self.training_data = pd.read_pickle('training_data.pkl')
+            self.X = pd.read_pickle('training_data.pkl')
             self.testing_data = pd.read_pickle('testing_data.pkl')
             self.generar_df()
             self.matriz_con_densidades = np.load(
@@ -2079,12 +2069,13 @@ class ProMap:
         self.plot_PAI()
 
     def generar_df(self):
-
-        '''''
+        """
         Genera un dataframe en base a los x{min, max} y{min, max}.
-        Recordar que cada nodo del dataframe representa el centro de cada 
+        Recordar que cada nodo del dataframe representa el centro de cada
         celda en la malla del mapa.
-        '''''
+
+        :return:
+        """
 
         print("\nGenerando dataframe...\n")
 
@@ -2113,15 +2104,13 @@ class ProMap:
 
         # División en training y testing data
 
-        self.training_data = data_ok[
+        self.X = data_ok[
             self.data["date"].apply(lambda x: x.month) <= 10
             ]
 
         self.testing_data = data_ok[
             self.data["date"].apply(lambda x: x.month) > 10
             ]
-
-
 
         self.bins_x = round(abs(self.x_max - self.x_min) / self.hx)
         self.bins_y = round(abs(self.y_max - self.y_min) / self.hy)
@@ -2139,7 +2128,7 @@ class ProMap:
                                                   2:self.bins_y *
                                                     1j]
 
-        self.total_dias_training = self.training_data['y_day'].max()
+        self.total_dias_training = self.X['y_day'].max()
 
     def calcular_densidades(self):
 
@@ -2151,7 +2140,7 @@ class ProMap:
 
         print('\nCalculando densidades...')
         print(
-            f'\n\tNº de datos para entrenar el modelo: {len(self.training_data)}')
+            f'\n\tNº de datos para entrenar el modelo: {len(self.X)}')
         print(
             f'\tNº de días usados para entrenar el modelo: {self.total_dias_training}')
         print(
@@ -2166,11 +2155,11 @@ class ProMap:
             ancho_x = radio_pintar(self.hx, self.radio)
             ancho_y = radio_pintar(self.hy, self.radio)
 
-        for k in range(len(self.training_data)):
-            x, y, t = self.training_data['x'][k], \
-                      self.training_data['y'][
+        for k in range(len(self.X)):
+            x, y, t = self.X['x'][k], \
+                      self.X['y'][
                           k], \
-                      self.training_data['y_day'][k]
+                      self.X['y_day'][k]
             x_in_matrix, y_in_matrix = find_position(self.x, self.y, x, y,
                                                      self.hx, self.hy)
             x_left, x_right = limites_x(ancho_x, x_in_matrix, self.x)
@@ -2229,7 +2218,7 @@ class ProMap:
         """
 
         self.training_matrix = np.zeros((self.bins_x, self.bins_y))
-        for index, row in self.training_data.iterrows():
+        for index, row in self.X.iterrows():
             x, y, t = row['x'], row['y'], row['y_day']
 
             if t >= (self.total_dias_training - self.bw_t):
