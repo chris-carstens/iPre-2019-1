@@ -41,6 +41,39 @@ settings = EstimatorSettings(efficient=True,
                              n_jobs=8)
 
 
+"""STKDE"""
+
+import seaborn as sb
+import matplotlib as mpl
+import matplotlib.image as mpimg
+import matplotlib.patches as mpatches
+from matplotlib.lines import Line2D
+
+from pyevtk.hl import gridToVTK
+# from paraview.simple import *
+
+from statsmodels.nonparametric.kernel_density import KDEMultivariate, \
+    EstimatorSettings
+
+from predictivehp.processing.data_processing import *
+import predictivehp.models.parameters as params
+
+from predictivehp.processing.data_processing import get_data
+
+
+# Observaciones
+#
+# 1. 3575 Incidents
+# Training data 2926 incidents (January 1st - October 31st)
+# Testing data 649 incidents (November 1st - December 31st)
+#
+# 2. Se requiere que la muestra sea "estable" en el periodo analizado
+
+
+settings = EstimatorSettings(efficient=True,
+                             n_jobs=4)
+
+
 class MyKDEMultivariate(KDEMultivariate):
     def resample(self, size: int):
         print("\nResampling...", end=" ")
@@ -71,35 +104,86 @@ class STKDE:
     def __init__(self,
                  n: int = 1000,
                  year: str = "2017",
-                 bw=None):
+                 bw=None, df=None, training_months=10, number_of_groups=8, window_days=7):
+
         """
         n: Número de registros que se piden a la database.
-
         year: Año de los registros pedidos
-
         t_model: Entrenamiento del modelo, True en caso de que se quieran
         usar los métodos contour_plot o heatmap.
         """
+        self.training_months = training_months
+        self.number_of_groups = number_of_groups
+        self.window_days = window_days
         self.results_HR_PAI = None
-        self.data, self.X, self.testing_data, self.predict_groups = get_data(
-            model='STKDE', year=year, n=n)
+        #self.data, self.training_data, self.testing_data, self.predict_groups = get_data(
+         #   model='STKDE', year=year, n=n)
         # training data 3000
         # testing data  600
         self.n = n
         self.year = year
+        #self.df = get_data(
+         #   model='STKDE', year=year, n=n)
+        self.df = df
+        self.data, self.training_data, self.testing_data, self.predict_groups = self.preparing_data()
+
 
         # esto le pasa los datos al KDE
         self.kde = KDEMultivariate(
-            [np.array(self.X[['x']]),
-             np.array(self.X[['y']]),
-             np.array(self.X[['y_day']])],
+            [np.array(self.training_data[['x']]),
+             np.array(self.training_data[['y']]),
+             np.array(self.training_data[['y_day']])],
             'ccc')
 
+    def preparing_data(self):
+        df = self.df
+        if self.n >= 3600:
+            df = df.sample(n=3600,
+                                replace=False,
+                                random_state=250499)
+            df.sort_values(by=['date'], inplace=True)
+            df.reset_index(drop=True, inplace=True)
+
+            # División en training data (X) y testing data (y)
+            X = df[df["date"].apply(lambda x: x.month) <= 10]
+            X = X[X["date"].apply(lambda x: x.month) >= 10 - self.training_months]
+            y = df[df["date"].apply(lambda x: x.month) > self.training_months]
+            predict_groups = { f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None} for i in range(1, self.number_of_groups + 1) }
+            # Time 1 Data for building STKDE models : 1 Month
+            group_n = 1
+            for i in range(1, len(days_oct_nov_dic))[::self.window_days]:
+                predict_groups[f"group_{group_n}"]['t1_data'] = \
+                     days_oct_nov_dic[i - 1:i - 1 + days_oct]
+                group_n += 1
+                if group_n > self.number_of_groups:
+                    break
+                 # Time 2 Data for Prediction            : 1 Week
+            group_n = 1
+            for i in range(1, len(days_oct_nov_dic))[::self.window_days]:
+                predict_groups[f"group_{group_n}"]['t2_data'] = \
+                         days_oct_nov_dic[i - 1 + days_oct:i - 1 + days_oct + self.window_days]
+                group_n += 1
+                if group_n > self.number_of_groups:
+                    break
+            # Time 1 Data for building STKDE models : 1 Month
+            for group in predict_groups:
+                predict_groups[group]['t1_data'] = \
+                    df[df['date'].apply(lambda x:
+                             predict_groups[group]['t1_data'][0]
+                             <= x.date() <=
+                             predict_groups[group]['t1_data'][-1])]
+            # Time 2 Data for Prediction            : 1 Week
+            for group in predict_groups:
+                predict_groups[group]['t2_data'] = \
+                    df[df['date'].apply(lambda x:
+                    predict_groups[group]['t2_data'][0]
+                    <= x.date() <=
+                    predict_groups[group]['t2_data'][-1])]
+        return df, X, y, predict_groups
     @timer
     def train_model(self, x, y, t, bw=None):
         """
         Entrena el modelo y genera un KDE
-
         bw: Si es un arreglo, este debe contener los bandwidths
         dados por el usuario
         """
@@ -142,7 +226,6 @@ class STKDE:
                      pdf: bool = False):
         """
         Bar Plot
-
         pdf: True si se desea guardar el plot en formato pdf
         """
 
@@ -189,7 +272,6 @@ class STKDE:
                         pdf: bool = False):
         """
         Spatial pattern of incidents
-
         pdf: True si se desea guardar el plot en formato pdf
         """
 
@@ -278,11 +360,8 @@ class STKDE:
                      pdf: bool = False):
         """
         Draw the contour lines
-
         bins:
-
         ti:
-
         pdf: True si se desea guardar el plot en formato pdf
         """
 
@@ -334,11 +413,8 @@ class STKDE:
                 pdf: bool = False):
         """
         Plots the heatmap associated to a given t_i
-
         bins:
-
         ti:
-
         pdf:
         """
 
@@ -795,7 +871,7 @@ class STKDE:
     def calculate_HR_PAI(self):
         PAIs = {}
         HRs = {}
-        for i in range(1, 9):
+        for i in range(1, self.number_of_groups):
             x, y, t = \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['x']), \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['y']), \
@@ -803,13 +879,13 @@ class STKDE:
 
             if i == 1:
                 x_training = pd.Series(
-                    self.X["x"]).tolist() + pd.Series(
+                    self.training_data["x"]).tolist() + pd.Series(
                     self.predict_groups[f'group_{i}']['t1_data']['x']).tolist()
                 y_training = pd.Series(
-                    self.X["y"]).tolist() + pd.Series(
+                    self.training_data["y"]).tolist() + pd.Series(
                     self.predict_groups[f'group_{i}']['t1_data']['y']).tolist()
                 t_training = pd.Series(
-                    self.X["y_day"]).tolist() + pd.Series(
+                    self.training_data["y_day"]).tolist() + pd.Series(
                     self.predict_groups[f'group_{i}']['t1_data'][
                         'y_day']).tolist()
 
@@ -871,7 +947,7 @@ class STKDE:
         plt.xlabel('Area percentage')
         plt.ylabel('HR')
         plt.title("HR vs Area")
-        for i in range(1, 9):
+        for i in range(1, self.number_of_groups + 1):
             HRs, area_percentaje = results_HR[i][0], results_HR[i][1]
             plt.plot(area_percentaje, HRs, label=f'group {i}')
         plt.legend()
@@ -885,7 +961,7 @@ class STKDE:
         plt.xlabel('Area percentage')
         plt.ylabel('PAI')
         plt.title("PAI vs Area")
-        for i in range(1, 9):
+        for i in range(1, self.number_of_groups + 1):
             PAIs, area_percentaje = results_PAI[i][0], results_PAI[i][1]
             plt.plot(area_percentaje, PAIs, label=f'group {i}')
         plt.legend()
@@ -914,7 +990,6 @@ class STKDE:
         plt.plot(area_percentaje_mean, param_mean, label=f'group {i}')
         plt.savefig(hr_or_pai + " vs Area", format='pdf')
         plt.show()
-
 
 class RForestRegressor:
     def __init__(self, i_df=None,
@@ -1993,46 +2068,52 @@ class RForestRegressor:
 
 
 class ProMap:
-    """
-    Class for a spatio-temporal using PromMap
-    """
+    def __init__(self, bw, i_df = None, read_files=False, hx = 100, hy = 100,
+                 radio=None, ventana_dias = 7, tiempo_entrenamiento = None,
+                 km2 = 1_000):
 
-    def __init__(self, bw,
-                 n: int = 1000,
-                 year: str = "2017", i_df = None, read_files=False):
-        """
-        :param n: Número de registros que se piden a la database.
+        #por default es 1.000 km2 (área de dallas)
 
-        :param year: Año de los registros pedidos
-
-        :param bw: diccionario con las banwith calculadas previamente
-
-        """
-
+        #data
         self.data = i_df
         self.training_data = None  # 3000
         self.testing_data = None  # 600
 
         self.bw_x = bw[0]
         self.bw_y = bw[1]
-        self.bw_t = bw[2]
 
-        self.n = n
-        self.year = year
+        if tiempo_entrenamiento is None:
+            self.bw_t = bw[2]
+        else:
+            self.bw_t = tiempo_entrenamiento
 
+        self.hx = hx
+        self.hy = hy
+        self.km2 = km2
+
+        self.x_min = None
+        self.x_max = None
+        self.y_min = None
+        self.y_max = None
+
+        self.bins_x = None
+        self.bins_y = None
+
+        self.radio = radio
+        self.ventana_dias = ventana_dias
+
+        #matriz de riesgo
         self.matriz_con_densidades = None
+
+        #parametros para graficos
         self.HR = None
         self.PAI = None
         self.area_percentaje = None
-        self.df = None
-        self.df_testing_data = None
-        self.df_training_data = None
-
 
         if read_files:
             self.df = pd.read_pickle('../data/data.pkl')
-            self.df_training_data = pd.read_pickle('training_data.pkl')
-            self.df_testing_data = pd.read_pickle('testing_data.pkl')
+            self.training_data = pd.read_pickle('training_data.pkl')
+            self.testing_data = pd.read_pickle('testing_data.pkl')
             self.generar_df()
             self.matriz_con_densidades = np.load(
                 'matriz_de_densidades.pkl.npy')
@@ -2040,6 +2121,10 @@ class ProMap:
         else:
             self.generar_df()
             self.calcular_densidades()
+
+        self.plot_HR()
+        self.plot_PAI()
+
 
     def generar_df(self):
 
@@ -2074,15 +2159,13 @@ class ProMap:
 
         data_ok = pd.DataFrame(data=data)
 
-        self.df = data_ok
-
         # División en training y testing data
 
-        self.df_training_data = self.df[
+        self.training_data = data_ok[
             self.data["date"].apply(lambda x: x.month) <= 10
             ]
 
-        self.df_testing_data = self.df[
+        self.testing_data = data_ok[
             self.data["date"].apply(lambda x: x.month) > 10
             ]
 
@@ -2091,8 +2174,6 @@ class ProMap:
         self.y_min = d_limits['y_min']
         self.y_max = d_limits['y_max']
 
-        self.hx = hx
-        self.hy = hy
 
         self.bins_x = round(abs(self.x_max - self.x_min) / self.hx)
         self.bins_y = round(abs(self.y_max - self.y_min) / self.hy)
@@ -2110,7 +2191,7 @@ class ProMap:
                                                   2:self.bins_y *
                                                     1j]
 
-        self.total_dias_training = self.df_training_data['y_day'].max()
+        self.total_dias_training = self.training_data['y_day'].max()
 
     def calcular_densidades(self):
 
@@ -2122,41 +2203,45 @@ class ProMap:
 
         print('\nCalculando densidades...')
         print(
-            f'\n\tNº de datos para entrenar el modelo: {len(self.df_training_data)}')
+            f'\n\tNº de datos para entrenar el modelo: {len(self.training_data)}')
         print(
             f'\tNº de días usados para entrenar el modelo: {self.total_dias_training}')
         print(
-            f'\tNº de datos para testear el modelo: {len(self.df_testing_data)}')
+            f'\tNº de datos para testear el modelo: {len(self.testing_data)}')
 
         matriz_con_ceros = np.zeros((self.bins_x, self.bins_y))
 
-        for k in range(len(self.df_training_data)):
-            x, y, t = self.df_training_data['x'][k], \
-                      self.df_training_data['y'][
-                          k], \
-                      self.df_training_data['y_day'][k]
-            x_in_matrix, y_in_matrix = find_position(self.x, self.y, x, y,
-                                                     self.hx, self.hy)
+        if self.radio is None:
             ancho_x = radio_pintar(self.hx, self.bw_x)
-            ancho_y = radio_pintar(self.hx, self.bw_x)
+            ancho_y = radio_pintar(self.hy, self.bw_y)
+        else:
+            ancho_x = self.radio
+            ancho_y = self.radio
+
+        for k in range(len(self.training_data)):
+            x, y, t = self.training_data['x'][k], \
+                      self.training_data['y'][
+                          k], \
+                      self.training_data['y_day'][k]
+            x_in_matrix, y_in_matrix = find_position(self.x, self.y, x, y,self.hx, self.hy)
             x_left, x_right = limites_x(ancho_x, x_in_matrix, self.x)
             y_abajo, y_up = limites_y(ancho_y, y_in_matrix, self.y)
 
             for i in range(x_left, x_right + 1):
                 for j in range(y_abajo, y_up):
-                    elemento_x = self.x[i][0]
-                    elemento_y = self.y[0][j]
+                    elem_x = self.x[i][0]
+                    elem_y = self.y[0][j]
                     time_weight = 1 / n_semanas(self.total_dias_training,
                                                 t)
-                    if linear_distance(elemento_x, x) > self.bw_x or \
+                    if linear_distance(elem_x, x) > self.bw_x or \
                             linear_distance(
-                                elemento_y, y) > self.bw_y:
+                                elem_y, y) > self.bw_y:
 
                         cell_weight = 0
                         pass
                     else:
-                        cell_weight = 1 / cells_distance(x, y, elemento_x,
-                                                         elemento_y,
+                        cell_weight = 1 / cells_distance(x, y, elem_x,
+                                                         elem_y,
                                                          self.hx,
                                                          self.hy)
 
@@ -2195,7 +2280,7 @@ class ProMap:
         """
 
         self.training_matrix = np.zeros((self.bins_x, self.bins_y))
-        for index, row in self.df_training_data.iterrows():
+        for index, row in self.training_data.iterrows():
             x, y, t = row['x'], row['y'], row['y_day']
 
             if t >= (self.total_dias_training - self.bw_t):
@@ -2220,7 +2305,7 @@ class ProMap:
         """
 
         self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
-        for index, row in self.df_testing_data.iterrows():
+        for index, row in self.testing_data.iterrows():
             x, y, t = row['x'], row['y'], row['y_day']
 
             if t <= (self.total_dias_training + ventana_dias):
@@ -2242,9 +2327,9 @@ class ProMap:
 
     def calcular_hr_and_pai(self):
 
-        ventana_dias = 7
+
         self.delitos_por_celda_training()
-        self.delitos_por_celda_testing(ventana_dias)
+        self.delitos_por_celda_testing(self.ventana_dias)
 
         nodos = self.matriz_con_densidades.flatten()
 
@@ -2290,8 +2375,12 @@ class ProMap:
 
         self.HR = [i / n_delitos_testing for i in hits_n]
 
-        self.area_percentaje = [i / (100_000) for i in
-                                area_hits]
+
+        n_celdas = calcular_celdas(self.hx, self.hy, self.km2)
+
+        self.area_percentaje = [1 if j > 1 else j for j in [i / n_celdas for
+                                                            i in area_hits]]
+
 
         self.PAI = [
             0 if float(self.area_percentaje[i]) == 0 else float(self.HR[

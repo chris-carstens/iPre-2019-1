@@ -81,7 +81,8 @@ def lineplot(x, y, x_label=None, y_label=None, title=None):
 # STKDE
 
 def checked_points(points):
-    dallas_shp = gpd.read_file('Data/Councils/councils.shp')
+
+    dallas_shp = gpd.read_file('predictivehp/data/councils.shp')
 
     df_points = pd.DataFrame(
         {'x': points[0, :], 'y': points[1, :], 't': points[2, :]}
@@ -284,9 +285,6 @@ def radio_pintar(ancho_celda, bw):
     return ceil(bw / ancho_celda)
 
 
-def diamond2(r):
-    return np.add.outer(*[np.r_[:r, r:-1:-1]] * 2) >= r
-
 
 def square_matrix(lado):
     return np.ones((lado, lado), dtype=bool)
@@ -342,4 +340,5 @@ def calcular_celdas(hx, hy, superficie):
 
 
 if __name__ == '__main__':
+    print(calcular_celdas(100, 100, 1_000))
     pass

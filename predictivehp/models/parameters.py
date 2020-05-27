@@ -39,6 +39,7 @@ d_colors = {
 bw = np.array([1577.681, 1167.16, 35.549])
 
 # Oct - Nov - Dic
+
 w_day_oct, days_oct = monthrange(2017, 10)
 w_day_nov, days_nov = monthrange(2017, 11)
 w_day_dic, days_dic = monthrange(2017, 12)
@@ -59,8 +60,8 @@ d_limits = {
 # ProMap
 
 # bw = {'x': 1577.681, 'y': 1167.16, 't': 35.549}
-hx = 100
-hy = 100
+# hx = 100
+# hy = 100
 
 if __name__ == '__main__':
     pass
