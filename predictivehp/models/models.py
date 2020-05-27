@@ -2032,8 +2032,8 @@ class ProMap:
 
         # data
         self.data = i_df
-        self.training_data = None  # 3000
-        self.testing_data = None  # 600
+        self.training_data, self.testing_data = None, None
+
 
         self.bw_x = bw[0]
         self.bw_y = bw[1]
@@ -2047,10 +2047,8 @@ class ProMap:
         self.hy = hy
         self.km2 = km2
 
-        self.x_min = None
-        self.x_max = None
-        self.y_min = None
-        self.y_max = None
+        self.x_min, self.x_max = None, None
+        self.y_min, self.y_max = None, None
 
         self.bins_x = None
         self.bins_y = None
@@ -2124,10 +2122,7 @@ class ProMap:
             self.data["date"].apply(lambda x: x.month) > 10
             ]
 
-        self.x_min = d_limits['x_min']
-        self.x_max = d_limits['x_max']
-        self.y_min = d_limits['y_min']
-        self.y_max = d_limits['y_max']
+
 
         self.bins_x = round(abs(self.x_max - self.x_min) / self.hx)
         self.bins_y = round(abs(self.y_max - self.y_min) / self.hy)
@@ -2169,8 +2164,8 @@ class ProMap:
             ancho_x = radio_pintar(self.hx, self.bw_x)
             ancho_y = radio_pintar(self.hy, self.bw_y)
         else:
-            ancho_x = self.radio
-            ancho_y = self.radio
+            ancho_x = radio_pintar(self.hx, self.radio)
+            ancho_y = radio_pintar(self.hy, self.radio)
 
         for k in range(len(self.training_data)):
             x, y, t = self.training_data['x'][k], \
