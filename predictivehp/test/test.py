@@ -16,7 +16,7 @@ from pyproj import Proj, transform
 
 if __name__ == '__main__':
     # source  WGS84 EPSG: 4326 (WGS84) (*) 900913
-    # destination   EPSG: 3857
+    # destination m EPSG: 3857
 
     ans = gpd.GeoDataFrame(
         geometry=[Point((-96.798645, 32.742206))],
