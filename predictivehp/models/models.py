@@ -3,6 +3,7 @@ from calendar import month_name
 import geopandas as gpd
 import shutil
 from collections import defaultdict
+from functools import reduce
 
 from statsmodels.nonparametric.kernel_density \
     import KDEMultivariate, EstimatorSettings
@@ -61,8 +62,8 @@ class STKDE:
     def __init__(self,
                  n: int = 1000,
                  year: str = "2017",
-                 bw=None, df=None, training_months=10, number_of_groups=8,
-                 window_days=7):
+                 bw=None, df=None, sample_number=3600, training_months=10, number_of_groups=8,
+                 window_days=7, month_division=10):
 
         """
         n: Número de registros que se piden a la database.
@@ -73,6 +74,8 @@ class STKDE:
         self.training_months = training_months
         self.number_of_groups = number_of_groups
         self.window_days = window_days
+        self.month_division = month_division
+        self.sample_number = sample_number
         self.results_HR_PAI = None
         # self.data, self.training_data, self.testing_data, self.predict_groups = get_data(
         #   model='STKDE', year=year, n=n)
@@ -94,53 +97,53 @@ class STKDE:
 
     def preparing_data(self):
         df = self.df
-        if self.n >= 3600:
-            df = df.sample(n=3600,
+        df = df.sample(n=self.sample_number,
                            replace=False,
                            random_state=250499)
-            df.sort_values(by=['date'], inplace=True)
-            df.reset_index(drop=True, inplace=True)
+        df.sort_values(by=['date'], inplace=True)
+        df.reset_index(drop=True, inplace=True)
 
-            # División en training data (X) y testing data (y)
-            X = df[df["date"].apply(lambda x: x.month) <= 10]
-            X = X[X["date"].apply(
-                lambda x: x.month) >= 10 - self.training_months]
-            y = df[df["date"].apply(lambda x: x.month) > self.training_months]
-            predict_groups = {
+        # División en training data (X) y testing data (y)
+        X = df[df["date"].apply(lambda x: x.month) <= self.month_division]
+        X = X[X["date"].apply(
+                lambda x: x.month) >= self.month_division - self.training_months]
+        y = df[df["date"].apply(lambda x: x.month) > self.training_months]
+        predict_groups = {
                 f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None} for
-                i in range(1, self.number_of_groups + 1)
-            }
-            # Time 1 Data for building STKDE models : 1 Month
-            group_n = 1
-            for i in range(1, len(prm.days_oct_nov_dic))[::self.window_days]:
-                predict_groups[f"group_{group_n}"]['t1_data'] = \
-                    prm.days_oct_nov_dic[i - 1:i - 1 + prm.days_oct]
-                group_n += 1
-                if group_n > self.number_of_groups:
-                    break
-                # Time 2 Data for Prediction            : 1 Week
-            group_n = 1
-            for i in range(1, len(prm.days_oct_nov_dic))[::self.window_days]:
-                predict_groups[f"group_{group_n}"]['t2_data'] = \
-                    prm.days_oct_nov_dic[
-                    i - 1 + prm.days_oct:i - 1 + prm.days_oct + self.window_days]
-                group_n += 1
-                if group_n > self.number_of_groups:
-                    break
-            # Time 1 Data for building STKDE models : 1 Month
-            for group in predict_groups:
-                predict_groups[group]['t1_data'] = \
-                    df[df['date'].apply(lambda x:
-                                        predict_groups[group]['t1_data'][0]
-                                        <= x.date() <=
-                                        predict_groups[group]['t1_data'][-1])]
+                i in range(1, self.number_of_groups + 1)}
+        days = prm.days_year[self.month_division - 1:]
+        days = reduce(lambda a, b: a + b, days)
+        # Time 1 Data for building STKDE models : 1 Month
+        group_n = 1
+        for i in range(1, len(days))[::self.window_days]:
+            predict_groups[f"group_{group_n}"]['t1_data'] = \
+                days[i - 1:i - 1 + prm.days_by_month[self.month_division]]
+            group_n += 1
+            if group_n > self.number_of_groups:
+                break
             # Time 2 Data for Prediction            : 1 Week
-            for group in predict_groups:
-                predict_groups[group]['t2_data'] = \
-                    df[df['date'].apply(lambda x:
-                                        predict_groups[group]['t2_data'][0]
-                                        <= x.date() <=
-                                        predict_groups[group]['t2_data'][-1])]
+        group_n = 1
+        for i in range(1, len(days))[::self.window_days]:
+            predict_groups[f"group_{group_n}"]['t2_data'] = \
+            days[i - 1 + prm.days_by_month[self.month_division]:i - 1 +
+                                          prm.days_by_month[self.month_division] + self.window_days]
+            group_n += 1
+            if group_n > self.number_of_groups:
+                break
+        # Time 1 Data for building STKDE models : 1 Month
+        for group in predict_groups:
+            predict_groups[group]['t1_data'] = \
+                df[df['date'].apply(lambda x:
+                                    predict_groups[group]['t1_data'][0]
+                                    <= x.date() <=
+                                    predict_groups[group]['t1_data'][-1])]
+        # Time 2 Data for Prediction            : 1 Week
+        for group in predict_groups:
+            predict_groups[group]['t2_data'] = \
+                df[df['date'].apply(lambda x:
+                                    predict_groups[group]['t2_data'][0]
+                                    <= x.date() <=
+                                    predict_groups[group]['t2_data'][-1])]
         return df, X, y, predict_groups
 
     @timer
@@ -834,7 +837,7 @@ class STKDE:
     def calculate_HR_PAI(self):
         PAIs = {}
         HRs = {}
-        for i in range(1, self.number_of_groups):
+        for i in range(1, self.number_of_groups + 1):
             x, y, t = \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['x']), \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['y']), \
