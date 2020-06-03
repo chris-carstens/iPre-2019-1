@@ -159,6 +159,59 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
         #     return df, X, y
         # return df
 
+def get_limits(s_shp='', df=None, x_min = None, x_max = None, y_min = None,
+               y_max = None):
+    """
+    Entrega los limites para poder crear la malla.
+
+    :param pandas.dataframe df: dataframe con los incidents en formado x,
+    y (WGS84 EPSG: 4326 (WGS84) (*) 900913)
+    :param tuple s_shp: path al archivo streets.shp
+
+    :return:
+    """
+
+    if s_shp:
+        return get_limits_shp(s_shp)
+    else:
+        if not x_min or x_max or y_min or y_max:
+            #reviso la base de datos
+            x_min = df['x'].min()
+            x_max = df['x'].max()
+            y_min = df['y'].min()
+            y_max = df['y'].max()
+        else:
+            x_min = grades_to_meters(x_min)
+            x_max = grades_to_meters(x_max)
+            y_min = grades_to_meters(y_min)
+            y_max = grades_to_meters(y_max)
+
+    return x_min, x_max, y_min, y_max
+
+
+def grades_to_meters(point):
+    lat, lon = point
+
+    ans = gpd.GeoDataFrame(
+        geometry=[Point((lat, lon))],
+        crs=4326,
+    )
+    ans.to_crs(epsg=3857, inplace=True)
+
+    value = ans.geometry[0]
+
+    return value.x, value.y
+
+
+
+def get_limits_shp(s_shp=''):
+    dll = gpd.read_file('./../data/streets.shp')
+    dll.crs = 2276  # Source en ft
+    dll.to_crs(epsg=3857, inplace=True)
+    return dll
 
 if __name__ == '__main__':
-    pass
+    lat, lon = 32.653038, -96.999240
+    print(grades_to_meters((lat,lon)))
+
+
