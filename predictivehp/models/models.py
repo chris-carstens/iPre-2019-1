@@ -2023,15 +2023,19 @@ class RForestRegressor:
 
 
 class ProMap:
-    def __init__(self, bw, i_df=None, read_files=False, hx=100, hy=100,
+    def __init__(self, bw, i_df=None, n_datos = 3600, read_files=False,
+                 hx=100,hy=100,
                  radio=None, ventana_dias=7, tiempo_entrenamiento=None,
+                 month = 10,
                  km2=1_000):
 
         # por default es 1.000 km2 (área de dallas)
 
         # data
         self.data = i_df
-        self.X, self.testing_data = None, None
+        self.X, self.Y = None, None
+        self.n = n_datos
+        self.month = month
 
         self.bw_x = bw[0]
         self.bw_y = bw[1]
@@ -2056,7 +2060,7 @@ class ProMap:
         if read_files:
             self.df = pd.read_pickle('../data/data.pkl')
             self.X = pd.read_pickle('training_data.pkl')
-            self.testing_data = pd.read_pickle('testing_data.pkl')
+            self.Y = pd.read_pickle('testing_data.pkl')
             self.generar_df()
             self.matriz_con_densidades = np.load(
                 'matriz_de_densidades.pkl.npy')
@@ -2076,6 +2080,15 @@ class ProMap:
 
         :return:
         """
+
+        if len(self.data) >= self.n:
+            print(f'\nEligiendo {self.n} datos...')
+            self.data = self.data.sample(n=self.n,
+                           replace=False,
+                           random_state=250499)
+            self.data.sort_values(by=['date'], inplace=True)
+            self.data.reset_index(drop=True, inplace=True)
+
 
         print("\nGenerando dataframe...\n")
 
@@ -2105,11 +2118,11 @@ class ProMap:
         # División en training y testing data
 
         self.X = data_ok[
-            self.data["date"].apply(lambda x: x.month) <= 10
+            self.data["date"].apply(lambda x: x.month) <= self.month
             ]
 
-        self.testing_data = data_ok[
-            self.data["date"].apply(lambda x: x.month) > 10
+        self.Y = data_ok[
+            self.data["date"].apply(lambda x: x.month) > self.month
             ]
 
         self.bins_x = round(abs(self.x_max - self.x_min) / self.hx)
@@ -2120,7 +2133,7 @@ class ProMap:
             f'\tbw.x: {self.bw_x} mts, bw.y: {self.bw_y} mts, bw.t: {self.bw_t} dias')
         print(f'\tbins.x: {self.bins_x}, bins.y: {self.bins_y}\n')
 
-        self.x, self.y = np.mgrid[self.x_min + self.hx / 2:self.x_max -
+        self.xx, self.yy = np.mgrid[self.x_min + self.hx / 2:self.x_max -
                                                            self.hx /
                                                            2:self.bins_x *
                                                              1j,
@@ -2144,7 +2157,7 @@ class ProMap:
         print(
             f'\tNº de días usados para entrenar el modelo: {self.total_dias_training}')
         print(
-            f'\tNº de datos para testear el modelo: {len(self.testing_data)}')
+            f'\tNº de datos para testear el modelo: {len(self.Y)}')
 
         matriz_con_ceros = np.zeros((self.bins_x, self.bins_y))
 
@@ -2160,15 +2173,15 @@ class ProMap:
                       self.X['y'][
                           k], \
                       self.X['y_day'][k]
-            x_in_matrix, y_in_matrix = find_position(self.x, self.y, x, y,
+            x_in_matrix, y_in_matrix = find_position(self.xx, self.yy, x, y,
                                                      self.hx, self.hy)
             x_left, x_right = limites_x(ancho_x, x_in_matrix, self.x)
             y_abajo, y_up = limites_y(ancho_y, y_in_matrix, self.y)
 
             for i in range(x_left, x_right + 1):
                 for j in range(y_abajo, y_up):
-                    elem_x = self.x[i][0]
-                    elem_y = self.y[0][j]
+                    elem_x = self.xx[i][0]
+                    elem_y = self.yy[0][j]
                     time_weight = 1 / n_semanas(self.total_dias_training,
                                                 t)
                     if linear_distance(elem_x, x) > self.bw_x or \
@@ -2190,20 +2203,20 @@ class ProMap:
 
         self.matriz_con_densidades = matriz_con_ceros
 
-    def heatmap(self, matriz, nombre_grafico):
-
-        """
-        Mostrar un heatmap de una matriz de riesgo.
-
-        :param matriz: np.mgrid
-        :return None
-        """
-
-        plt.title(nombre_grafico)
-        plt.imshow(np.flipud(matriz.T),
-                   extent=[self.x_min, self.x_max, self.y_min, self.y_max])
-        plt.colorbar()
-        plt.show()
+    # def heatmap(self, matriz, nombre_grafico):
+    #
+    #     """
+    #     Mostrar un heatmap de una matriz de riesgo.
+    #
+    #     :param matriz: np.mgrid
+    #     :return None
+    #     """
+    #
+    #     plt.title(nombre_grafico)
+    #     plt.imshow(np.flipud(matriz.T),
+    #                extent=[self.x_min, self.x_max, self.y_min, self.y_max])
+    #     plt.colorbar()
+    #     plt.show()
 
     def delitos_por_celda_training(self):
 
@@ -2222,7 +2235,7 @@ class ProMap:
             x, y, t = row['x'], row['y'], row['y_day']
 
             if t >= (self.total_dias_training - self.bw_t):
-                x_pos, y_pos = find_position(self.x, self.y, x, y, self.hx,
+                x_pos, y_pos = find_position(self.xx, self.yy, x, y, self.hx,
                                              self.hy)
                 self.training_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
@@ -2243,12 +2256,12 @@ class ProMap:
         """
 
         self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
-        for index, row in self.testing_data.iterrows():
+        for index, row in self.Y.iterrows():
             x, y, t = row['x'], row['y'], row['y_day']
 
             if t <= (self.total_dias_training + ventana_dias):
 
-                x_pos, y_pos = find_position(self.x, self.y, x, y, self.hx,
+                x_pos, y_pos = find_position(self.xx, self.yy, x, y, self.hx,
                                              self.hy)
                 self.testing_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
