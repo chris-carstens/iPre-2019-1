@@ -960,15 +960,16 @@ class STKDE:
 
 class RForestRegressor:
     def __init__(self, i_df=None,
-                 xc_size=100, yc_size=100, n_capas=7,
+                 xc_size=100, yc_size=100, layers_n=7,
                  # nx=None, ny=None,
                  read_data=False, read_df=False):
         """
 
-        :param pd.DataFrame i_df:
+        :param pd.DataFrame i_df: Initial Dataframe. Corresponde a los
+            datos extraídos en primera instancia desde la Socrata API
         :param int xc_size: Ancho de las celdas en metros
         :param int yc_size: Largo de las celdas en metros
-        :param int n_capas: Nro. de capas
+        :param int layers_n: Nro. de capas
         :param bool read_data: True si se desea
         :param bool read_df: True para leer el df con la
             información de las celdas
@@ -976,6 +977,7 @@ class RForestRegressor:
 
         self.x, self.y = None, None
         self.xc_size, self.yc_size = xc_size, yc_size
+        self.layers_n = layers_n
         self.nx, self.ny, self.hx, self.hy = None, None, None, None
 
         # m_dict = {month_name[i]: None for i in range(1, 13)}
@@ -995,7 +997,7 @@ class RForestRegressor:
             print(f"finished! ({time() - st:3.1f} sec)")
         else:
             self.data = i_df
-            self.generate_df(n_capas)
+            self.generate_df(layers_n)
 
     # @timer
     # def get_data(self):
@@ -1058,7 +1060,7 @@ class RForestRegressor:
     #         self.data = df
 
     @timer
-    def generate_df(self, n_capas=7):
+    def generate_df(self, layers_n=0):
         """
         La malla se genera de la esquina inf-izquierda a la esquina sup-derecha,
         partiendo con id = 0.
@@ -1078,7 +1080,7 @@ class RForestRegressor:
         operaciones trasposición y luego up-down del nd-array entregan las
         posiciones reales para el pandas dataframe.
 
-        :param int n_capas: Número de capas
+        :param int layers_n: Número de capas
         :return: Pandas Dataframe con la información
         """
 
@@ -1102,7 +1104,7 @@ class RForestRegressor:
         print("\tCreating dataframe columns...")
         months = [month_name[i] for i in range(1, 13)]
         columns = pd.MultiIndex.from_product(
-            [[f"Incidents_{i}" for i in range(n_capas + 1)], months]
+            [[f"Incidents_{i}" for i in range(layers_n + 1)], months]
         )
         self.df = pd.DataFrame(columns=columns)
 
@@ -1137,10 +1139,10 @@ class RForestRegressor:
                 D[nx_i, ny_i] += 1
 
             # Actualización del pandas dataframe
-            for i in range(n_capas + 1):
+            for i in range(layers_n + 1):
                 self.df.loc[:, (f"Incidents_{i}", month)] = \
                     to_df_col(D) if i == 0 else \
-                        to_df_col(il_neighbors(matrix=D, i=i))
+                    to_df_col(il_neighbors(matrix=D, i=i))
 
             print('finished!')
 
