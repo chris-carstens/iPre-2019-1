@@ -3,6 +3,7 @@ from calendar import month_name
 import geopandas as gpd
 import shutil
 from collections import defaultdict
+from functools import reduce
 
 from statsmodels.nonparametric.kernel_density \
     import KDEMultivariate, EstimatorSettings
@@ -61,8 +62,8 @@ class STKDE:
     def __init__(self,
                  n: int = 1000,
                  year: str = "2017",
-                 bw=None, df=None, training_months=10, number_of_groups=8,
-                 window_days=7):
+                 bw=None, df=None, sample_number=3600, training_months=10, number_of_groups=8,
+                 window_days=7, month_division=10):
 
         """
         n: Número de registros que se piden a la database.
@@ -73,6 +74,8 @@ class STKDE:
         self.training_months = training_months
         self.number_of_groups = number_of_groups
         self.window_days = window_days
+        self.month_division = month_division
+        self.sample_number = sample_number
         self.results_HR_PAI = None
         # self.data, self.training_data, self.testing_data, self.predict_groups = get_data(
         #   model='STKDE', year=year, n=n)
@@ -94,53 +97,53 @@ class STKDE:
 
     def preparing_data(self):
         df = self.df
-        if self.n >= 3600:
-            df = df.sample(n=3600,
+        df = df.sample(n=self.sample_number,
                            replace=False,
                            random_state=250499)
-            df.sort_values(by=['date'], inplace=True)
-            df.reset_index(drop=True, inplace=True)
+        df.sort_values(by=['date'], inplace=True)
+        df.reset_index(drop=True, inplace=True)
 
-            # División en training data (X) y testing data (y)
-            X = df[df["date"].apply(lambda x: x.month) <= 10]
-            X = X[X["date"].apply(
-                lambda x: x.month) >= 10 - self.training_months]
-            y = df[df["date"].apply(lambda x: x.month) > self.training_months]
-            predict_groups = {
+        # División en training data (X) y testing data (y)
+        X = df[df["date"].apply(lambda x: x.month) <= self.month_division]
+        X = X[X["date"].apply(
+                lambda x: x.month) >= self.month_division - self.training_months]
+        y = df[df["date"].apply(lambda x: x.month) > self.training_months]
+        predict_groups = {
                 f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None} for
-                i in range(1, self.number_of_groups + 1)
-            }
-            # Time 1 Data for building STKDE models : 1 Month
-            group_n = 1
-            for i in range(1, len(prm.days_oct_nov_dic))[::self.window_days]:
-                predict_groups[f"group_{group_n}"]['t1_data'] = \
-                    prm.days_oct_nov_dic[i - 1:i - 1 + prm.days_oct]
-                group_n += 1
-                if group_n > self.number_of_groups:
-                    break
-                # Time 2 Data for Prediction            : 1 Week
-            group_n = 1
-            for i in range(1, len(prm.days_oct_nov_dic))[::self.window_days]:
-                predict_groups[f"group_{group_n}"]['t2_data'] = \
-                    prm.days_oct_nov_dic[
-                    i - 1 + prm.days_oct:i - 1 + prm.days_oct + self.window_days]
-                group_n += 1
-                if group_n > self.number_of_groups:
-                    break
-            # Time 1 Data for building STKDE models : 1 Month
-            for group in predict_groups:
-                predict_groups[group]['t1_data'] = \
-                    df[df['date'].apply(lambda x:
-                                        predict_groups[group]['t1_data'][0]
-                                        <= x.date() <=
-                                        predict_groups[group]['t1_data'][-1])]
+                i in range(1, self.number_of_groups + 1)}
+        days = prm.days_year[self.month_division - 1:]
+        days = reduce(lambda a, b: a + b, days)
+        # Time 1 Data for building STKDE models : 1 Month
+        group_n = 1
+        for i in range(1, len(days))[::self.window_days]:
+            predict_groups[f"group_{group_n}"]['t1_data'] = \
+                days[i - 1:i - 1 + prm.days_by_month[self.month_division]]
+            group_n += 1
+            if group_n > self.number_of_groups:
+                break
             # Time 2 Data for Prediction            : 1 Week
-            for group in predict_groups:
-                predict_groups[group]['t2_data'] = \
-                    df[df['date'].apply(lambda x:
-                                        predict_groups[group]['t2_data'][0]
-                                        <= x.date() <=
-                                        predict_groups[group]['t2_data'][-1])]
+        group_n = 1
+        for i in range(1, len(days))[::self.window_days]:
+            predict_groups[f"group_{group_n}"]['t2_data'] = \
+            days[i - 1 + prm.days_by_month[self.month_division]:i - 1 +
+                                          prm.days_by_month[self.month_division] + self.window_days]
+            group_n += 1
+            if group_n > self.number_of_groups:
+                break
+        # Time 1 Data for building STKDE models : 1 Month
+        for group in predict_groups:
+            predict_groups[group]['t1_data'] = \
+                df[df['date'].apply(lambda x:
+                                    predict_groups[group]['t1_data'][0]
+                                    <= x.date() <=
+                                    predict_groups[group]['t1_data'][-1])]
+        # Time 2 Data for Prediction            : 1 Week
+        for group in predict_groups:
+            predict_groups[group]['t2_data'] = \
+                df[df['date'].apply(lambda x:
+                                    predict_groups[group]['t2_data'][0]
+                                    <= x.date() <=
+                                    predict_groups[group]['t2_data'][-1])]
         return df, X, y, predict_groups
 
     @timer
@@ -834,7 +837,7 @@ class STKDE:
     def calculate_HR_PAI(self):
         PAIs = {}
         HRs = {}
-        for i in range(1, self.number_of_groups):
+        for i in range(1, self.number_of_groups + 1):
             x, y, t = \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['x']), \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['y']), \
@@ -957,15 +960,16 @@ class STKDE:
 
 class RForestRegressor:
     def __init__(self, i_df=None,
-                 xc_size=100, yc_size=100, n_capas=7,
+                 xc_size=100, yc_size=100, layers_n=7,
                  # nx=None, ny=None,
                  read_data=False, read_df=False):
         """
 
-        :param pd.DataFrame i_df:
+        :param pd.DataFrame i_df: Initial Dataframe. Corresponde a los
+            datos extraídos en primera instancia desde la Socrata API
         :param int xc_size: Ancho de las celdas en metros
         :param int yc_size: Largo de las celdas en metros
-        :param int n_capas: Nro. de capas
+        :param int layers_n: Nro. de capas
         :param bool read_data: True si se desea
         :param bool read_df: True para leer el df con la
             información de las celdas
@@ -973,6 +977,7 @@ class RForestRegressor:
 
         self.x, self.y = None, None
         self.xc_size, self.yc_size = xc_size, yc_size
+        self.layers_n = layers_n
         self.nx, self.ny, self.hx, self.hy = None, None, None, None
 
         # m_dict = {month_name[i]: None for i in range(1, 13)}
@@ -992,7 +997,7 @@ class RForestRegressor:
             print(f"finished! ({time() - st:3.1f} sec)")
         else:
             self.data = i_df
-            self.generate_df(n_capas)
+            self.generate_df(layers_n)
 
     # @timer
     # def get_data(self):
@@ -1055,7 +1060,7 @@ class RForestRegressor:
     #         self.data = df
 
     @timer
-    def generate_df(self, n_capas=7):
+    def generate_df(self, layers_n=0):
         """
         La malla se genera de la esquina inf-izquierda a la esquina sup-derecha,
         partiendo con id = 0.
@@ -1075,7 +1080,7 @@ class RForestRegressor:
         operaciones trasposición y luego up-down del nd-array entregan las
         posiciones reales para el pandas dataframe.
 
-        :param int n_capas: Número de capas
+        :param int layers_n: Número de capas
         :return: Pandas Dataframe con la información
         """
 
@@ -1099,7 +1104,7 @@ class RForestRegressor:
         print("\tCreating dataframe columns...")
         months = [month_name[i] for i in range(1, 13)]
         columns = pd.MultiIndex.from_product(
-            [[f"Incidents_{i}" for i in range(n_capas + 1)], months]
+            [[f"Incidents_{i}" for i in range(layers_n + 1)], months]
         )
         self.df = pd.DataFrame(columns=columns)
 
@@ -1134,10 +1139,10 @@ class RForestRegressor:
                 D[nx_i, ny_i] += 1
 
             # Actualización del pandas dataframe
-            for i in range(n_capas + 1):
+            for i in range(layers_n + 1):
                 self.df.loc[:, (f"Incidents_{i}", month)] = \
                     to_df_col(D) if i == 0 else \
-                        to_df_col(il_neighbors(matrix=D, i=i))
+                    to_df_col(il_neighbors(matrix=D, i=i))
 
             print('finished!')
 

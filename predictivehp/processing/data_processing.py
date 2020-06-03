@@ -74,6 +74,9 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
               f"\t{df.shape[0]} incidents successfully retrieved!")
 
         # DB Cleaning & Formatting
+        for col in ['x_coordinate', 'y_cordinate']:
+            df.loc[:, col] = df[col].apply(
+                lambda x: float(x))
         df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
             lambda x: float(x))
         df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(

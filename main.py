@@ -23,7 +23,8 @@ x_min, y_min, x_max, y_max = streets.total_bounds
 stkde = STKDE(n=1000, year='2017')
 
 # %% Random Forest Regressor
-rfr = RForestRegressor(i_df=df, xc_size=100, yc_size=100, n_capas=7,
+rfr = RForestRegressor(i_df=df,
+                       xc_size=100, yc_size=100, layers_n=7,
                        read_data=False, read_df=False)
 
 # %%
@@ -56,9 +57,10 @@ if __name__ == '__main__':
 
     # TODO Reu.27/05
     #   - d_limits, automatizar desde:
-    #       * shapefiles
-    #       * Incidentes, cuando el user no entrega un shapefile
+    #       * √ shapefiles
+    #       * ? Incidentes, cuando el user no entrega un shapefile
     #   - STKDE:
-    #       Estudiar umbral (3600) para nro. máximo de
+    #       Estudiar umbral (3600) para nro. máximo de registros a usar
+    #       en el algoritmo
 
     pass
