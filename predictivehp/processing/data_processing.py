@@ -32,8 +32,11 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
     """
 
     streets = gpd.read_file(filename=s_shp) if s_shp else None
+    streets.to_crs(epsg=3857)
     councils = gpd.read_file(filename=c_shp) if c_shp else None
+    councils.to_crs(epsg=3857)
     c_limits = gpd.read_file(filename=cl_shp) if cl_shp else None
+    c_limits.to_crs(epsg=3857)
 
     print("\nRequesting data...")
 

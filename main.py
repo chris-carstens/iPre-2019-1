@@ -14,7 +14,8 @@ df, streets, councils, c_limits = get_data(year=2017, n=150000,
                                            s_shp=s_shp_path,
                                            c_shp=c_shp_path,
                                            cl_shp=cl_shp_path)
-x_min, y_min, x_max, y_max = streets.total_bounds
+shps = {'streets': streets, 'councils': councils, 'c_limits': c_limits}
+x_min, y_min, x_max, y_max = shps['streets'].total_bounds
 # TODO
 #   extraer x_min, y_min, x_max, y_max de la db cuando el user no
 #   entrega shapefiles
@@ -23,7 +24,7 @@ x_min, y_min, x_max, y_max = streets.total_bounds
 stkde = STKDE(n=1000, year='2017')
 
 # %% Random Forest Regressor
-rfr = RForestRegressor(i_df=df,
+rfr = RForestRegressor(i_df=df, shps=shps,
                        xc_size=100, yc_size=100, layers_n=7,
                        read_data=False, read_df=False)
 

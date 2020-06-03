@@ -62,7 +62,8 @@ class STKDE:
     def __init__(self,
                  n: int = 1000,
                  year: str = "2017",
-                 bw=None, df=None, sample_number=3600, training_months=10, number_of_groups=8,
+                 bw=None, df=None, sample_number=3600, training_months=10,
+                 number_of_groups=8,
                  window_days=7, month_division=10):
 
         """
@@ -98,19 +99,19 @@ class STKDE:
     def preparing_data(self):
         df = self.df
         df = df.sample(n=self.sample_number,
-                           replace=False,
-                           random_state=250499)
+                       replace=False,
+                       random_state=250499)
         df.sort_values(by=['date'], inplace=True)
         df.reset_index(drop=True, inplace=True)
 
         # División en training data (X) y testing data (y)
         X = df[df["date"].apply(lambda x: x.month) <= self.month_division]
         X = X[X["date"].apply(
-                lambda x: x.month) >= self.month_division - self.training_months]
+            lambda x: x.month) >= self.month_division - self.training_months]
         y = df[df["date"].apply(lambda x: x.month) > self.training_months]
         predict_groups = {
-                f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None} for
-                i in range(1, self.number_of_groups + 1)}
+            f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None} for
+            i in range(1, self.number_of_groups + 1)}
         days = prm.days_year[self.month_division - 1:]
         days = reduce(lambda a, b: a + b, days)
         # Time 1 Data for building STKDE models : 1 Month
@@ -125,8 +126,9 @@ class STKDE:
         group_n = 1
         for i in range(1, len(days))[::self.window_days]:
             predict_groups[f"group_{group_n}"]['t2_data'] = \
-            days[i - 1 + prm.days_by_month[self.month_division]:i - 1 +
-                                          prm.days_by_month[self.month_division] + self.window_days]
+                days[i - 1 + prm.days_by_month[self.month_division]:i - 1 +
+                                                                    prm.days_by_month[
+                                                                        self.month_division] + self.window_days]
             group_n += 1
             if group_n > self.number_of_groups:
                 break
@@ -959,7 +961,7 @@ class STKDE:
 
 
 class RForestRegressor:
-    def __init__(self, i_df=None,
+    def __init__(self, i_df=None, shps=None,
                  xc_size=100, yc_size=100, layers_n=7,
                  # nx=None, ny=None,
                  read_data=False, read_df=False):
@@ -975,6 +977,7 @@ class RForestRegressor:
             información de las celdas
         """
 
+        self.shps = shps
         self.x, self.y = None, None
         self.xc_size, self.yc_size = xc_size, yc_size
         self.layers_n = layers_n
@@ -1060,7 +1063,7 @@ class RForestRegressor:
     #         self.data = df
 
     @timer
-    def generate_df(self, layers_n=0):
+    def generate_df(self):
         """
         La malla se genera de la esquina inf-izquierda a la esquina sup-derecha,
         partiendo con id = 0.
@@ -1088,32 +1091,27 @@ class RForestRegressor:
 
         # Creación de la malla
         print("\tCreating mgrid...")
-        d_limits = prm.d_limits
+        x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
 
-        x_bins = abs(prm.d_limits['x_max'] - d_limits['x_min']) / self.xc_size
-        y_bins = abs(d_limits['y_max'] - d_limits['y_min']) / self.yc_size
+        x_bins = abs(x_max - x_min) / self.xc_size
+        y_bins = abs(y_max - y_min) / self.yc_size
 
-        self.x, self.y = np.mgrid[
-                         d_limits['x_min']:
-                         d_limits['x_max']:x_bins * 1j,
-                         d_limits['y_min']:
-                         d_limits['y_max']:y_bins * 1j,
-                         ]
+        x, y = np.mgrid[x_min: x_max: x_bins * 1j, y_min: y_max: y_bins * 1j,]
 
         # Creación del esqueleto del dataframe
         print("\tCreating dataframe columns...")
         months = [month_name[i] for i in range(1, 13)]
         columns = pd.MultiIndex.from_product(
-            [[f"Incidents_{i}" for i in range(layers_n + 1)], months]
+            [[f"Incidents_{i}" for i in range(self.layers_n + 1)], months]
         )
         self.df = pd.DataFrame(columns=columns)
 
         # Creación de los parámetros para el cálculo de los índices
         print("\tFilling df...")
-        self.nx = self.x.shape[0] - 1
-        self.ny = self.y.shape[1] - 1
-        self.hx = (self.x.max() - self.x.min()) / self.nx
-        self.hy = (self.y.max() - self.y.min()) / self.ny
+        self.nx = x.shape[0] - 1
+        self.ny = y.shape[1] - 1
+        self.hx = (x.max() - x.min()) / self.nx
+        self.hy = (y.max() - y.min()) / self.ny
 
         # Manejo de los puntos de incidentes para poder trabajar en (x, y)
         geometry = [Point(xy) for xy in zip(
@@ -1134,12 +1132,12 @@ class RForestRegressor:
 
             for _, row in fil_incidents.iterrows():
                 xi, yi = row.geometry.x, row.geometry.y
-                nx_i = n_i(xi, self.x.min(), self.hx)
-                ny_i = n_i(yi, self.y.min(), self.hy)
+                nx_i = n_i(xi, x.min(), self.hx)
+                ny_i = n_i(yi, y.min(), self.hy)
                 D[nx_i, ny_i] += 1
 
             # Actualización del pandas dataframe
-            for i in range(layers_n + 1):
+            for i in range(self.layers_n + 1):
                 self.df.loc[:, (f"Incidents_{i}", month)] = \
                     to_df_col(D) if i == 0 else \
                     to_df_col(il_neighbors(matrix=D, i=i))
@@ -1159,7 +1157,7 @@ class RForestRegressor:
         self.df.drop(columns=[('in_dallas', '')], inplace=True)
 
         # Garbage recollection
-        # del self.incidents, self.x, self.y
+        # del self.incidents
 
     @timer
     def to_pickle(self, file_name):
@@ -2028,10 +2026,10 @@ class RForestRegressor:
 
 
 class ProMap:
-    def __init__(self, bw, i_df=None, n_datos = 3600, read_files=False,
-                 hx=100,hy=100,
+    def __init__(self, bw, i_df=None, n_datos=3600, read_files=False,
+                 hx=100, hy=100,
                  radio=None, ventana_dias=7, tiempo_entrenamiento=None,
-                 month = 10,
+                 month=10,
                  km2=1_000):
 
         # por default es 1.000 km2 (área de dallas)
@@ -2089,11 +2087,10 @@ class ProMap:
         if len(self.data) >= self.n:
             print(f'\nEligiendo {self.n} datos...')
             self.data = self.data.sample(n=self.n,
-                           replace=False,
-                           random_state=250499)
+                                         replace=False,
+                                         random_state=250499)
             self.data.sort_values(by=['date'], inplace=True)
             self.data.reset_index(drop=True, inplace=True)
-
 
         print("\nGenerando dataframe...\n")
 
@@ -2139,12 +2136,12 @@ class ProMap:
         print(f'\tbins.x: {self.bins_x}, bins.y: {self.bins_y}\n')
 
         self.xx, self.yy = np.mgrid[self.x_min + self.hx / 2:self.x_max -
-                                                           self.hx /
-                                                           2:self.bins_x *
-                                                             1j,
-                         self.y_min + self.hy / 2:self.y_max - self.hy /
-                                                  2:self.bins_y *
-                                                    1j]
+                                                             self.hx /
+                                                             2:self.bins_x *
+                                                               1j,
+                           self.y_min + self.hy / 2:self.y_max - self.hy /
+                                                    2:self.bins_y *
+                                                      1j]
 
         self.total_dias_training = self.X['y_day'].max()
 
