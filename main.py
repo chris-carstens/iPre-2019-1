@@ -4,8 +4,12 @@ from predictivehp.processing.data_processing import get_data
 from predictivehp.models.models import STKDE, RForestRegressor, ProMap
 from predictivehp.visualization.plotter import Plotter
 
-# %% Initial Database
-df,  = get_data(year=2017, n=150000)
+# %% Data
+df, streets, councils, c_limits = get_data(year=2017, n=150000)
+x_min, y_min, x_max, y_max = streets.total_bounds
+# TODO
+#   extraer x_min, y_min, x_max, y_max de la db cuando el user no
+#   entrega shapefiles
 
 # %% STKDE
 stkde = STKDE(n=1000, year='2017')
