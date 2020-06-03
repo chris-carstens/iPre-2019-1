@@ -19,18 +19,21 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.width', 1000)
 
 
-def get_data(s_shp, c_shp, cl_shp, year=2017, n=150000):
+def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
     """
     Obtiene los datos de la Socrata API
 
     :param int year: Año de la db (e.g. 2017)
     :param int n: Número máximo de muestras a extraer de la db
+    :param str s_shp: path al archivo streets.shp
+    :param str c_shp: path al archivo councils.shp
+    :param str cl_shp: path al archivo citylimits.shp
     :return:
     """
 
-    streets = gpd.read_file(filename=s_shp)
-    councils = gpd.read_file(filename=c_shp)
-    c_limits = gpd.read_file(filename=cl_shp)
+    streets = gpd.read_file(filename=s_shp) if s_shp else None
+    councils = gpd.read_file(filename=c_shp) if c_shp else None
+    c_limits = gpd.read_file(filename=cl_shp) if cl_shp else None
 
     print("\nRequesting data...")
 

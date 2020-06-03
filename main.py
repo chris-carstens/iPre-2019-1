@@ -5,7 +5,15 @@ from predictivehp.models.models import STKDE, RForestRegressor, ProMap
 from predictivehp.visualization.plotter import Plotter
 
 # %% Data
-df, streets, councils, c_limits = get_data(year=2017, n=150000)
+
+s_shp_path = 'predictivehp/data/streets.shp'
+c_shp_path = 'predictivehp/data/councils.shp'
+cl_shp_path = 'predictivehp/data/citylimit.shp'
+
+df, streets, councils, c_limits = get_data(year=2017, n=150000,
+                                           s_shp=s_shp_path,
+                                           c_shp=c_shp_path,
+                                           cl_shp=cl_shp_path)
 x_min, y_min, x_max, y_max = streets.total_bounds
 # TODO
 #   extraer x_min, y_min, x_max, y_max de la db cuando el user no
@@ -47,7 +55,9 @@ if __name__ == '__main__':
     #           en x e y.
 
     # TODO Reu.27/05
-    #   - d_limits: Automatizar desde los .shp
+    #   - d_limits, automatizar desde:
+    #       * shapefiles
+    #       * Incidentes, cuando el user no entrega un shapefile
     #   - STKDE:
     #       Estudiar umbral (3600) para nro. máximo de
 
