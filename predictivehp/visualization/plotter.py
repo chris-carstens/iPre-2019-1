@@ -10,6 +10,9 @@ class Plotter:
     def add_model(self, model):
         self.models.append(model)
 
+    def del_model(self, model):
+        pass
+
     def heatmap(self):
         pass
 
