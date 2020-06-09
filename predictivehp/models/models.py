@@ -977,11 +977,14 @@ class RForestRegressor:
             información de las celdas
         """
 
+        self.name = ''
         self.shps = shps
         self.x, self.y = None, None
         self.xc_size, self.yc_size = xc_size, yc_size
         self.layers_n = layers_n
         self.nx, self.ny, self.hx, self.hy = None, None, None, None
+
+        self.ap, self.hr, self.pai = None, None, None
 
         # m_dict = {month_name[i]: None for i in range(1, 13)}
         # self.incidents = {'Incidents': m_dict}
@@ -1452,28 +1455,39 @@ class RForestRegressor:
         """
         Calculates de Hit Rate for the given Framework
 
-        :param float c: Threshold de confianza para filtrar hotspots
+        :param [float, np.ndarray] c: Threshold de confianza para
+            filtrar hotspots
         :param plot: Plotea las celdas de los incidentes luego de aplicar
             un join
         :rtype: int
         :return:
         """
 
-        incidents = pd.DataFrame(self.data)
-        incidents_oct = incidents[incidents.month1 == 'October']  # 332
+        if type(c) == float:
+            incidents = pd.DataFrame(self.data)
+            incidents_oct = incidents[incidents.month1 == 'October']  # 332
 
-        data_oct = pd.DataFrame(self.data[self.data.month1 == 'October'])
-        data_oct.drop(columns='geometry', inplace=True)
+            data_oct = pd.DataFrame(self.data[self.data.month1 == 'October'])
+            data_oct.drop(columns='geometry', inplace=True)
 
-        ans = data_oct.join(other=self.df, on='Cell', how='left')
-        ans = ans[ans[('geometry', '')].notna()]
+            ans = data_oct.join(other=self.df, on='Cell', how='left')
+            ans = ans[ans[('geometry', '')].notna()]
 
-        incidentsh = ans[ans[('Dangerous_pred_Oct', '')] == 1]
-        incidentsh = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= c]
+            incidentsh = ans[ans[('Dangerous_pred_Oct', '')] == 1]
+            incidentsh = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= c]
 
-        hr = incidentsh.shape[0] / incidents_oct.shape[0]
+            hr = incidentsh.shape[0] / incidents_oct.shape[0]
 
-        return hr
+            return hr
+        else:
+            c_arr = c
+            hr_l = []
+            for c in c_arr:
+                hr_l.append(self.calculate_hr(c=c))
+            self.hr = hr_l
+
+            return np.array(hr_l)
+
 
     def calculate_pai(self, c=0.9):
         """
