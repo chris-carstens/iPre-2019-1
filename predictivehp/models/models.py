@@ -1096,7 +1096,7 @@ class RForestRegressor:
         x_bins = abs(x_max - x_min) / self.xc_size
         y_bins = abs(y_max - y_min) / self.yc_size
 
-        x, y = np.mgrid[x_min: x_max: x_bins * 1j, y_min: y_max: y_bins * 1j,]
+        x, y = np.mgrid[x_min: x_max: x_bins * 1j, y_min: y_max: y_bins * 1j, ]
 
         # Creación del esqueleto del dataframe
         print("\tCreating dataframe columns...")
@@ -1140,7 +1140,7 @@ class RForestRegressor:
             for i in range(self.layers_n + 1):
                 self.df.loc[:, (f"Incidents_{i}", month)] = \
                     to_df_col(D) if i == 0 else \
-                    to_df_col(il_neighbors(matrix=D, i=i))
+                        to_df_col(il_neighbors(matrix=D, i=i))
 
             print('finished!')
 
@@ -2278,14 +2278,14 @@ class ProMap:
 
                 break
 
-    def calcular_hr_and_pai(self):
+    def calculate_hr(self, n=100):
 
         self.delitos_por_celda_training()
         self.delitos_por_celda_testing(self.ventana_dias)
 
         nodos = self.matriz_con_densidades.flatten()
 
-        k = np.linspace(0, nodos.max(), 400)
+        k = np.linspace(0, nodos.max(), n)
 
         """
         1. Solo considera las celdas que son mayor a un K
@@ -2331,6 +2331,16 @@ class ProMap:
 
         self.area_percentaje = [1 if j > 1 else j for j in [i / n_celdas for
                                                             i in area_hits]]
+
+        self.PAI = [
+            0 if float(self.area_percentaje[i]) == 0 else float(self.HR[
+                                                                    i]) / float(
+                self.area_percentaje[i]) for i in range(len(self.HR))]
+
+    def calculate_pai(self, k=100):
+
+        if not self.HR:
+            self.calculate_hr(k)
 
         self.PAI = [
             0 if float(self.area_percentaje[i]) == 0 else float(self.HR[
