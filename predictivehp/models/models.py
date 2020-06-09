@@ -2030,11 +2030,12 @@ class ProMap:
                  hx=100, hy=100,
                  radio=None, ventana_dias=7, tiempo_entrenamiento=None,
                  month=10,
-                 km2=1_000):
+                 km2=1_000, name='Promap'):
 
         # por default es 1.000 km2 (área de dallas)
 
         # data
+        self.name = name
         self.data = i_df
         self.X, self.Y = None, None
         self.n = n_datos
@@ -2058,7 +2059,7 @@ class ProMap:
         self.matriz_con_densidades = None
 
         # Parámetros para gráficos
-        self.HR, self.PAI, self.area_percentaje = None, None, None
+        self.hr, self.pai, self.ap = None, None, None
 
         if read_files:
             self.df = pd.read_pickle('../data/data.pkl')
@@ -2072,8 +2073,7 @@ class ProMap:
             self.generar_df()
             self.calcular_densidades()
 
-        self.plot_HR()
-        self.plot_PAI()
+        
 
     def generar_df(self):
         """
@@ -2325,41 +2325,29 @@ class ProMap:
 
         n_delitos_testing = np.sum(self.testing_matrix)
 
-        self.HR = [i / n_delitos_testing for i in hits_n]
+        self.hr = [i / n_delitos_testing for i in hits_n]
 
         n_celdas = calcular_celdas(self.hx, self.hy, self.km2)
 
-        self.area_percentaje = [1 if j > 1 else j for j in [i / n_celdas for
+        self.ap = [1 if j > 1 else j for j in [i / n_celdas for
                                                             i in area_hits]]
 
         self.PAI = [
-            0 if float(self.area_percentaje[i]) == 0 else float(self.HR[
+            0 if float(self.ap[i]) == 0 else float(self.hr[
                                                                     i]) / float(
-                self.area_percentaje[i]) for i in range(len(self.HR))]
+                self.ap[i]) for i in range(len(self.hr))]
 
     def calculate_pai(self, k=100):
 
-        if not self.HR:
+        if not self.hr:
             self.calculate_hr(k)
 
         self.PAI = [
-            0 if float(self.area_percentaje[i]) == 0 else float(self.HR[
+            0 if float(self.ap[i]) == 0 else float(self.hr[
                                                                     i]) / float(
-                self.area_percentaje[i]) for i in range(len(self.HR))]
+                self.ap[i]) for i in range(len(self.hr))]
 
-    def plot_HR(self):
-        if self.HR is None:
-            self.calcular_hr_and_pai()
 
-        print('\n--- HITRATE ---\n')
-        grafico(self.area_percentaje, self.HR, '% Area', 'HR')
-
-    def plot_PAI(self):
-        if self.PAI is None:
-            self.calcular_hr_and_pai()
-
-        print('\n--- PAI ---\n')
-        grafico(self.area_percentaje, self.PAI, '% Area', 'PAI')
 
     def plot_delitos_meses(self):
         meses_training = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
