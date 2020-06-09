@@ -8,18 +8,40 @@ class Plotter:
         self.models = [] if not models else models
 
     def add_model(self, model):
+        """
+
+        :param model:
+        :return:
+        """
         self.models.append(model)
 
     def del_model(self, model):
+        """
+
+        :param model:
+        :return:
+        """
         pass
 
     def heatmap(self):
+        """
+
+        :return:
+        """
         pass
 
     def hr(self):
+        """
+
+        :return:
+        """
         pass
 
     def pai(self):
+        """
+
+        :return:
+        """
         pass
 
 
