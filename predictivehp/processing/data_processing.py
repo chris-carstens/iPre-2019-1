@@ -101,96 +101,6 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
 
         return df, streets, councils, c_limits
 
-        # if model == 'STKDE' or model == 'ProMap':
-        #     # Reducción del tamaño de la DB
-        #     if n >= 3600:
-        #         df = df.sample(n=3600,
-        #                        replace=False,
-        #                        random_state=250499)
-        #         df.sort_values(by=['date'], inplace=True)
-        #         df.reset_index(drop=True, inplace=True)
-        #
-        #     # División en training data (X) y testing data (y)
-        #     X = df[df["date"].apply(lambda x: x.month) <= 10]
-        #     y = df[df["date"].apply(lambda x: x.month) > 10]
-        #
-        #     if model == 'STKDE':
-        #         predict_groups = {
-        #             f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None}
-        #             for i in range(1, 9)
-        #         }
-        #
-        #         # Time 1 Data for building STKDE models : 1 Month
-        #         group_n = 1
-        #         for i in range(1, len(days_oct_nov_dic))[::7]:
-        #             predict_groups[f"group_{group_n}"]['t1_data'] = \
-        #                 days_oct_nov_dic[i - 1:i - 1 + days_oct]
-        #
-        #             group_n += 1
-        #             if group_n > 8:
-        #                 break
-        #         # Time 2 Data for Prediction            : 1 Week
-        #         group_n = 1
-        #         for i in range(1, len(days_oct_nov_dic))[::7]:
-        #             predict_groups[f"group_{group_n}"]['t2_data'] = \
-        #                 days_oct_nov_dic[i - 1 + days_oct:i - 1 + days_oct + 7]
-        #
-        #             group_n += 1
-        #             if group_n > 8:
-        #                 break
-        #         # Time 1 Data for building STKDE models : 1 Month
-        #         for group in predict_groups:
-        #             predict_groups[group]['t1_data'] = \
-        #                 df[df['date'].apply(
-        #                     lambda x:
-        #                     predict_groups[group]['t1_data'][0]
-        #                     <= x.date() <=
-        #                     predict_groups[group]['t1_data'][-1]
-        #                 )
-        #                 ]
-        #         # Time 2 Data for Prediction            : 1 Week
-        #         for group in predict_groups:
-        #             predict_groups[group]['t2_data'] = \
-        #                 df[df['date'].apply(
-        #                     lambda x:
-        #                     predict_groups[group]['t2_data'][0]
-        #                     <= x.date() <=
-        #                     predict_groups[group]['t2_data'][-1]
-        #                 )
-        #                 ]
-        #         return df, X, y, predict_groups
-        #     return df, X, y
-        # return df
-
-def get_limits(s_shp='', df=None, x_min = None, x_max = None, y_min = None,
-               y_max = None):
-    """
-    Entrega los limites para poder crear la malla.
-
-    :param pandas.dataframe df: dataframe con los incidents en formado x,
-    y (WGS84 EPSG: 4326 (WGS84) (*) 900913)
-    :param tuple s_shp: path al archivo streets.shp
-
-    :return:
-    """
-
-    if s_shp:
-        return get_limits_shp(s_shp)
-    else:
-        if not x_min or x_max or y_min or y_max:
-            #reviso la base de datos
-            x_min = df['x'].min()
-            x_max = df['x'].max()
-            y_min = df['y'].min()
-            y_max = df['y'].max()
-        else:
-            x_min = grades_to_meters(x_min)
-            x_max = grades_to_meters(x_max)
-            y_min = grades_to_meters(y_min)
-            y_max = grades_to_meters(y_max)
-
-    return x_min, x_max, y_min, y_max
-
 
 def grades_to_meters(point):
     lat, lon = point
@@ -206,15 +116,12 @@ def grades_to_meters(point):
     return value.x, value.y
 
 
-
 def get_limits_shp(s_shp=''):
     dll = gpd.read_file('./../data/streets.shp')
     dll.crs = 2276  # Source en ft
     dll.to_crs(epsg=3857, inplace=True)
     return dll
 
+
 if __name__ == '__main__':
-    lat, lon = 32.653038, -96.999240
-    print(grades_to_meters((lat,lon)))
-
-
+    pass
