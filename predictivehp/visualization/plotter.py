@@ -60,7 +60,6 @@ class Plotter:
         for m in self.models:
             m.calculate_pai(c=self.c_arr)
             af.lineplot(x=m.ap, y=m.pai)
-
         plt.xlabel('Area Percentage')
         plt.ylabel('PAI')
         plt.show()
