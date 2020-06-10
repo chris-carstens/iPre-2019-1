@@ -1185,7 +1185,8 @@ class RForestRegressor:
         self.df['in_dallas'] = 0
 
         # Filtrado de celdas (llenado de la columna 'in_dallas')
-        self.df = filter_cells(self.df)
+        self.df = filter_cells(df=self.df,
+                               shp=self.shps['councils'])
         self.df.drop(columns=[('in_dallas', '')], inplace=True)
 
         # Garbage recollection
@@ -2476,5 +2477,5 @@ class ProMap:
                 print(df_split[i].center(columns))
 
 
-if __name__ == '__main__':
+if __name__ ==< '__main__':
     pass
