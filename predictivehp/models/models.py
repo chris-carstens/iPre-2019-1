@@ -896,7 +896,6 @@ class STKDE:
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
         return f_delitos_by_group, f_nodos_by_group
 
-
     def calculate_hr(self, c):
         f_delitos_by_group, f_nodos_by_group = self.predict(c)
         hr_by_group, ap_by_group = [], []
@@ -916,7 +915,8 @@ class STKDE:
 
     def calculate_pai(self, c):
         if self.hr:
-            PAI = [float(self.hr[i]) / float(self.ap[i]) for i in range(len(self.hr))]
+            PAI = [float(self.hr[i]) / float(self.ap[i]) for i in
+                   range(len(self.hr))]
             self.pai = PAI
             return self.ap, self.pai
         f_delitos_by_group, f_nodos_by_group = self.predict(c)
@@ -928,15 +928,14 @@ class STKDE:
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]
             area_percentaje = [i / len(f_nodos) for i in area_h]
-            PAI = [float(HR[i]) / float(area_percentaje[i]) for i in range(len(HR))]
+            PAI = [float(HR[i]) / float(area_percentaje[i]) for i in
+                   range(len(HR))]
             if self.number_of_groups == 1:
                 self.ap, self.hr, self.pai = area_percentaje, HR, PAI
                 return self.pai, self.ap
             pai_by_group.append(PAI), ap_by_group.append(area_percentaje)
         self.pai_by_group, self.hr_by_group, self.ap_by_group = pai_by_group, hr_by_group, ap_by_group
         return self.pai_by_group, self.hr_by_group, self.ap_by_group
-
-
 
     def plot_HR(self):
         if not self.results_HR_PAI:
@@ -1517,7 +1516,6 @@ class RForestRegressor:
             self.hr = hr_l
 
             return np.array(hr_l)
-
 
     def calculate_pai(self, c=0.9):
         """
@@ -2117,8 +2115,6 @@ class ProMap:
             self.generar_df()
             self.calcular_densidades()
 
-        
-
     def generar_df(self):
         """
         Genera un dataframe en base a los x{min, max} y{min, max}.
@@ -2322,14 +2318,14 @@ class ProMap:
 
                 break
 
-    def calculate_hr(self, n=100):
+    def calculate_hr(self, n=100, c=None):
 
         self.delitos_por_celda_training()
         self.delitos_por_celda_testing(self.ventana_dias)
 
         nodos = self.matriz_con_densidades.flatten()
 
-        k = np.linspace(0, nodos.max(), n)
+        k = c * nodos.max() if c else np.linspace(0, nodos.max(), n)
 
         """
         1. Solo considera las celdas que son mayor a un K
@@ -2348,8 +2344,7 @@ class ProMap:
         for i in range(k.size):
             hits_n.append(
                 np.sum(
-                    (self.matriz_con_densidades >= k[
-                        i]) * self.testing_matrix))
+                    (self.matriz_con_densidades >= k[i]) * self.testing_matrix))
 
         """
         1. Solo considera las celdas que son mayor a un K
@@ -2374,24 +2369,35 @@ class ProMap:
         n_celdas = calcular_celdas(self.hx, self.hy, self.km2)
 
         self.ap = [1 if j > 1 else j for j in [i / n_celdas for
-                                                            i in area_hits]]
+                                               i in area_hits]]
 
         self.PAI = [
             0 if float(self.ap[i]) == 0 else float(self.hr[
-                                                                    i]) / float(
+                                                       i]) / float(
                 self.ap[i]) for i in range(len(self.hr))]
 
-    def calculate_pai(self, k=100):
+    def calculate_pai(self, n=100, c=None):
 
-        if not self.hr:
-            self.calculate_hr(k)
+        nodos = self.matriz_con_densidades.flatten()
+
+        k = c * nodos.max() if c else np.linspace(0, nodos.max(), n)
+
+        area_hits = []
+
+        for i in range(k.size):
+            area_hits.append(
+                np.count_nonzero((self.matriz_con_densidades >= k[
+                    i]) * self.matriz_con_densidades
+                                 ))
+
+        n_celdas = calcular_celdas(self.hx, self.hy, self.km2)
+        self.ap = [1 if j > 1 else j for j in [i / n_celdas for
+                                               i in area_hits]]
 
         self.PAI = [
             0 if float(self.ap[i]) == 0 else float(self.hr[
-                                                                    i]) / float(
+                                                       i]) / float(
                 self.ap[i]) for i in range(len(self.hr))]
-
-
 
     def plot_delitos_meses(self):
         meses_training = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
