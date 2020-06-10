@@ -64,7 +64,7 @@ class STKDE:
                  year: str = "2017",
                  bw=None, df=None, sample_number=3600, training_months=10,
                  number_of_groups=1,
-                 window_days=7, month_division=10):
+                 window_days=7, month_division=10, name="STKDE"):
 
         """
         n: Número de registros que se piden a la database.
@@ -72,12 +72,16 @@ class STKDE:
         t_model: Entrenamiento del modelo, True en caso de que se quieran
         usar los métodos contour_plot o heatmap.
         """
+        self.name = name
         self.training_months = training_months
         self.number_of_groups = number_of_groups
         self.window_days = window_days
         self.month_division = month_division
         self.sample_number = sample_number
         self.results_HR_PAI = None
+        self.hr = None
+        self.ap = None
+        self.pai = None
         # self.data, self.training_data, self.testing_data, self.predict_groups = get_data(
         #   model='STKDE', year=year, n=n)
         # training data 3000
@@ -902,12 +906,16 @@ class STKDE:
         for i in range(1, self.number_of_groups + 1):
             if self.number_of_groups == 1:
                 f_delitos, f_nodos = f_delitos_by_group, f_nodos_by_group
+                c = np.linspace(0, f_nodos.max(), 100)
+
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]
             area_percentaje = [i / len(f_nodos) for i in area_h]
             if self.number_of_groups == 1:
                 self.hr, self.ap = HR, area_percentaje
+                print(self.ap)
+                print(self.hr)
                 return self.ap, self.hr
             hr_by_group.append(HR), ap_by_group.append(area_percentaje)
         self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
@@ -924,14 +932,17 @@ class STKDE:
         for i in range(1, self.number_of_groups + 1):
             if self.number_of_groups == 1:
                 f_delitos, f_nodos = f_delitos_by_group, f_nodos_by_group
+                c = np.linspace(0, f_nodos.max(), 100)
+
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]
             area_percentaje = [i / len(f_nodos) for i in area_h]
-            PAI = [float(HR[i]) / float(area_percentaje[i]) for i in
+            PAI = [float(HR[i]) / float(area_percentaje[i]) if float(HR[i]) else 0 for i in
                    range(len(HR))]
             if self.number_of_groups == 1:
                 self.ap, self.hr, self.pai = area_percentaje, HR, PAI
+                print(self.ap, self.hr)
                 return self.pai, self.ap
             pai_by_group.append(PAI), ap_by_group.append(area_percentaje)
         self.pai_by_group, self.hr_by_group, self.ap_by_group = pai_by_group, hr_by_group, ap_by_group

@@ -21,7 +21,7 @@ x_min, y_min, x_max, y_max = shps['streets'].total_bounds
 #   entrega shapefiles
 
 # %% STKDE
-stkde = STKDE(df = df, bw=bw)
+stkde = STKDE(df=df)
 
 # %% Random Forest Regressor
 #rfr = RForestRegressor(i_df=df, shps=shps,
@@ -30,13 +30,13 @@ stkde = STKDE(df = df, bw=bw)
 
 # %%
 # pm = ProMap(n=150_000, year="2017", bw=bw, i_df=df, read_files=False)
-pm = ProMap(bw=bw, i_df=df, read_files=False)
+#pm = ProMap(bw=bw, i_df=df, read_files=False)
 
 # %% Plotter
 
-pltr = Plotter(models=[pm])
-pltr.hr()
-#pltr.pai()
+pltr = Plotter(models=[stkde])
+pltr.pai()
+
 
 if __name__ == '__main__':
     # TODO Reu. 20/05

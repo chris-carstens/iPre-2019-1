@@ -69,7 +69,7 @@ def lineplot(x, y, x_label=None, y_label=None, title=None):
         rc=rc
     )
 
-    fig = sns.lineplot(x=x, y=y)
+    sns.lineplot(x=x, y=y)
     if x_label:
         plt.xlabel(x_label)
     if y_label:
@@ -80,7 +80,7 @@ def lineplot(x, y, x_label=None, y_label=None, title=None):
 
 # STKDE
 
-def checked_points(points, shp):
+def checked_points(points):
     """
     Chequea si la lista de puntos está dentro de Dallas.
 
