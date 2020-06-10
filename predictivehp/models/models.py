@@ -63,7 +63,7 @@ class STKDE:
                  n: int = 1000,
                  year: str = "2017",
                  bw=None, df=None, sample_number=3600, training_months=10,
-                 number_of_groups=8,
+                 number_of_groups=1,
                  window_days=7, month_division=10):
 
         """
@@ -836,9 +836,9 @@ class STKDE:
             Interact()
             print("finished!")
 
-    def calculate_HR_PAI(self):
-        PAIs = {}
-        HRs = {}
+    def predict(self, c):
+        if self.number_of_groups > 1:
+            f_nodos_by_group, f_delitos_by_group = {}, {}
         for i in range(1, self.number_of_groups + 1):
             x, y, t = \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['x']), \
@@ -889,24 +889,54 @@ class STKDE:
                       np.array(t_training).max():
                       np.array(t_training).max():1 * 1j
                       ]
-            # print(t.max())
-            # print(t.min())
 
             f_nodos = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
-            c = np.linspace(0, f_nodos.max(), 100)
+            if self.number_of_groups:
+                return f_delitos, f_nodos
+            f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
+        return f_delitos_by_group, f_nodos_by_group
 
+
+    def calculate_hr(self, c):
+        f_delitos_by_group, f_nodos_by_group = self.predict(c)
+        hr_by_group, ap_by_group = [], []
+        for i in range(1, self.number_of_groups + 1):
+            if self.number_of_groups == 1:
+                f_delitos, f_nodos = f_delitos_by_group, f_nodos_by_group
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
-
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
-
             HR = [i / len(f_delitos) for i in hits]
             area_percentaje = [i / len(f_nodos) for i in area_h]
-            PAI = [float(HR[i]) / float(area_percentaje[i]) for i in
-                   range(len(HR))]
-            HRs[i] = [HR, area_percentaje, c]
-            PAIs[i] = [PAI, area_percentaje]
+            if self.number_of_groups == 1:
+                self.hr, self.ap = HR, area_percentaje
+                return self.ap, self.hr
+            hr_by_group.append(HR), ap_by_group.append(area_percentaje)
+        self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
+        return self.hr_by_group, self.ap_by_group
 
-        return {'HR': HRs, 'PAI': PAIs}
+    def calculate_pai(self, c):
+        if self.hr:
+            PAI = [float(self.hr[i]) / float(self.ap[i]) for i in range(len(self.hr))]
+            self.pai = PAI
+            return self.ap, self.pai
+        f_delitos_by_group, f_nodos_by_group = self.predict(c)
+        pai_by_group, hr_by_group, ap_by_group = [], [], []
+        for i in range(1, self.number_of_groups + 1):
+            if self.number_of_groups == 1:
+                f_delitos, f_nodos = f_delitos_by_group, f_nodos_by_group
+            hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
+            area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
+            HR = [i / len(f_delitos) for i in hits]
+            area_percentaje = [i / len(f_nodos) for i in area_h]
+            PAI = [float(HR[i]) / float(area_percentaje[i]) for i in range(len(HR))]
+            if self.number_of_groups == 1:
+                self.ap, self.hr, self.pai = area_percentaje, HR, PAI
+                return self.pai, self.ap
+            pai_by_group.append(PAI), ap_by_group.append(area_percentaje)
+        self.pai_by_group, self.hr_by_group, self.ap_by_group = pai_by_group, hr_by_group, ap_by_group
+        return self.pai_by_group, self.hr_by_group, self.ap_by_group
+
+
 
     def plot_HR(self):
         if not self.results_HR_PAI:
