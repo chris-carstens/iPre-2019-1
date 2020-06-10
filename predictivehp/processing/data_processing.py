@@ -32,10 +32,13 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
     """
 
     streets = gpd.read_file(filename=s_shp) if s_shp else None
+    streets.crs = 2276
     streets.to_crs(epsg=3857)
     councils = gpd.read_file(filename=c_shp) if c_shp else None
+    councils.crs = 2276
     councils.to_crs(epsg=3857)
     c_limits = gpd.read_file(filename=cl_shp) if cl_shp else None
+    c_limits.crs = 2276
     c_limits.to_crs(epsg=3857)
 
     print("\nRequesting data...")
@@ -127,4 +130,12 @@ def get_limits_shp(s_shp=''):
 
 
 if __name__ == '__main__':
-    pass
+    s_shp_path = './../data/streets.shp'
+    c_shp_path = './../data/councils.shp'
+    cl_shp_path = './../data/citylimit.shp'
+
+    streets = gpd.read_file(filename=s_shp_path)
+
+    # get_data(s_shp=s_shp_path,
+    #          c_shp=c_shp_path,
+    #          cl_shp=cl_shp_path)
