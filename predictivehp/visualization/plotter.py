@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import predictivehp.aux_functions as af
+import predictivehp.models.models as mdl
 
 
 class Plotter:
@@ -46,6 +47,9 @@ class Plotter:
 
         for m in self.models:
             m.calculate_hr(c=self.c_arr)
+            print()
+            print(f'Area Percentage: {m.ap}\nlargo: {len(m.ap)} \ntipo: {type(m.ap)}\n')
+            print(f'Hit Rate: {m.hr}\nlargo: {len(m.hr)} \ntipo: {type(m.hr)}')
             af.lineplot(x=m.ap, y=m.hr)
 
         plt.xlabel('Area Percentage')
@@ -67,3 +71,4 @@ class Plotter:
 
 if __name__ == '__main__':
     pass
+

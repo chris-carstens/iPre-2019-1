@@ -25,8 +25,8 @@ stkde = STKDE(df=df)
 
 # %% Random Forest Regressor
 #rfr = RForestRegressor(i_df=df, shps=shps,
-               #        xc_size=100, yc_size=100, layers_n=7,
-                #       read_data=False, read_df=False)
+#                        xc_size=100, yc_size=100, layers_n=7,
+#                        read_data=False, read_df=False)
 
 # %%
 # pm = ProMap(n=150_000, year="2017", bw=bw, i_df=df, read_files=False)
@@ -36,6 +36,7 @@ stkde = STKDE(df=df)
 
 pltr = Plotter(models=[stkde])
 pltr.pai()
+
 
 if __name__ == '__main__':
     # TODO Reu. 20/05

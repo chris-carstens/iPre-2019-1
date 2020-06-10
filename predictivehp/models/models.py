@@ -1196,7 +1196,8 @@ class RForestRegressor:
         self.df['in_dallas'] = 0
 
         # Filtrado de celdas (llenado de la columna 'in_dallas')
-        self.df = filter_cells(self.df)
+        self.df = filter_cells(df=self.df,
+                               shp=self.shps['councils'])
         self.df.drop(columns=[('in_dallas', '')], inplace=True)
 
         # Garbage recollection
@@ -2100,8 +2101,8 @@ class ProMap:
 
         self.hx, self.hy, self.km2 = hx, hy, km2
 
-        self.x_min, self.x_max = None, None
-        self.y_min, self.y_max = None, None
+        self.x_min, self.x_max = prm.d_limits['x_min'], prm.d_limits['x_max']
+        self.y_min, self.y_max = prm.d_limits['y_min'], prm.d_limits['y_max']
 
         self.bins_x, self.bins_y = None, None
 
@@ -2222,21 +2223,27 @@ class ProMap:
             ancho_y = radio_pintar(self.hy, self.radio)
 
         for k in range(len(self.X)):
+
             x, y, t = self.X['x'][k], \
                       self.X['y'][
                           k], \
                       self.X['y_day'][k]
+
             x_in_matrix, y_in_matrix = find_position(self.xx, self.yy, x, y,
                                                      self.hx, self.hy)
-            x_left, x_right = limites_x(ancho_x, x_in_matrix, self.x)
-            y_abajo, y_up = limites_y(ancho_y, y_in_matrix, self.y)
+            x_left, x_right = limites_x(ancho_x, x_in_matrix, self.xx)
+            y_abajo, y_up = limites_y(ancho_y, y_in_matrix, self.yy)
 
             for i in range(x_left, x_right + 1):
+
                 for j in range(y_abajo, y_up):
+
                     elem_x = self.xx[i][0]
                     elem_y = self.yy[0][j]
+
                     time_weight = 1 / n_semanas(self.total_dias_training,
                                                 t)
+
                     if linear_distance(elem_x, x) > self.bw_x or \
                             linear_distance(
                                 elem_y, y) > self.bw_y:
@@ -2251,10 +2258,9 @@ class ProMap:
 
                     matriz_con_ceros[i][j] += time_weight * cell_weight
 
+        self.matriz_con_densidades = matriz_con_ceros
         print('\nGuardando datos...')
         np.save('matriz_de_densidades.pkl', matriz_con_ceros)
-
-        self.matriz_con_densidades = matriz_con_ceros
 
     # def heatmap(self, matriz, nombre_grafico):
     #
@@ -2336,7 +2342,9 @@ class ProMap:
 
         nodos = self.matriz_con_densidades.flatten()
 
-        k = c * nodos.max() if c else np.linspace(0, nodos.max(), n)
+        k = c * nodos.max() if c.any() else np.linspace(0, nodos.max(), n)
+
+
 
         """
         1. Solo considera las celdas que son mayor a un K
@@ -2382,16 +2390,13 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / n_celdas for
                                                i in area_hits]]
 
-        self.PAI = [
-            0 if float(self.ap[i]) == 0 else float(self.hr[
-                                                       i]) / float(
-                self.ap[i]) for i in range(len(self.hr))]
+
 
     def calculate_pai(self, n=100, c=None):
 
         nodos = self.matriz_con_densidades.flatten()
 
-        k = c * nodos.max() if c else np.linspace(0, nodos.max(), n)
+        k = c * nodos.max() if c.any() else np.linspace(0, nodos.max(), n)
 
         area_hits = []
 
@@ -2483,5 +2488,5 @@ class ProMap:
                 print(df_split[i].center(columns))
 
 
-if __name__ == '__main__':
+if __name__ ==< '__main__':
     pass
