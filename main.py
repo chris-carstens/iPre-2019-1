@@ -1,7 +1,7 @@
 # %%
+from predictivehp.models.models import STKDE, RForestRegressor, ProMap
 from predictivehp.models.parameters import *
 from predictivehp.processing.data_processing import get_data
-from predictivehp.models.models import STKDE, RForestRegressor, ProMap
 from predictivehp.visualization.plotter import Plotter
 
 # %% Data
@@ -38,8 +38,9 @@ pltr = Plotter(models=[
     rfr,
     pm
 ])
-pltr.pai()
 
+pltr.hr()
+pltr.pai()
 
 if __name__ == '__main__':
     # TODO Reu. 20/05

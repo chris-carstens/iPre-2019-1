@@ -1003,7 +1003,7 @@ class RForestRegressor:
     def __init__(self, i_df=None, shps=None,
                  xc_size=100, yc_size=100, layers_n=7,
                  # nx=None, ny=None,
-                 read_data=False, read_df=False):
+                 read_data=False, read_df=False, name='RForestRegressor'):
         """
 
         :param pd.DataFrame i_df: Initial Dataframe. Corresponde a los
@@ -1016,7 +1016,7 @@ class RForestRegressor:
             información de las celdas
         """
 
-        self.name = ''
+        self.name = name
         self.shps = shps
         self.xc_size, self.yc_size = xc_size, yc_size
         self.layers_n = layers_n
@@ -1209,12 +1209,11 @@ class RForestRegressor:
 
         print("\nPickling dataframe...", end=" ")
         if file_name == "df.pkl":
-            self.df.to_pickle(file_name)
+            self.df.to_pickle(f"predictivehp/data/{file_name}")
         if file_name == "data.pkl":
             if self.data is None:
-                self.get_data()
                 self.generate_df()
-            self.data.to_pickle(file_name)
+            self.data.to_pickle(f"predictivehp/data/{file_name}")
 
     @timer
     def assign_cells(self, month='October'):
@@ -2275,7 +2274,7 @@ class ProMap:
 
         self.matriz_con_densidades = matriz_con_ceros
         print('\nGuardando datos...')
-        np.save('matriz_de_densidades.pkl', matriz_con_ceros)
+        np.save('matriz_de_densidades.npy', matriz_con_ceros)
 
     # def heatmap(self, matriz, nombre_grafico):
     #

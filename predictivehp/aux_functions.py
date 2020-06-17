@@ -38,7 +38,7 @@ def timer(fn):
 
 # Plots
 
-def lineplot(x, y, x_label=None, y_label=None, title=None):
+def lineplot(x, y, x_label=None, y_label=None, title=None, legend=None):
     rc = {
         'figure.facecolor': 'black',
         # 'figure.figsize': (5.51, 3.54),
@@ -69,13 +69,11 @@ def lineplot(x, y, x_label=None, y_label=None, title=None):
         rc=rc, color_codes=False
     )
 
-    sns.lineplot(x=x, y=y)
-    if x_label:
-        plt.xlabel(x_label)
-    if y_label:
-        plt.ylabel(y_label)
-    if title:
-        plt.title(title)
+    sns.lineplot(x=x, y=y, legend='brief', label=legend)
+
+    plt.xlabel(x_label) if x_label else None
+    plt.ylabel(y_label) if y_label else None
+    plt.title(title) if title else None
 
 
 # STKDE
@@ -221,8 +219,7 @@ def filter_cells(df, shp):
 
     print('\t\tLoading shapefile...')
     # Data/Councils/councils.shp
-    dallas_shp = gpd.read_file(shp)
-    dallas_shp.to_crs(epsg=3857, inplace=True)
+    dallas_shp = shp
 
     print('\t\tCreating GeoDataframe...')
     geo_pd = gpd.GeoDataFrame(aux_df[[('geometry', ''), ('in_dallas', '')]])
