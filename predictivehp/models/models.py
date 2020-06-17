@@ -1,29 +1,26 @@
-from calendar import month_name
-
-import geopandas as gpd
 import shutil
+from calendar import month_name
 from collections import defaultdict
 from functools import reduce
 
-from statsmodels.nonparametric.kernel_density \
-    import KDEMultivariate, EstimatorSettings
+import geopandas as gpd
+import matplotlib as mpl
+import matplotlib.image as mpimg
+import matplotlib.patches as mpatches
+import seaborn as sb
+from matplotlib.lines import Line2D
+from pyevtk.hl import gridToVTK
 from sklearn.ensemble \
     import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics \
     import precision_score, recall_score
+from statsmodels.nonparametric.kernel_density \
+    import KDEMultivariate, EstimatorSettings
 
-import seaborn as sb
-import matplotlib as mpl
-import matplotlib.image as mpimg
-import matplotlib.patches as mpatches
-from matplotlib.lines import Line2D
-
-from pyevtk.hl import gridToVTK
-# from paraview.simple import *
-
-from predictivehp.processing.data_processing import *
-from predictivehp.aux_functions import *
 import predictivehp.models.parameters as prm
+from predictivehp.processing.data_processing import *
+
+# from paraview.simple import *
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -159,6 +156,7 @@ class STKDE:
         bw: Si es un arreglo, este debe contener los bandwidths
         dados por el usuario
         """
+        print(self.predict_groups)
 
         print("\nBuilding KDE...")
 
@@ -913,6 +911,8 @@ class STKDE:
             area_percentaje = [i / len(f_nodos) for i in area_h]
             if self.number_of_groups == 1:
                 self.hr, self.ap = HR, area_percentaje
+                print(self.ap)
+                print(self.hr)
                 return self.ap, self.hr
             hr_by_group.append(HR), ap_by_group.append(area_percentaje)
         self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
@@ -935,10 +935,13 @@ class STKDE:
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]
             area_percentaje = [i / len(f_nodos) for i in area_h]
-            PAI = [float(HR[i]) / float(area_percentaje[i]) if float(HR[i]) else 0 for i in
-                   range(len(HR))]
+            PAI = [
+                float(HR[i]) / float(area_percentaje[i]) if float(HR[i]) else 0
+                for i in
+                range(len(HR))]
             if self.number_of_groups == 1:
                 self.ap, self.hr, self.pai = area_percentaje, HR, PAI
+                print(self.ap, self.hr)
                 return self.pai, self.ap
             pai_by_group.append(PAI), ap_by_group.append(area_percentaje)
         self.pai_by_group, self.hr_by_group, self.ap_by_group = pai_by_group, hr_by_group, ap_by_group
@@ -1029,7 +1032,7 @@ class RForestRegressor:
         if read_df:
             st = time()
             print("\nReading df pickle...", end=" ")
-            self.df = pd.read_pickle('predictivehp/data/data.pkl')
+            self.df = pd.read_pickle('predictivehp/data/df.pkl')
             print(f"finished! ({time() - st:3.1f} sec)")
         if read_data:
             st = time()
@@ -1464,9 +1467,7 @@ class RForestRegressor:
         ans = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= c]
 
         print("\tReading shapefile...")
-        d_streets = gpd.GeoDataFrame.from_file(
-            "../Data/Streets/streets.shp")
-        d_streets.to_crs(epsg=3857, inplace=True)
+        d_streets = self.shps['streets']
 
         print("\tRendering Plot...")
         fig, ax = plt.subplots(figsize=(20, 15))
@@ -1495,7 +1496,7 @@ class RForestRegressor:
         :return:
         """
 
-        if type(c) == float:
+        if c.size == 1:
             incidents = pd.DataFrame(self.data)
             incidents_oct = incidents[incidents.month1 == 'October']  # 332
 
@@ -1512,13 +1513,19 @@ class RForestRegressor:
 
             return hr
         else:
+            A = self.df.shape[0]
+
+            def a(x, c):
+                return x[x[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
+
             c_arr = c
             hr_l = []
+            ap_l = []
             for c in c_arr:
                 hr_l.append(self.calculate_hr(c=c))
-            self.hr = hr_l
-
-            return np.array(hr_l)
+                ap_l.append(a(self.df, c) / A)
+            self.hr = np.array(hr_l)
+            self.ap = np.array(ap_l)
 
     def calculate_pai(self, c=0.9):
         """
@@ -2335,8 +2342,6 @@ class ProMap:
 
         k = c * nodos.max() if c.any() else np.linspace(0, nodos.max(), n)
 
-
-
         """
         1. Solo considera las celdas que son mayor a un K
             Esto me entrega una matriz con True/False (Matriz A)
@@ -2354,7 +2359,8 @@ class ProMap:
         for i in range(k.size):
             hits_n.append(
                 np.sum(
-                    (self.matriz_con_densidades >= k[i]) * self.testing_matrix))
+                    (self.matriz_con_densidades >= k[
+                        i]) * self.testing_matrix))
 
         """
         1. Solo considera las celdas que son mayor a un K
@@ -2381,8 +2387,6 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / n_celdas for
                                                i in area_hits]]
 
-
-
     def calculate_pai(self, n=100, c=None):
 
         nodos = self.matriz_con_densidades.flatten()
@@ -2401,9 +2405,10 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / n_celdas for
                                                i in area_hits]]
 
-        self.pai = [
-            0 if float(self.ap[i]) == 0 else float(self.hr[i]) / float(
-                self.ap[i]) for i in range(len(self.ap))]
+        self.PAI = [
+            0 if float(self.ap[i]) == 0 else float(self.hr[
+                                                       i]) / float(
+                self.ap[i]) for i in range(len(self.hr))]
 
     def plot_delitos_meses(self):
         meses_training = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
