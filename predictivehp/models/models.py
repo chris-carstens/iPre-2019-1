@@ -2410,10 +2410,9 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / n_celdas for
                                                i in area_hits]]
 
-        self.PAI = [
-            0 if float(self.ap[i]) == 0 else float(self.hr[
-                                                       i]) / float(
-                self.ap[i]) for i in range(len(self.hr))]
+        self.pai = [
+            0 if float(self.ap[i]) == 0 else float(self.hr[i]) / float(
+                self.ap[i]) for i in range(len(self.ap))]
 
     def plot_delitos_meses(self):
         meses_training = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -2488,5 +2487,5 @@ class ProMap:
                 print(df_split[i].center(columns))
 
 
-if __name__ ==< '__main__':
+if __name__ == '__main__':
     pass

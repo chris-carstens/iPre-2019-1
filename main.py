@@ -29,12 +29,12 @@ stkde = STKDE(df=df)
 #                        read_data=False, read_df=False)
 
 # %%
-# pm = ProMap(n=150_000, year="2017", bw=bw, i_df=df, read_files=False)
-#pm = ProMap(bw=bw, i_df=df, read_files=False)
+pm = ProMap(bw=bw, i_df=df, read_files=False)
 
 # %% Plotter
 
-pltr = Plotter(models=[stkde])
+pltr = Plotter(models=[stkde, pm])
+pltr.hr()
 pltr.pai()
 
 
