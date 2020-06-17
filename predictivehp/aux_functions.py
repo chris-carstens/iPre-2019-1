@@ -66,7 +66,7 @@ def lineplot(x, y, x_label=None, y_label=None, title=None):
 
     sns.set(
         palette=sns.color_palette("Reds", 5)[::-1],
-        rc=rc
+        rc=rc, color_codes=False
     )
 
     sns.lineplot(x=x, y=y)
@@ -134,7 +134,7 @@ def n_i(xi, x_min, hx):
     return floor((xi - x_min) / hx)
 
 
-def cell_index(nx_i, ny_i, n_y):
+def cell_index(nx_i, ny_i, n_x):
     """
     Retorna el cell_index, asociado a la i-ésima celda en la malla.
 
@@ -144,7 +144,7 @@ def cell_index(nx_i, ny_i, n_y):
     :return:
     """
 
-    return nx_i * n_y + ny_i
+    return nx_i + n_x * ny_i
 
 
 def diamond(d=3):

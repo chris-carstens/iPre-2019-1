@@ -1015,7 +1015,6 @@ class RForestRegressor:
 
         self.name = ''
         self.shps = shps
-        self.x, self.y = None, None
         self.xc_size, self.yc_size = xc_size, yc_size
         self.layers_n = layers_n
         self.nx, self.ny, self.hx, self.hy = None, None, None, None
@@ -1039,7 +1038,7 @@ class RForestRegressor:
             print(f"finished! ({time() - st:3.1f} sec)")
         else:
             self.data = i_df
-            self.generate_df(layers_n)
+            self.generate_df()
 
     # @timer
     # def get_data(self):
@@ -1122,7 +1121,6 @@ class RForestRegressor:
         operaciones trasposición y luego up-down del nd-array entregan las
         posiciones reales para el pandas dataframe.
 
-        :param int layers_n: Número de capas
         :return: Pandas Dataframe con la información
         """
 
@@ -1153,10 +1151,8 @@ class RForestRegressor:
         self.hy = (y.max() - y.min()) / self.ny
 
         # Manejo de los puntos de incidentes para poder trabajar en (x, y)
-        geometry = [Point(xy) for xy in zip(
-            np.array(self.data[['x']]),
-            np.array(self.data[['y']]))
-                    ]
+        geometry = [Point(xy) for xy in zip(np.array(self.data[['x']]),
+                                            np.array(self.data[['y']]))]
         self.data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
                                      crs=2276,
                                      geometry=geometry)
@@ -1187,13 +1183,12 @@ class RForestRegressor:
         print("\tPreparing df for filtering...")
 
         self.df['geometry'] = [Point(i) for i in
-                               zip(self.x[:-1, :-1].flatten(),
-                                   self.y[:-1, :-1].flatten())]
+                               zip(x[:-1, :-1].flatten(),
+                                   y[:-1, :-1].flatten())]
         self.df['in_dallas'] = 0
 
         # Filtrado de celdas (llenado de la columna 'in_dallas')
-        self.df = filter_cells(df=self.df,
-                               shp=self.shps['councils'])
+        self.df = filter_cells(df=self.df, shp=self.shps['councils'])
         self.df.drop(columns=[('in_dallas', '')], inplace=True)
 
         # Garbage recollection
@@ -2406,10 +2401,9 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / n_celdas for
                                                i in area_hits]]
 
-        self.PAI = [
-            0 if float(self.ap[i]) == 0 else float(self.hr[
-                                                       i]) / float(
-                self.ap[i]) for i in range(len(self.hr))]
+        self.pai = [
+            0 if float(self.ap[i]) == 0 else float(self.hr[i]) / float(
+                self.ap[i]) for i in range(len(self.ap))]
 
     def plot_delitos_meses(self):
         meses_training = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
