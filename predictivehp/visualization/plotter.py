@@ -44,7 +44,6 @@ class Plotter:
 
         :return:
         """
-
         for m in self.models:
             m.calculate_hr(c=self.c_arr)
             print()
