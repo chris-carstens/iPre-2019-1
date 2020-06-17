@@ -31,7 +31,7 @@ settings = EstimatorSettings(efficient=True,
 
 class MyKDEMultivariate(KDEMultivariate):
     def resample(self, size: int):
-        print("\nResampling...", end=" ")
+        # print("\nResampling...", end=" ")
 
         n, d = self.data.shape
         indices = np.random.randint(0, n, size)
@@ -44,10 +44,10 @@ class MyKDEMultivariate(KDEMultivariate):
         s_points = np.transpose(means + norm)
         c_points = checked_points(s_points)
 
-        print(f"\n{size - c_points.shape[1]} invalid points found")
+        # print(f"\n{size - c_points.shape[1]} invalid points found")
 
         if size == c_points.shape[1]:
-            print("\nfinished!")
+            # print("\nfinished!")
             return s_points
 
         a_points = self.resample(size - c_points.shape[1])
@@ -1531,6 +1531,7 @@ class RForestRegressor:
         """
         Calcula el Predictive Accuracy Index (PAI)
 
+        :param [float, np.ndarray] c:
         :return:
         """
 
@@ -1542,17 +1543,33 @@ class RForestRegressor:
 
         # a = self.df[self.df[('Dangerous_pred_Oct', '')] == 1].shape[0]
         # a = self.df[self.df[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
-        def a(x, c): return x[x[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
+        def a(x, c):
+            return x[x[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
 
         A = self.df.shape[0]  # Celdas en Dallas
-        hr = self.calculate_hr(c=c)
-        ap = a(self.df, c) / A
+        if c.size == 1:
+            hr = self.calculate_hr(c=c)
+            ap = a(self.df, c) / A
 
-        # print(f"a: {a} cells    A: {A} cells")
-        # print(f"Area Percentage: {ap:1.3f}")
-        # print(f"PAI: {hr / ap:1.3f}")
+            # print(f"a: {a} cells    A: {A} cells")
+            # print(f"Area Percentage: {ap:1.3f}")
+            # print(f"PAI: {hr / ap:1.3f}")
 
-        return hr / ap
+            return hr / ap
+        else:
+            c_arr = c
+            hr_l = []
+            ap_l = []
+            pai_l = []
+            for c in c_arr:
+                hr = self.calculate_hr(c=c)
+                ap = a(self.df, c) / A
+                hr_l.append(hr)
+                ap_l.append(ap)
+                pai_l.append(hr / ap)
+            self.hr = np.array(hr_l)
+            self.ap = np.array(ap_l)
+            self.pai = np.array(pai_l)
 
     def plot_statistics(self, n=500):
         """
@@ -2405,10 +2422,12 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / n_celdas for
                                                i in area_hits]]
 
+        self.calculate_hr()
+
         self.PAI = [
-            0 if float(self.ap[i]) == 0 else float(self.hr[
-                                                       i]) / float(
-                self.ap[i]) for i in range(len(self.hr))]
+            0 if float(self.ap[i]) == 0
+            else float(self.hr[i]) / float(self.ap[i])
+            for i in range(len(self.ap))]
 
     def plot_delitos_meses(self):
         meses_training = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
