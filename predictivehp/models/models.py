@@ -2406,25 +2406,11 @@ class ProMap:
 
     def calculate_pai(self, n=100, c=None):
 
-        nodos = self.matriz_con_densidades.flatten()
+        if not self.hr:
+            self.calculate_hr(n, c)
 
-        k = c * nodos.max() if c.any() else np.linspace(0, nodos.max(), n)
 
-        area_hits = []
-
-        for i in range(k.size):
-            area_hits.append(
-                np.count_nonzero((self.matriz_con_densidades >= k[
-                    i]) * self.matriz_con_densidades
-                                 ))
-
-        n_celdas = calcular_celdas(self.hx, self.hy, self.km2)
-        self.ap = [1 if j > 1 else j for j in [i / n_celdas for
-                                               i in area_hits]]
-
-        self.calculate_hr()
-
-        self.PAI = [
+        self.pai = [
             0 if float(self.ap[i]) == 0
             else float(self.hr[i]) / float(self.ap[i])
             for i in range(len(self.ap))]
