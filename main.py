@@ -30,6 +30,7 @@ rfr = RForestRegressor(i_df=df, shps=shps,
                        read_data=False, read_df=False)
 
 # %%
+
 pm = ProMap(i_df=df, bw=bw, read_files=False)
 
 # %% Plotter
