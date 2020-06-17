@@ -159,7 +159,6 @@ class STKDE:
         bw: Si es un arreglo, este debe contener los bandwidths
         dados por el usuario
         """
-        print(self.predict_groups)
 
         print("\nBuilding KDE...")
 
@@ -914,8 +913,6 @@ class STKDE:
             area_percentaje = [i / len(f_nodos) for i in area_h]
             if self.number_of_groups == 1:
                 self.hr, self.ap = HR, area_percentaje
-                print(self.ap)
-                print(self.hr)
                 return self.ap, self.hr
             hr_by_group.append(HR), ap_by_group.append(area_percentaje)
         self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
@@ -942,7 +939,6 @@ class STKDE:
                    range(len(HR))]
             if self.number_of_groups == 1:
                 self.ap, self.hr, self.pai = area_percentaje, HR, PAI
-                print(self.ap, self.hr)
                 return self.pai, self.ap
             pai_by_group.append(PAI), ap_by_group.append(area_percentaje)
         self.pai_by_group, self.hr_by_group, self.ap_by_group = pai_by_group, hr_by_group, ap_by_group
@@ -2488,5 +2484,5 @@ class ProMap:
                 print(df_split[i].center(columns))
 
 
-if __name__ ==< '__main__':
+if __name__ == '__main__':
     pass
