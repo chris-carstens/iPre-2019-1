@@ -1544,7 +1544,7 @@ class RForestRegressor:
     def heatmap(self, c=0):
         """
 
-        :param float c: Treshold a partir del cual se consideran los
+        :param float c: Threshold a partir del cual se consideran los
             incidentes
 
         :return:
@@ -1552,7 +1552,6 @@ class RForestRegressor:
         # Datos Oct luego de aplicar el rfr
         ans = self.df[[('geometry', ''), ('Dangerous_pred_Oct_rfr', '')]]
         ans = gpd.GeoDataFrame(ans)
-
         ans = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= c]
         d_streets = self.shps['streets']
 
