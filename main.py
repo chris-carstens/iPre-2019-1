@@ -14,7 +14,6 @@ df, streets, councils, c_limits = get_data(year=2017, n=150000,
                                            s_shp=s_shp_path,
                                            c_shp=c_shp_path,
                                            cl_shp=cl_shp_path)
-print("\nReading Shapefiles...")
 shps = {'streets': streets, 'councils': councils, 'c_limits': c_limits}
 
 # TODO
@@ -28,6 +27,8 @@ stkde = STKDE(df=df)
 rfr = RForestRegressor(i_df=df, shps=shps,
                        xc_size=100, yc_size=100, layers_n=7,
                        read_data=True, read_df=True)
+# rfr.to_pickle('data.pkl')
+# rfr.to_pickle('df.pkl')
 
 # %%
 pm = ProMap(i_df=df, bw=bw, read_files=False)
