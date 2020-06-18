@@ -2134,7 +2134,7 @@ class ProMap:
             self.Y = pd.read_pickle('testing_data.pkl')
             self.generar_df()
             self.matriz_con_densidades = np.load(
-                'matriz_de_densidades.pkl.npy')
+                'predictivehp/data/matriz_de_densidades.npy')
 
         else:
             self.generar_df()
@@ -2273,7 +2273,7 @@ class ProMap:
 
         self.matriz_con_densidades = matriz_con_ceros
         print('\nGuardando datos...')
-        np.save('matriz_de_densidades.npy', matriz_con_ceros)
+        np.save('predictivehp/data/matriz_de_densidades.npy', matriz_con_ceros)
 
     # def heatmap(self, matriz, nombre_grafico):
     #
