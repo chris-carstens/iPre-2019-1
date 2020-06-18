@@ -1544,7 +1544,9 @@ class RForestRegressor:
     def heatmap(self, c=0):
         """
 
-        :param float c:
+        :param float c: Treshold a partir del cual se consideran los
+            incidentes
+
         :return:
         """
         # Datos Oct luego de aplicar el rfr

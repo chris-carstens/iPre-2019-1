@@ -7,14 +7,14 @@ from predictivehp.visualization.plotter import Plotter
 # %% Data
 
 b_path = 'predictivehp/data/'
-s_shp_path = b_path + 'streets.shp'
-c_shp_path = 'predictivehp/data/councils.shp'
-cl_shp_path = 'predictivehp/data/citylimit.shp'
+s_shp_p = b_path + 'streets.shp'
+c_shp_p = 'predictivehp/data/councils.shp'
+cl_shp_p = 'predictivehp/data/citylimit.shp'
 
 shps = {}
 df, shps['streets'], shps['councils'], shps['c_limits'] = \
     get_data(year=2017, n=150000,
-             s_shp=s_shp_path, c_shp=c_shp_path, cl_shp=cl_shp_path)
+             s_shp=s_shp_p, c_shp=c_shp_p, cl_shp=cl_shp_p)
 
 # TODO
 #   extraer x_min, y_min, x_max, y_max de la db cuando el user no
