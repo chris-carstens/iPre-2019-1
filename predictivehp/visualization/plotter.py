@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
+# from mpl_toolkits.mplot3d import Axes3D
+# from matplotlib import cm
+# from matplotlib.ticker import LinearLocator
 import numpy as np
 
 import predictivehp.aux_functions as af
-import predictivehp.models.models as mdl
 
 
 class Plotter:
@@ -37,6 +39,24 @@ class Plotter:
 
         :return:
         """
+        # fig = plt.figure()
+        # ax = fig.gca(projection='3d')
+        #
+        # X = np.arange(-5, 5, 0.25)
+        # Z = np.arange(-5, 5, 0.25)
+        # X, Z = np.meshgrid(X, Z)
+        # C = np.random.random(size=40 * 40 * 3).reshape((40, 40, 3))
+        #
+        # ax.plot_surface(X, np.ones(shape=X.shape) - 1, Z,
+        #                 facecolors=C,
+        #                 linewidth=0)
+        # ax.plot_surface(X, np.ones(shape=X.shape), Z,
+        #                 facecolors=C,
+        #                 linewidth=0)
+        # ax.plot_surface(X, np.ones(shape=X.shape) + 1, Z,
+        #                 facecolors=C,
+        #                 linewidth=0)
+
         pass
 
     def hr(self):
@@ -70,4 +90,3 @@ class Plotter:
 
 if __name__ == '__main__':
     pass
-

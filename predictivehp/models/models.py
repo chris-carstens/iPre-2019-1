@@ -1042,6 +1042,8 @@ class RForestRegressor:
         else:
             self.data = i_df
             self.generate_df()
+            self.assign_cells()
+            self.ml_algorithm_2()
 
     # @timer
     # def get_data(self):
@@ -1396,19 +1398,14 @@ class RForestRegressor:
         # print(c_matrix_y)
 
     @timer
-    def ml_algorithm_2(self, f_importance=False, pickle=False):
+    def ml_algorithm_2(self, statistics=False):
         """
         Algoritmo implementado con un Random Forest Regressor (rfr)
 
-        :param f_importance:
-        :param pickle:
         :return:
         """
         print("\nInitializing...")
-
-        # Preparación del input para el algoritmo
         print("\n\tPreparing input...")
-
         # Jan-Sep
         X = self.df.loc[
             :,
@@ -1437,51 +1434,25 @@ class RForestRegressor:
 
         rfr = RandomForestRegressor(n_jobs=8)
         rfr.fit(X, y.to_numpy().ravel())
-        x_pred_rfc = rfr.predict(X)
+        y_pred_rfr = rfr.predict(X)
 
         # Sirven para determinar celdas con TP/FN
         self.df[('Dangerous_Oct_rfr', '')] = y
-        self.df[('Dangerous_pred_Oct_rfr', '')] = x_pred_rfc
+        self.df[('Dangerous_pred_Oct_rfr', '')] = y_pred_rfr
 
         # Estadísticas
 
-        # rfr_score = rfr.score(x_ft, x_lbl)
-        # rfr_precision = precision_score(x_lbl, x_pred_rfc)
-        # rfr_recall = recall_score(x_lbl, x_pred_rfc)
-        # print(
-        #     f"""
-        #     rfr score           {rfr_score:1.3f}
-        #     rfr precision       {rfr_precision:1.3f}
-        #     rfr recall          {rfr_recall:1.3f}
-        #         """
-        # )
-
-        # Plot
-
-        # Datos Oct luego de aplicar el rfr
-        ans = self.df[[('geometry', ''), ('Dangerous_pred_Oct_rfr', '')]]
-        ans = gpd.GeoDataFrame(ans)
-
-        c = 0.50  # Threshold
-        ans = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= c]
-
-        print("\tReading shapefile...")
-        d_streets = self.shps['streets']
-
-        print("\tRendering Plot...")
-        fig, ax = plt.subplots(figsize=(20, 15))
-        d_streets.plot(ax=ax,
-                       alpha=0.4,
-                       color="dimgrey",
-                       label="Streets")
-
-        ans.plot(ax=ax, column=('Dangerous_pred_Oct_rfr', ''), cmap='jet')
-
-        # Background
-        ax.set_axis_off()
-        fig.set_facecolor('black')
-        plt.show()
-        plt.close()
+        if statistics:
+            rfr_score = rfr.score(X, y)
+            rfr_precision = precision_score(y, y_pred_rfr)
+            rfr_recall = recall_score(y, y_pred_rfr)
+            print(
+                f"""
+                rfr score           {rfr_score:1.3f}
+                rfr precision       {rfr_precision:1.3f}
+                rfr recall          {rfr_recall:1.3f}
+                    """
+            )
 
     def calculate_hr(self, plot=False, c=0.9):
         """
@@ -1569,6 +1540,36 @@ class RForestRegressor:
             self.hr = np.array(hr_l)
             self.ap = np.array(ap_l)
             self.pai = np.array(pai_l)
+
+    def heatmap(self, c=0):
+        """
+
+        :param float c: Treshold a partir del cual se consideran los
+            incidentes
+
+        :return:
+        """
+        # Datos Oct luego de aplicar el rfr
+        ans = self.df[[('geometry', ''), ('Dangerous_pred_Oct_rfr', '')]]
+        ans = gpd.GeoDataFrame(ans)
+
+        ans = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= c]
+        d_streets = self.shps['streets']
+
+        print("\tRendering Plot...")
+        fig, ax = plt.subplots(figsize=(20, 15))
+        d_streets.plot(ax=ax,
+                       alpha=0.4,
+                       color="dimgrey",
+                       label="Streets")
+        ans.plot(ax=ax,
+                 column=('Dangerous_pred_Oct_rfr', ''),
+                 cmap='gist_heat')
+
+        # Background
+        ax.set_axis_off()
+        fig.set_facecolor('black')
+        plt.show()
 
     def plot_statistics(self, n=500):
         """
@@ -2135,7 +2136,7 @@ class ProMap:
             self.Y = pd.read_pickle('testing_data.pkl')
             self.generar_df()
             self.matriz_con_densidades = np.load(
-                'matriz_de_densidades.pkl.npy')
+                'predictivehp/data/matriz_de_densidades.npy')
 
         else:
             self.generar_df()
@@ -2274,7 +2275,7 @@ class ProMap:
 
         self.matriz_con_densidades = matriz_con_ceros
         print('\nGuardando datos...')
-        np.save('matriz_de_densidades.npy', matriz_con_ceros)
+        np.save('predictivehp/data/matriz_de_densidades.npy', matriz_con_ceros)
 
     # def heatmap(self, matriz, nombre_grafico):
     #
