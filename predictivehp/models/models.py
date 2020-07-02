@@ -911,8 +911,8 @@ class STKDE:
             area_percentaje = [i / len(f_nodos) for i in area_h]
             if self.number_of_groups == 1:
                 self.hr, self.ap = HR, area_percentaje
-                print(self.ap)
-                print(self.hr)
+                #print(self.ap)
+                #print(self.hr)
                 return self.ap, self.hr
             hr_by_group.append(HR), ap_by_group.append(area_percentaje)
         self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
