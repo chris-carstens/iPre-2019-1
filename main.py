@@ -31,8 +31,8 @@ rfr.to_pickle('data.pkl')
 rfr.to_pickle('df.pkl')
 
 # %%
-pm = ProMap(i_df=df, bw=bw, read_files=False)
-pm.heatmap()
+pm = ProMap(i_df=df, bw=bw, read_files=True)
+pm.heatmap(c = 0)
 
 # %% Plotter
 pltr = Plotter(models=[

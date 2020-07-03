@@ -912,8 +912,8 @@ class STKDE:
             area_percentaje = [i / len(f_nodos) for i in area_h]
             if self.number_of_groups == 1:
                 self.hr, self.ap = HR, area_percentaje
-                #print(self.ap)
-                #print(self.hr)
+                # print(self.ap)
+                # print(self.hr)
                 return self.ap, self.hr
             hr_by_group.append(HR), ap_by_group.append(area_percentaje)
         self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
@@ -2211,7 +2211,6 @@ class ProMap:
 
         self.total_dias_training = self.X['y_day'].max()
 
-
     def calcular_densidades(self):
 
         """""
@@ -2273,12 +2272,11 @@ class ProMap:
 
                     matriz_con_ceros[i][j] += time_weight * cell_weight
 
-        self.matriz_con_densidades = matriz_con_ceros/matriz_con_ceros.max()
-
+        self.matriz_con_densidades = matriz_con_ceros / matriz_con_ceros.max()
 
         print('\nGuardando datos...')
-        np.save('predictivehp/data/matriz_de_densidades.npy', self.matriz_con_densidades)
-
+        np.save('predictivehp/data/matriz_de_densidades.npy',
+                self.matriz_con_densidades)
 
     def delitos_por_celda_training(self):
 
@@ -2343,9 +2341,7 @@ class ProMap:
         self.delitos_por_celda_training()
         self.delitos_por_celda_testing(self.ventana_dias)
 
-
         k = c
-
 
         """
         1. Solo considera las celdas que son mayor a un K
@@ -2396,7 +2392,6 @@ class ProMap:
 
         if not self.hr:
             self.calculate_hr(c)
-
 
         self.pai = [
             0 if float(self.ap[i]) == 0
@@ -2475,8 +2470,8 @@ class ProMap:
             else:
                 print(df_split[i].center(columns))
 
-    def heatmap(self, nombre_grafico='Predictive Crime Map - Dallas ('
-                                       'Method: Promap)'):
+    def heatmap(self, c=0, nombre_grafico='Predictive Crime Map - Dallas ('
+                                          'Method: Promap)'):
 
         """
         Mostrar un heatmap de una matriz de riesgo.
@@ -2485,31 +2480,32 @@ class ProMap:
         :return None
         """
 
-        matriz = self.matriz_con_densidades
+
+
+        matriz = np.where(self.matriz_con_densidades >= c,
+                          self.matriz_con_densidades, 0)
+
+
 
         dallas = gpd.read_file('predictivehp/data/streets.shp')
         dallas.crs = 2276
         dallas.to_crs(epsg=3857, inplace=True)
 
-
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
-
 
         plt.title(nombre_grafico)
         plt.imshow(np.flipud(matriz.T),
                    extent=[self.x_min, self.x_max, self.y_min, self.y_max],
-                   cmap='gist_heat')
+                   cmap='gist_heat',
+                   vmin= 0, vmax=1)
 
         dallas.plot(ax=ax,
                     alpha=.1,  # Ancho de las calles
                     color="gray")
 
-
         plt.colorbar()
         plt.show()
-
-
 
 
 if __name__ == '__main__':
