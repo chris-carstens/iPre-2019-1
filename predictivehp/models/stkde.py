@@ -88,7 +88,7 @@ class Framework:
         self.training_data = []  # 3000
         self.testing_data = []  # 600
 
-        self.predict_groups = params.predict_groups
+        self.predict_groups = params.pg
 
         self.n = n
         self.year = year

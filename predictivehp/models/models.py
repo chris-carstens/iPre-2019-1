@@ -71,11 +71,15 @@ class STKDE:
         usar los métodos contour_plot o heatmap.
         """
         self.name = name
+        self.n = n
+        self.year = year
+
         self.training_months = training_months
         self.number_of_groups = number_of_groups
         self.window_days = window_days
         self.month_division = month_division
-        self.sample_number = sample_number
+        self.sn = sample_number
+
         self.results_HR_PAI = None
         self.hr = None
         self.ap = None
@@ -84,25 +88,21 @@ class STKDE:
         #   model='STKDE', year=year, n=n)
         # training data 3000
         # testing data  600
-        self.n = n
-        self.year = year
         # self.df = get_data(
         #   model='STKDE', year=year, n=n)
         self.df = df
-        self.data, self.training_data, self.testing_data, self.predict_groups = self.preparing_data()
+        self.data, self.X, self.testing_data, self.pg = self.preparing_data()
 
         # esto le pasa los datos al KDE
         self.kde = KDEMultivariate(
-            [np.array(self.training_data[['x']]),
-             np.array(self.training_data[['y']]),
-             np.array(self.training_data[['y_day']])],
+            [np.array(self.X[['x']]),
+             np.array(self.X[['y']]),
+             np.array(self.X[['y_day']])],
             'ccc')
 
     def preparing_data(self):
         df = self.df
-        df = df.sample(n=self.sample_number,
-                       replace=False,
-                       random_state=250499)
+        df = df.sample(n=self.sn, replace=False, random_state=250499)
         df.sort_values(by=['date'], inplace=True)
         df.reset_index(drop=True, inplace=True)
 
@@ -154,29 +154,26 @@ class STKDE:
     def train_model(self, x, y, t, bw=None):
         """
         Entrena el modelo y genera un KDE
-        bw: Si es un arreglo, este debe contener los bandwidths
-        dados por el usuario
+
+        Parameters
+        ----------
+        bw : list, tuple, np.ndarray
+            Si es un arreglo, este debe contener los bandwidths dados
+            por el usuario
         """
-        print(self.predict_groups)
-
         print("\nBuilding KDE...")
-
-        if bw is not None:
+        if not bw:
             print(f"\n\tGiven Bandwidths: \n"
                   f"\t\thx = {round(bw[0], 3)} ft\n"
                   f"\t\thy = {round(bw[1], 3)} ft\n"
                   f"\t\tht = {round(bw[2], 3)} days")
-
-            for group in self.predict_groups:
-                self.predict_groups[group]['STKDE'] = \
+            for g in self.pg:
+                self.pg[g]['STKDE'] = \
                     MyKDEMultivariate(
                         data=[
-                            np.array(self.predict_groups[group]['t1_data'][
-                                         ['x']]),
-                            np.array(self.predict_groups[group]['t1_data'][
-                                         ['y']]),
-                            np.array(self.predict_groups[group]['t1_data'][
-                                         ['y_day']])
+                            np.array(self.pg[g]['t1_data'][['x']]),
+                            np.array(self.pg[g]['t1_data'][['y']]),
+                            np.array(self.pg[g]['t1_data'][['y_day']])
                         ],
                         var_type='ccc',
                         bw=bw)
@@ -185,7 +182,6 @@ class STKDE:
             self.kde = KDEMultivariate(data=[x, y, t],
                                        var_type='ccc',
                                        bw='cv_ml')
-
             print(f"\n\tOptimal Bandwidths: \n"
                   f"\t\thx = {round(self.kde.bw[0], 3)} ft\n"
                   f"\t\thy = {round(self.kde.bw[1], 3)} ft\n"
@@ -843,32 +839,32 @@ class STKDE:
             f_nodos_by_group, f_delitos_by_group = {}, {}
         for i in range(1, self.number_of_groups + 1):
             x, y, t = \
-                np.array(self.predict_groups[f'group_{i}']['t2_data']['x']), \
-                np.array(self.predict_groups[f'group_{i}']['t2_data']['y']), \
-                np.array(self.predict_groups[f'group_{i}']['t2_data']['y_day'])
+                np.array(self.pg[f'group_{i}']['t2_data']['x']), \
+                np.array(self.pg[f'group_{i}']['t2_data']['y']), \
+                np.array(self.pg[f'group_{i}']['t2_data']['y_day'])
 
             if i == 1:
                 x_training = pd.Series(
-                    self.training_data["x"]).tolist() + pd.Series(
-                    self.predict_groups[f'group_{i}']['t1_data']['x']).tolist()
+                    self.X["x"]).tolist() + pd.Series(
+                    self.pg[f'group_{i}']['t1_data']['x']).tolist()
                 y_training = pd.Series(
-                    self.training_data["y"]).tolist() + pd.Series(
-                    self.predict_groups[f'group_{i}']['t1_data']['y']).tolist()
+                    self.X["y"]).tolist() + pd.Series(
+                    self.pg[f'group_{i}']['t1_data']['y']).tolist()
                 t_training = pd.Series(
-                    self.training_data["y_day"]).tolist() + pd.Series(
-                    self.predict_groups[f'group_{i}']['t1_data'][
+                    self.X["y_day"]).tolist() + pd.Series(
+                    self.pg[f'group_{i}']['t1_data'][
                         'y_day']).tolist()
 
             else:
                 for j in range(1, i):
                     x_training += pd.Series(
-                        self.predict_groups[f'group_{j}']['t2_data'][
+                        self.pg[f'group_{j}']['t2_data'][
                             'x']).tolist()
                     y_training += pd.Series(
-                        self.predict_groups[f'group_{j}']['t2_data'][
+                        self.pg[f'group_{j}']['t2_data'][
                             'y']).tolist()
                     t_training += pd.Series(
-                        self.predict_groups[f'group_{j}']['t2_data'][
+                        self.pg[f'group_{j}']['t2_data'][
                             'y_day']).tolist()
 
             self.kde = MyKDEMultivariate(

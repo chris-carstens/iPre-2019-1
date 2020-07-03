@@ -39,23 +39,23 @@ class Plotter:
 
         :return:
         """
-        # fig = plt.figure()
-        # ax = fig.gca(projection='3d')
-        #
-        # X = np.arange(-5, 5, 0.25)
-        # Z = np.arange(-5, 5, 0.25)
-        # X, Z = np.meshgrid(X, Z)
-        # C = np.random.random(size=40 * 40 * 3).reshape((40, 40, 3))
-        #
-        # ax.plot_surface(X, np.ones(shape=X.shape) - 1, Z,
-        #                 facecolors=C,
-        #                 linewidth=0)
-        # ax.plot_surface(X, np.ones(shape=X.shape), Z,
-        #                 facecolors=C,
-        #                 linewidth=0)
-        # ax.plot_surface(X, np.ones(shape=X.shape) + 1, Z,
-        #                 facecolors=C,
-        #                 linewidth=0)
+        fig = plt.figure()
+        ax = fig.gca(projection='3d')
+
+        X = np.arange(-5, 5, 0.25)
+        Z = np.arange(-5, 5, 0.25)
+        X, Z = np.meshgrid(X, Z)
+        C = np.random.random(size=40 * 40 * 3).reshape((40, 40, 3))
+
+        ax.plot_surface(X, np.ones(shape=X.shape) - 1, Z,
+                        facecolors=C,
+                        linewidth=0)
+        ax.plot_surface(X, np.ones(shape=X.shape), Z,
+                        facecolors=C,
+                        linewidth=0)
+        ax.plot_surface(X, np.ones(shape=X.shape) + 1, Z,
+                        facecolors=C,
+                        linewidth=0)
 
         pass
 
