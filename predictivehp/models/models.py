@@ -19,6 +19,7 @@ from statsmodels.nonparametric.kernel_density \
 
 import predictivehp.models.parameters as prm
 from predictivehp.processing.data_processing import *
+from sklearn.preprocessing import normalize
 
 # from paraview.simple import *
 
@@ -389,7 +390,7 @@ class STKDE:
 
         print("\nPlotting Heatmap...")
 
-        dallas = gpd.read_file('../Data/shapefiles/streets.shp')
+        dallas = gpd.read_file('predictivehp/data/streets.shp')
 
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
@@ -2129,16 +2130,14 @@ class ProMap:
         # Parámetros para gráficos
         self.hr, self.pai, self.ap = None, None, None
 
+        self.generar_df()
         if read_files:
-            self.df = pd.read_pickle('../data/data.pkl')
-            self.X = pd.read_pickle('training_data.pkl')
-            self.Y = pd.read_pickle('testing_data.pkl')
-            self.generar_df()
+
             self.matriz_con_densidades = np.load(
                 'predictivehp/data/matriz_de_densidades.npy')
 
         else:
-            self.generar_df()
+
             self.calcular_densidades()
 
     def generar_df(self):
@@ -2211,6 +2210,7 @@ class ProMap:
 
         self.total_dias_training = self.X['y_day'].max()
 
+
     def calcular_densidades(self):
 
         """""
@@ -2272,24 +2272,12 @@ class ProMap:
 
                     matriz_con_ceros[i][j] += time_weight * cell_weight
 
-        self.matriz_con_densidades = matriz_con_ceros
-        print('\nGuardando datos...')
-        np.save('predictivehp/data/matriz_de_densidades.npy', matriz_con_ceros)
+        self.matriz_con_densidades = matriz_con_ceros/matriz_con_ceros.max()
 
-    # def heatmap(self, matriz, nombre_grafico):
-    #
-    #     """
-    #     Mostrar un heatmap de una matriz de riesgo.
-    #
-    #     :param matriz: np.mgrid
-    #     :return None
-    #     """
-    #
-    #     plt.title(nombre_grafico)
-    #     plt.imshow(np.flipud(matriz.T),
-    #                extent=[self.x_min, self.x_max, self.y_min, self.y_max])
-    #     plt.colorbar()
-    #     plt.show()
+
+        print('\nGuardando datos...')
+        np.save('predictivehp/data/matriz_de_densidades.npy', self.matriz_con_densidades)
+
 
     def delitos_por_celda_training(self):
 
@@ -2349,14 +2337,14 @@ class ProMap:
 
                 break
 
-    def calculate_hr(self, n=100, c=None):
+    def calculate_hr(self, c):
 
         self.delitos_por_celda_training()
         self.delitos_por_celda_testing(self.ventana_dias)
 
-        nodos = self.matriz_con_densidades.flatten()
 
-        k = c * nodos.max() if c.any() else np.linspace(0, nodos.max(), n)
+        k = c
+
 
         """
         1. Solo considera las celdas que son mayor a un K
@@ -2403,10 +2391,10 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / n_celdas for
                                                i in area_hits]]
 
-    def calculate_pai(self, n=100, c=None):
+    def calculate_pai(self, c):
 
         if not self.hr:
-            self.calculate_hr(n, c)
+            self.calculate_hr(c)
 
 
         self.pai = [
@@ -2485,6 +2473,42 @@ class ProMap:
                     columns) + "\033[0m")
             else:
                 print(df_split[i].center(columns))
+
+    def heatmap(self, nombre_grafico='Predictive Crime Map - Dallas ('
+                                       'Method: Promap)'):
+
+        """
+        Mostrar un heatmap de una matriz de riesgo.
+
+        :param matriz: np.mgrid
+        :return None
+        """
+
+        matriz = self.matriz_con_densidades
+
+        dallas = gpd.read_file('predictivehp/data/streets.shp')
+        dallas.crs = 2276
+        dallas.to_crs(epsg=3857, inplace=True)
+
+
+        fig, ax = plt.subplots(figsize=(15, 12))
+        ax.set_facecolor('xkcd:black')
+
+
+        plt.title(nombre_grafico)
+        plt.imshow(np.flipud(matriz.T),
+                   extent=[self.x_min, self.x_max, self.y_min, self.y_max],
+                   cmap='gist_heat')
+
+        dallas.plot(ax=ax,
+                    alpha=.1,  # Ancho de las calles
+                    color="gray")
+
+
+        plt.colorbar()
+        plt.show()
+
+
 
 
 if __name__ == '__main__':
