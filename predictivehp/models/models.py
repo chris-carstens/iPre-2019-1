@@ -337,13 +337,12 @@ class STKDE:
         """
 
         print("\nPlotting Contours...")
-
-        dallas = gpd.read_file('../Data/shapefiles/streets.shp')
+        dallas_shp = gpd.read_file('predictivehp/data/streets.shp')
 
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
 
-        dallas.plot(ax=ax,
+        dallas_shp.plot(ax=ax,
                     alpha=.4,
                     color="gray",
                     zorder=1)
@@ -391,12 +390,12 @@ class STKDE:
 
         print("\nPlotting Heatmap...")
 
-        dallas = gpd.read_file('../Data/shapefiles/streets.shp')
+        dallas_shp = gpd.read_file('predictivehp/data/streets.shp')
 
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
 
-        dallas.plot(ax=ax,
+        dallas_shp.plot(ax=ax,
                     alpha=.4,  # Ancho de las calles
                     color="gray",
                     zorder=1)
@@ -843,10 +842,14 @@ class STKDE:
         if self.number_of_groups > 1:
             f_nodos_by_group, f_delitos_by_group = {}, {}
         for i in range(1, self.number_of_groups + 1):
+            #probar con el día máximo del training.
             x, y, t = \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['x']), \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['y']), \
                 np.array(self.predict_groups[f'group_{i}']['t2_data']['y_day'])
+
+            print("TIEMPOS:")
+            print(t)
 
             if i == 1:
                 x_training = pd.Series(
@@ -859,7 +862,6 @@ class STKDE:
                     self.training_data["y_day"]).tolist() + pd.Series(
                     self.predict_groups[f'group_{i}']['t1_data'][
                         'y_day']).tolist()
-
             else:
                 for j in range(1, i):
                     x_training += pd.Series(
@@ -884,15 +886,23 @@ class STKDE:
 
             f_delitos = stkde.pdf([x, y, t])
 
+            #x_mapa.min ...
+            #misma tasa promap
+            #cambiar por ejemplo útlimo día por un día promedio
+
+
+            #Probar también con mayor sensibilidad el 100
+
             x, y, t = np.mgrid[
                       np.array(x_training).min():
-                      np.array(x_training).max():100 * 1j,
+                      np.array(x_training).max():300 * 1j,
                       np.array(y_training).min():
-                      np.array(y_training).max():100 * 1j,
-                      np.array(t_training).max():
-                      np.array(t_training).max():1 * 1j
+                      np.array(y_training).max():300 * 1j,
+                      np.array(t_training).mean():
+                      np.array(t_training).mean():1 * 1j
                       ]
-
+            print("matriz")
+            print(t)
             f_nodos = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
             if self.number_of_groups:
                 return f_delitos, f_nodos

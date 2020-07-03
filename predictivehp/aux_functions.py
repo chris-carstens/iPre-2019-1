@@ -69,7 +69,7 @@ def lineplot(x, y, x_label=None, y_label=None, title=None):
         rc=rc, color_codes=False
     )
 
-    sns.lineplot(x=x, y=y)
+    sns.lineplot(x=x, y=y, legend="brief")
     if x_label:
         plt.xlabel(x_label)
     if y_label:
@@ -221,7 +221,7 @@ def filter_cells(df, shp):
 
     print('\t\tLoading shapefile...')
     # Data/Councils/councils.shp
-    dallas_shp = gpd.read_file(shp)
+    dallas_shp = shp
     dallas_shp.to_crs(epsg=3857, inplace=True)
 
     print('\t\tCreating GeoDataframe...')
