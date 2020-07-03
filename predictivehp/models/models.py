@@ -63,7 +63,6 @@ class STKDE:
                  bw=None, df=None, sample_number=3600, training_months=10,
                  number_of_groups=1,
                  window_days=7, month_division=10, name="STKDE"):
-
         """
         n: Número de registros que se piden a la database.
         year: Año de los registros pedidos
@@ -74,10 +73,10 @@ class STKDE:
         self.n = n
         self.year = year
 
-        self.training_months = training_months
-        self.number_of_groups = number_of_groups
-        self.window_days = window_days
-        self.month_division = month_division
+        self.X_months = training_months
+        self.ng = number_of_groups
+        self.wd = window_days
+        self.md = month_division
         self.sn = sample_number
 
         self.results_HR_PAI = None
@@ -91,7 +90,7 @@ class STKDE:
         # self.df = get_data(
         #   model='STKDE', year=year, n=n)
         self.df = df
-        self.data, self.X, self.testing_data, self.pg = self.preparing_data()
+        self.data, self.X, self.y, self.pg = self.preparing_data()
 
         # esto le pasa los datos al KDE
         self.kde = KDEMultivariate(
@@ -107,32 +106,32 @@ class STKDE:
         df.reset_index(drop=True, inplace=True)
 
         # División en training data (X) y testing data (y)
-        X = df[df["date"].apply(lambda x: x.month) <= self.month_division]
+        X = df[df["date"].apply(lambda x: x.month) <= self.md]
         X = X[X["date"].apply(
-            lambda x: x.month) >= self.month_division - self.training_months]
-        y = df[df["date"].apply(lambda x: x.month) > self.training_months]
+            lambda x: x.month) >= self.md - self.X_months]
+        y = df[df["date"].apply(lambda x: x.month) > self.X_months]
         predict_groups = {
-            f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None} for
-            i in range(1, self.number_of_groups + 1)}
-        days = prm.days_year[self.month_division - 1:]
+            f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None}
+            for i in range(1, self.ng + 1)}
+        days = prm.days_year[self.md - 1:]
         days = reduce(lambda a, b: a + b, days)
         # Time 1 Data for building STKDE models : 1 Month
         group_n = 1
-        for i in range(1, len(days))[::self.window_days]:
+        for i in range(1, len(days))[::self.wd]:
             predict_groups[f"group_{group_n}"]['t1_data'] = \
-                days[i - 1:i - 1 + prm.days_by_month[self.month_division]]
+                days[i - 1:i - 1 + prm.days_by_month[self.md]]
             group_n += 1
-            if group_n > self.number_of_groups:
+            if group_n > self.ng:
                 break
             # Time 2 Data for Prediction            : 1 Week
         group_n = 1
-        for i in range(1, len(days))[::self.window_days]:
+        for i in range(1, len(days))[::self.wd]:
             predict_groups[f"group_{group_n}"]['t2_data'] = \
-                days[i - 1 + prm.days_by_month[self.month_division]:i - 1 +
-                                                                    prm.days_by_month[
-                                                                        self.month_division] + self.window_days]
+                days[i - 1 + prm.days_by_month[self.md]:i - 1 +
+                                                        prm.days_by_month[
+                                                                        self.md] + self.wd]
             group_n += 1
-            if group_n > self.number_of_groups:
+            if group_n > self.ng:
                 break
         # Time 1 Data for building STKDE models : 1 Month
         for group in predict_groups:
@@ -256,10 +255,10 @@ class STKDE:
         # print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")  # 2276
 
         geometry = [Point(xy) for xy in zip(
-            np.array(self.testing_data[['x']]),
-            np.array(self.testing_data[['y']]))
+            np.array(self.y[['x']]),
+            np.array(self.y[['y']]))
                     ]
-        geo_df = gpd.GeoDataFrame(self.testing_data,
+        geo_df = gpd.GeoDataFrame(self.y,
                                   crs=dallas.crs,
                                   geometry=geometry)
 
@@ -344,10 +343,10 @@ class STKDE:
                     zorder=1)
 
         x, y = np.mgrid[
-               np.array(self.testing_data[['x']]).min():
-               np.array(self.testing_data[['x']]).max():bins * 1j,
-               np.array(self.testing_data[['y']]).min():
-               np.array(self.testing_data[['y']]).max():bins * 1j
+               np.array(self.y[['x']]).min():
+               np.array(self.y[['x']]).max():bins * 1j,
+               np.array(self.y[['y']]).min():
+               np.array(self.y[['y']]).max():bins * 1j
                ]
 
         z = self.kde.pdf(np.vstack([x.flatten(),
@@ -397,10 +396,10 @@ class STKDE:
                     zorder=1)
 
         x, y = np.mgrid[
-               np.array(self.testing_data[['x']]).min():
-               np.array(self.testing_data[['x']]).max():bins * 1j,
-               np.array(self.testing_data[['y']]).min():
-               np.array(self.testing_data[['y']]).max():bins * 1j
+               np.array(self.y[['x']]).min():
+               np.array(self.y[['x']]).max():bins * 1j,
+               np.array(self.y[['y']]).min():
+               np.array(self.y[['y']]).max():bins * 1j
                ]
 
         z = self.kde.pdf(np.vstack([x.flatten(),
@@ -438,12 +437,12 @@ class STKDE:
         print("\nCreating 3D grid...")
 
         x, y, t = np.mgrid[
-                  np.array(self.testing_data[['x']]).min():
-                  np.array(self.testing_data[['x']]).max():bins * 1j,
-                  np.array(self.testing_data[['y']]).min():
-                  np.array(self.testing_data[['y']]).max():bins * 1j,
-                  np.array(self.testing_data[['y_day']]).min():
-                  np.array(self.testing_data[['y_day']]).max():60 * 1j
+                  np.array(self.y[['x']]).min():
+                  np.array(self.y[['x']]).max():bins * 1j,
+                  np.array(self.y[['y']]).min():
+                  np.array(self.y[['y']]).max():bins * 1j,
+                  np.array(self.y[['y_day']]).min():
+                  np.array(self.y[['y_day']]).max():60 * 1j
                   ]
 
         print(x.shape)
@@ -835,9 +834,9 @@ class STKDE:
             print("finished!")
 
     def predict(self, c):
-        if self.number_of_groups > 1:
+        if self.ng > 1:
             f_nodos_by_group, f_delitos_by_group = {}, {}
-        for i in range(1, self.number_of_groups + 1):
+        for i in range(1, self.ng + 1):
             x, y, t = \
                 np.array(self.pg[f'group_{i}']['t2_data']['x']), \
                 np.array(self.pg[f'group_{i}']['t2_data']['y']), \
@@ -889,7 +888,7 @@ class STKDE:
                       ]
 
             f_nodos = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
-            if self.number_of_groups:
+            if self.ng:
                 return f_delitos, f_nodos
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
         return f_delitos_by_group, f_nodos_by_group
@@ -897,8 +896,8 @@ class STKDE:
     def calculate_hr(self, c):
         f_delitos_by_group, f_nodos_by_group = self.predict(c)
         hr_by_group, ap_by_group = [], []
-        for i in range(1, self.number_of_groups + 1):
-            if self.number_of_groups == 1:
+        for i in range(1, self.ng + 1):
+            if self.ng == 1:
                 f_delitos, f_nodos = f_delitos_by_group, f_nodos_by_group
                 c = np.linspace(0, f_nodos.max(), 100)
 
@@ -906,7 +905,7 @@ class STKDE:
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]
             area_percentaje = [i / len(f_nodos) for i in area_h]
-            if self.number_of_groups == 1:
+            if self.ng == 1:
                 self.hr, self.ap = HR, area_percentaje
                 # print(self.ap)
                 # print(self.hr)
@@ -923,8 +922,8 @@ class STKDE:
             return self.ap, self.pai
         f_delitos_by_group, f_nodos_by_group = self.predict(c)
         pai_by_group, hr_by_group, ap_by_group = [], [], []
-        for i in range(1, self.number_of_groups + 1):
-            if self.number_of_groups == 1:
+        for i in range(1, self.ng + 1):
+            if self.ng == 1:
                 f_delitos, f_nodos = f_delitos_by_group, f_nodos_by_group
                 c = np.linspace(0, f_nodos.max(), 100)
 
@@ -936,7 +935,7 @@ class STKDE:
                 float(HR[i]) / float(area_percentaje[i]) if float(HR[i]) else 0
                 for i in
                 range(len(HR))]
-            if self.number_of_groups == 1:
+            if self.ng == 1:
                 self.ap, self.hr, self.pai = area_percentaje, HR, PAI
                 print(self.ap, self.hr)
                 return self.pai, self.ap
@@ -951,7 +950,7 @@ class STKDE:
         plt.xlabel('Area percentage')
         plt.ylabel('HR')
         plt.title("HR vs Area")
-        for i in range(1, self.number_of_groups + 1):
+        for i in range(1, self.ng + 1):
             HRs, area_percentaje = results_HR[i][0], results_HR[i][1]
             plt.plot(area_percentaje, HRs, label=f'group {i}')
         plt.legend()
@@ -965,7 +964,7 @@ class STKDE:
         plt.xlabel('Area percentage')
         plt.ylabel('PAI')
         plt.title("PAI vs Area")
-        for i in range(1, self.number_of_groups + 1):
+        for i in range(1, self.ng + 1):
             PAIs, area_percentaje = results_PAI[i][0], results_PAI[i][1]
             plt.plot(area_percentaje, PAIs, label=f'group {i}')
         plt.legend()

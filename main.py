@@ -26,7 +26,7 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 # %% Random Forest Regressor
 rfr = RForestRegressor(i_df=df, shps=shps,
                        xc_size=100, yc_size=100, layers_n=7,
-                       read_data=True, read_df=True)
+                       read_data=False, read_df=False)
 rfr.heatmap()
 
 # rfr.to_pickle('data.pkl')
