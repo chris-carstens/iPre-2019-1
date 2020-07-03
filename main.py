@@ -27,21 +27,21 @@ stkde = STKDE(df=df)
 rfr = RForestRegressor(i_df=df, shps=shps,
                        xc_size=100, yc_size=100, layers_n=7,
                        read_data=True, read_df=True)
-# rfr.to_pickle('data.pkl')
-# rfr.to_pickle('df.pkl')
+rfr.to_pickle('data.pkl')
+rfr.to_pickle('df.pkl')
 
 # %%
 pm = ProMap(i_df=df, bw=bw, read_files=False)
+pm.heatmap()
 
 # %% Plotter
 pltr = Plotter(models=[
-    # stkde,
-    rfr,
-    # pm
+     stkde,
+     rfr,
+     pm
 ])
 
-pltr.hr()
-pltr.pai()
+
 
 if __name__ == '__main__':
     # TODO Reu. 20/05
