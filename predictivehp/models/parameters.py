@@ -24,6 +24,8 @@ d_colors = {
 # Optimal Bandwidths
 
 bw = np.array([1577.681, 1167.16, 35.549])
+bw2 = np.array([7859.14550575/2,10910.84908688/2,30.38113667])
+
 
 # Oct - Nov - Dic
 w_day_jan, n_days_jan = monthrange(2017, 1)
