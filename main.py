@@ -21,16 +21,16 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 #   entrega shapefiles
 
 # %% STKDE
-# stkde = STKDE(df=df)
+stkde = STKDE(df=df)
 
 # %% Random Forest Regressor
-#rfr = RForestRegressor(i_df=df, shps=shps,
-                       #xc_size=100, yc_size=100, layers_n=7,
-                       #read_data=False, read_df=False)
-#rfr.heatmap()
+rfr = RForestRegressor(i_df=df, shps=shps,
+                       xc_size=100, yc_size=100, layers_n=7,
+                       read_data=False, read_df=False)
+rfr.heatmap()
 
-# rfr.to_pickle('data.pkl')
-# rfr.to_pickle('df.pkl')
+rfr.to_pickle('data.pkl')
+rfr.to_pickle('df.pkl')
 
 # %%
 pm = ProMap(i_df=df, bw=bw, read_files=False)
@@ -38,8 +38,8 @@ pm.heatmap(c=0)
 
 # %% Plotter
 pltr = Plotter(models=[
-#     stkde,
-#     rfr,
+     stkde,
+     rfr,
      pm
   ])
 
