@@ -34,18 +34,16 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
 
     streets = gpd.read_file(filename=s_shp) if s_shp else None
     if not streets.empty:
-        streets.to_crs(epsg=3857, inplace=True)
         streets.crs = 2276
+        streets.to_crs(epsg=3857, inplace=True)
     councils = gpd.read_file(filename=c_shp) if c_shp else None
-    councils.to_crs(epsg=3857, inplace=True) if councils else None
     if not councils.empty:
-        councils.to_crs(epsg=3857, inplace=True)
         councils.crs = 2276
+        councils.to_crs(epsg=3857, inplace=True)
     c_limits = gpd.read_file(filename=cl_shp) if cl_shp else None
-    c_limits.to_crs(epsg=3857, inplace=True) if c_limits else None
     if not c_limits.empty:
-        c_limits.to_crs(epsg=3857, inplace=True)
         c_limits.crs = 2276
+        c_limits.to_crs(epsg=3857, inplace=True)
 
     print("\nRequesting data...")
     with Socrata(cre.socrata_domain,
