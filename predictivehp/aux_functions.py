@@ -226,6 +226,7 @@ def filter_cells(df, shp):
 
     # Borramos el segundo nivel ''
     geo_pd = geo_pd.T.reset_index(level=1, drop=True).T
+    geo_pd.crs = dallas_shp.crs
 
     print('\t\tFiltering...')
     geo_pd = gpd.tools.sjoin(geo_pd, dallas_shp,
