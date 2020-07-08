@@ -91,8 +91,8 @@ class STKDE:
         #   model='STKDE', year=year, n=n)
         self.df = df
 
-        print('-' * 30)
-        print('\t\tSTKDE')
+        print('-' * 100)
+        print('\n\t\tSTKDE')
         print(print_mes(self.X_months, self.X_months + 1, self.wd))
 
 
@@ -104,8 +104,8 @@ class STKDE:
              np.array(self.X[['y']]),
              np.array(self.X[['y_day']])],
             'ccc')
-
-        print('-' * 30)
+        print()
+        print('-' * 100)
 
     def preparing_data(self):
         df = self.df
@@ -2129,8 +2129,8 @@ class ProMap:
 
         self.hr, self.pai, self.ap = None, None, None
 
-        print('-\n' * 100)
-        print('\t\tProMap')
+        print('-' * 100)
+        print('\n\t\tProMap')
         print(print_mes(self.month, self.month + 1, self.ventana_dias))
 
 
@@ -2143,8 +2143,8 @@ class ProMap:
                 'predictivehp/data/matriz_de_densidades.npy')
         else:
             self.calcular_densidades()
-
-        print('\n-' * 100)
+        print()
+        print('-' * 100)
 
     def generar_df(self):
 
@@ -2307,7 +2307,6 @@ class ProMap:
                                              self.hy)
                 self.training_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
-
 
 
     def delitos_por_celda_testing(self, ventana_dias):

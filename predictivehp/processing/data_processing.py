@@ -38,7 +38,7 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
     streets.to_crs(epsg=3857, inplace=True)
     councils.to_crs(epsg=3857, inplace=True)
     c_limits.to_crs(epsg=3857, inplace=True)
-
+    print('-' * 100)
     print("\nRequesting data...")
 
     with Socrata(cre.socrata_domain,
