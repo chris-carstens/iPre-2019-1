@@ -2129,13 +2129,12 @@ class ProMap:
 
         self.hr, self.pai, self.ap = None, None, None
 
-        print('-' * 30)
+        print('-\n' * 100)
         print('\t\tProMap')
         print(print_mes(self.month, self.month + 1, self.ventana_dias))
 
 
         self.generar_df()
-
 
 
         if read_files:
@@ -2145,7 +2144,7 @@ class ProMap:
         else:
             self.calcular_densidades()
 
-        print('-' * 30)
+        print('\n-' * 100)
 
     def generar_df(self):
 
@@ -2443,12 +2442,8 @@ class ProMap:
         :return None
         """
 
-
-
         matriz = np.where(self.matriz_con_densidades >= c,
                           self.matriz_con_densidades, 0)
-
-
 
         dallas = gpd.read_file('predictivehp/data/streets.shp')
         dallas.crs = 2276

@@ -70,7 +70,6 @@ class Plotter:
 
         plt.xlabel('Area Percentage')
         plt.ylabel('Hit Rate')
-
         plt.show()
 
     def pai(self):
