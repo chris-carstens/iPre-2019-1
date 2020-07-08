@@ -90,6 +90,12 @@ class STKDE:
         # self.df = get_data(
         #   model='STKDE', year=year, n=n)
         self.df = df
+
+        print('-' * 30)
+        print('\t\tSTKDE')
+        print(print_mes(self.X_months, self.X_months + 1, self.wd))
+
+
         self.data, self.X, self.y, self.pg = self.preparing_data()
 
         # esto le pasa los datos al KDE
@@ -98,6 +104,8 @@ class STKDE:
              np.array(self.X[['y']]),
              np.array(self.X[['y_day']])],
             'ccc')
+
+        print('-' * 30)
 
     def preparing_data(self):
         df = self.df
@@ -2096,9 +2104,7 @@ class ProMap:
                  month=10,
                  km2=1_000, name='Promap'):
 
-        # por default es 1.000 km2 (área de dallas)
 
-        # data
         self.name = name
         self.data = i_df
         self.X, self.Y = None, None
@@ -2119,29 +2125,35 @@ class ProMap:
         self.radio = radio
         self.ventana_dias = ventana_dias
 
-        # matriz de riesgo
         self.matriz_con_densidades = None
 
-        # Parámetros para gráficos
         self.hr, self.pai, self.ap = None, None, None
 
+        print('-' * 30)
+        print('\t\tProMap')
+        print(print_mes(self.month, self.month + 1, self.ventana_dias))
+
+
         self.generar_df()
+
+
+
         if read_files:
 
             self.matriz_con_densidades = np.load(
                 'predictivehp/data/matriz_de_densidades.npy')
-
         else:
-
             self.calcular_densidades()
 
+        print('-' * 30)
+
     def generar_df(self):
+
         """
         Genera un dataframe en base a los x{min, max} y{min, max}.
         Recordar que cada nodo del dataframe representa el centro de cada
         celda en la malla del mapa.
 
-        :return:
         """
 
         if len(self.data) >= self.n:
@@ -2193,7 +2205,6 @@ class ProMap:
         print(f'\thx: {self.hx} mts, hy: {self.hy} mts')
         print(
             f'\tbw.x: {self.bw_x} mts, bw.y: {self.bw_y} mts, bw.t: {self.bw_t} dias')
-        print(f'\tbins.x: {self.bins_x}, bins.y: {self.bins_y}\n')
 
         self.xx, self.yy = np.mgrid[self.x_min + self.hx / 2:self.x_max -
                                                              self.hx /
@@ -2213,13 +2224,15 @@ class ProMap:
 
         """""
 
-        print('\nCalculando densidades...')
+        print('\nEstimando densidades...')
         print(
             f'\n\tNº de datos para entrenar el modelo: {len(self.X)}')
         print(
             f'\tNº de días usados para entrenar el modelo: {self.total_dias_training}')
         print(
             f'\tNº de datos para testear el modelo: {len(self.Y)}')
+
+
 
         matriz_con_ceros = np.zeros((self.bins_x, self.bins_y))
 
@@ -2272,9 +2285,8 @@ class ProMap:
         np.save('predictivehp/data/matriz_de_densidades.npy',
                 self.matriz_con_densidades)
 
+    #borrar
     def delitos_por_celda_training(self):
-
-        delitos_agregados = 0
 
         """
         Calcula el nº de delitos que hay por cada celda en la matrix de
@@ -2283,6 +2295,9 @@ class ProMap:
         :param None
         :return None
         """
+
+        delitos_agregados = 0
+
 
         self.training_matrix = np.zeros((self.bins_x, self.bins_y))
         for index, row in self.X.iterrows():
@@ -2294,8 +2309,7 @@ class ProMap:
                 self.training_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
 
-        print(f'\nSe han cargado: {delitos_agregados} delitos a la matriz de '
-              f'training')
+
 
     def delitos_por_celda_testing(self, ventana_dias):
 
@@ -2322,11 +2336,10 @@ class ProMap:
 
 
             else:
-                print(f'Se han cargado: {delitos_agregados} delitos a la '
-                      f'matriz de '
-                      f'testeo')
-                print(f'Se hará una predicción para los próximos: '
-                      f'{ventana_dias} días')
+                #print(f'Se han cargado: {delitos_agregados} delitos a la '
+                #       f'matriz de '
+                #       f'testeo')
+
 
                 break
 
@@ -2419,50 +2432,6 @@ class ProMap:
         plt.title('Distribución de delitos por mes')
         plt.legend(['Meses de training', 'Meses de Test'])
         plt.show()
-
-    def tabla_de_datos(self, k, hits_n, n_delitos_testing, HR,
-                       area_percentaje, PAI, area_hits):
-        pd.options.display.max_columns = None
-        pd.options.display.max_rows = None
-
-        d = {'k': k,
-             'numero de hits identificados (n)': hits_n,
-             'hits totales (N)': n_delitos_testing,
-             'HR': HR,
-             'celdas de area (a)': area_hits,
-             'area total (A)': 100_000,
-             'porcentaje de area': area_percentaje,
-             'PAI': PAI}
-
-        tabla = pd.DataFrame(data=d)
-
-        tabla_string = tabla.to_string()
-
-        df_split = tabla_string.split('\n')
-
-        # Get maximum value of a single column 'y'
-        maxPAI = tabla['PAI'].idxmax()
-        max_pai = tabla['PAI'].max()
-
-        columns = shutil.get_terminal_size().columns
-
-        print(f'\nMáximo valor de PAI: {max_pai}')
-        print('\n')
-        print(df_split[0].center(columns))
-        print(df_split[maxPAI].center(columns))
-        print("\033[94m" + df_split[maxPAI + 1].center(columns) + "\033[0m")
-        print(df_split[maxPAI + 2].center(columns))
-
-        # blue '\033[94m'
-
-        print('\n\n')
-
-        for i in range(len(tabla)):
-            if i == maxPAI + 1:
-                print("\033[94m" + df_split[i].center(
-                    columns) + "\033[0m")
-            else:
-                print(df_split[i].center(columns))
 
     def heatmap(self, c=0, nombre_grafico='Predictive Crime Map - Dallas ('
                                           'Method: Promap)'):

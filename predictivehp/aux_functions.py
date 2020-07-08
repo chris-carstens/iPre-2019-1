@@ -343,6 +343,31 @@ def calcular_celdas(hx, hy, superficie):
 
     return round((raiz / hx) * (raiz / hy))
 
+def print_mes(m_train, m_predict, dias):
+
+    """
+    m_train: int
+    m_predict: int
+    dias: int
+    :return str
+    """
+
+    meses = {1:'Enero',
+             2:'Febrero',
+             3:'Marzo',
+             4: 'Abril',
+             5: 'Mayo',
+             6: 'Junio',
+             7: 'Julio',
+             8: 'Agosto',
+             9: 'Septiembre',
+             10: 'Octubre',
+             11: 'Noviembre',
+             12: 'Diciembre'}
+
+    return f'Entrenando hasta: {meses[m_train]}\n' \
+        f'Predicción de: {dias} días para {meses[m_predict]} '
+
 
 if __name__ == '__main__':
     print(calcular_celdas(100, 100, 1_000))
