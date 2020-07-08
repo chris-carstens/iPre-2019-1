@@ -72,6 +72,7 @@ class STKDE:
         self.name = name
         self.n = n
         self.year = year
+        self.bw = bw
 
         self.X_months = training_months
         self.ng = number_of_groups
@@ -83,12 +84,8 @@ class STKDE:
         self.hr = None
         self.ap = None
         self.pai = None
-        # self.data, self.training_data, self.testing_data, self.predict_groups = get_data(
-        #   model='STKDE', year=year, n=n)
         # training data 3000
         # testing data  600
-        # self.df = get_data(
-        #   model='STKDE', year=year, n=n)
         self.df = df
 
         print('-' * 30)
@@ -97,13 +94,6 @@ class STKDE:
 
 
         self.data, self.X, self.y, self.pg = self.preparing_data()
-
-        # esto le pasa los datos al KDE
-        self.kde = KDEMultivariate(
-            [np.array(self.X[['x']]),
-             np.array(self.X[['y']]),
-             np.array(self.X[['y_day']])],
-            'ccc')
 
         print('-' * 30)
 
@@ -158,7 +148,7 @@ class STKDE:
         return df, X, y, predict_groups
 
     @timer
-    def train_model(self, x, y, t, bw=None):
+    def train_model(self, bw=None):
         """
         Entrena el modelo y genera un KDE
 
@@ -169,30 +159,12 @@ class STKDE:
             por el usuario
         """
         print("\nBuilding KDE...")
-        if not bw:
-            print(f"\n\tGiven Bandwidths: \n"
-                  f"\t\thx = {round(bw[0], 3)} ft\n"
-                  f"\t\thy = {round(bw[1], 3)} ft\n"
-                  f"\t\tht = {round(bw[2], 3)} days")
-            for g in self.pg:
-                self.pg[g]['STKDE'] = \
-                    MyKDEMultivariate(
-                        data=[
-                            np.array(self.pg[g]['t1_data'][['x']]),
-                            np.array(self.pg[g]['t1_data'][['y']]),
-                            np.array(self.pg[g]['t1_data'][['y_day']])
-                        ],
-                        var_type='ccc',
-                        bw=bw)
 
-        else:
-            self.kde = KDEMultivariate(data=[x, y, t],
-                                       var_type='ccc',
-                                       bw='cv_ml')
-            print(f"\n\tOptimal Bandwidths: \n"
-                  f"\t\thx = {round(self.kde.bw[0], 3)} ft\n"
-                  f"\t\thy = {round(self.kde.bw[1], 3)} ft\n"
-                  f"\t\tht = {round(self.kde.bw[2], 3)} days")
+        self.kde = MyKDEMultivariate(
+                [np.array(self.X[['x']]),
+                 np.array(self.X[['y']]),
+                 np.array(self.X[['y_day']])],
+                'ccc', bw=bw)
 
     @timer
     def data_barplot(self,
@@ -842,6 +814,8 @@ class STKDE:
             print("finished!")
 
     def predict(self, c):
+        self.train_model(self.bw)
+
         if self.ng > 1:
             f_nodos_by_group, f_delitos_by_group = {}, {}
         for i in range(1, self.ng + 1):
@@ -874,17 +848,21 @@ class STKDE:
                         self.pg[f'group_{j}']['t2_data'][
                             'y_day']).tolist()
 
-            self.kde = MyKDEMultivariate(
-                [np.array(x_training),
-                 np.array(y_training),
-                 np.array(t_training)],
-                'ccc')
+            if self.ng > 1:
 
-            self.kde.resample(len(x_training))
+                stkde = MyKDEMultivariate(
+                    [np.array(x_training),
+                     np.array(y_training),
+                     np.array(t_training)],
+                    'ccc', bw=self.bw)
 
-            stkde = self.kde
+            else:
+                stkde = self.kde
 
-            f_delitos = stkde.pdf([x, y, t])
+            stkde.resample(len(x_training))
+
+            m = np.repeat(max(t_training), x.size)
+            f_delitos = stkde.pdf([x, y, m])
 
             x, y, t = np.mgrid[
                       np.array(x_training).min():
