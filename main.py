@@ -21,7 +21,7 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 #   entrega shapefiles
 
 # %% STKDE
-stkde = STKDE(df=df)
+stkde = STKDE(df=df, bw=bw)
 
 # %% Random Forest Regressor
 rfr = RForestRegressor(i_df=df, shps=shps,
