@@ -207,7 +207,7 @@ def filter_cells(df, shp):
 
     :param pandas.DataFrame df: Dataframe que contiene información de celdas
         que no necesariamente están en Dallas
-    :param str shp: PATH al shapefile asociado
+    :param shp: Shapefile
     :return: Dataframe con celdas filtradas, i.e., que están
         dentro de Dallas
     :rtype: pandas.DataFrame
@@ -216,17 +216,17 @@ def filter_cells(df, shp):
     aux_df = df
 
     print('\tFiltering cells...')
-
     print('\t\tLoading shapefile...')
     # Data/Councils/councils.shp
     dallas_shp = shp
 
     print('\t\tCreating GeoDataframe...')
-    geo_pd = gpd.GeoDataFrame(aux_df[[('geometry', ''), ('in_dallas', '')]])
-    geo_pd.crs = dallas_shp.crs  # Mismo crs que el shp para evitar warnings
+    geo_pd = gpd.GeoDataFrame(aux_df[[('geometry', ''), ('in_dallas', '')]],
+                              crs=3857)
 
     # Borramos el segundo nivel ''
     geo_pd = geo_pd.T.reset_index(level=1, drop=True).T
+    geo_pd.crs = dallas_shp.crs
 
     print('\t\tFiltering...')
     geo_pd = gpd.tools.sjoin(geo_pd, dallas_shp,

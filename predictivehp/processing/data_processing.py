@@ -9,9 +9,10 @@ Pontifical Catholic University of Chile
 """
 
 import datetime
-import predictivehp.credentials as cre
+
 from sodapy import Socrata
 
+import predictivehp.credentials as cre
 from predictivehp.aux_functions import *
 
 pd.set_option('display.max_columns', None)
@@ -32,15 +33,19 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
     """
 
     streets = gpd.read_file(filename=s_shp) if s_shp else None
+    if not streets.empty:
+        streets.crs = 2276
+        streets.to_crs(epsg=3857, inplace=True)
     councils = gpd.read_file(filename=c_shp) if c_shp else None
+    if not councils.empty:
+        councils.crs = 2276
+        councils.to_crs(epsg=3857, inplace=True)
     c_limits = gpd.read_file(filename=cl_shp) if cl_shp else None
-    streets.crs, councils.crs, c_limits.crs = (2276, ) * 3
-    streets.to_crs(epsg=3857, inplace=True)
-    councils.to_crs(epsg=3857, inplace=True)
-    c_limits.to_crs(epsg=3857, inplace=True)
-    print('-' * 100)
-    print("\nRequesting data...")
+    if not c_limits.empty:
+        c_limits.crs = 2276
+        c_limits.to_crs(epsg=3857, inplace=True)
 
+    print("\nRequesting data...")
     with Socrata(cre.socrata_domain,
                  cre.API_KEY_S,
                  username=cre.USERNAME_S,
@@ -132,7 +137,7 @@ if __name__ == '__main__':
     c_shp_path = './../data/councils.shp'
     cl_shp_path = './../data/citylimit.shp'
 
-    streets = gpd.read_file(filename=s_shp_path)
+    # streets = gpd.read_file(filename=s_shp_path)
 
     # get_data(s_shp=s_shp_path,
     #          c_shp=c_shp_path,
