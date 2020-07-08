@@ -72,6 +72,7 @@ class STKDE:
         self.name = name
         self.n = n
         self.year = year
+        self.bw = bw
 
         self.X_months = training_months
         self.ng = number_of_groups
@@ -83,21 +84,10 @@ class STKDE:
         self.hr = None
         self.ap = None
         self.pai = None
-        # self.data, self.training_data, self.testing_data, self.predict_groups = get_data(
-        #   model='STKDE', year=year, n=n)
         # training data 3000
         # testing data  600
-        # self.df = get_data(
-        #   model='STKDE', year=year, n=n)
         self.df = df
         self.data, self.X, self.y, self.pg = self.preparing_data()
-
-        # esto le pasa los datos al KDE
-        self.kde = KDEMultivariate(
-            [np.array(self.X[['x']]),
-             np.array(self.X[['y']]),
-             np.array(self.X[['y_day']])],
-            'ccc')
 
     def preparing_data(self):
         df = self.df
@@ -149,38 +139,33 @@ class STKDE:
                                     predict_groups[group]['t2_data'][-1])]
         return df, X, y, predict_groups
 
-    @timer
-    def train_model(self, x, y, t, bw=None):
+#    @timer
+    def train_model(self, bw=None):
         """
         Entrena el modelo y genera un KDE
 
         Parameters
         ----------
-        bw : list, tuple, np.ndarray
-            Si es un arreglo, este debe contener los bandwidths dados
-            por el usuario
+        bw : np.ndarray
         """
         print("\nBuilding KDE...")
-        if not bw:
+        if bw:
             print(f"\n\tGiven Bandwidths: \n"
                   f"\t\thx = {round(bw[0], 3)} ft\n"
                   f"\t\thy = {round(bw[1], 3)} ft\n"
                   f"\t\tht = {round(bw[2], 3)} days")
-            for g in self.pg:
-                self.pg[g]['STKDE'] = \
-                    MyKDEMultivariate(
-                        data=[
-                            np.array(self.pg[g]['t1_data'][['x']]),
-                            np.array(self.pg[g]['t1_data'][['y']]),
-                            np.array(self.pg[g]['t1_data'][['y_day']])
-                        ],
-                        var_type='ccc',
-                        bw=bw)
+            self.kde = KDEMultivariate(
+                [np.array(self.X[['x']]),
+                 np.array(self.X[['y']]),
+                 np.array(self.X[['y_day']])],
+                'ccc', bw=bw)
 
         else:
-            self.kde = KDEMultivariate(data=[x, y, t],
-                                       var_type='ccc',
-                                       bw='cv_ml')
+            self.kde = KDEMultivariate(
+                [np.array(self.X[['x']]),
+                 np.array(self.X[['y']]),
+                 np.array(self.X[['y_day']])],
+                'ccc')
             print(f"\n\tOptimal Bandwidths: \n"
                   f"\t\thx = {round(self.kde.bw[0], 3)} ft\n"
                   f"\t\thy = {round(self.kde.bw[1], 3)} ft\n"
@@ -382,6 +367,22 @@ class STKDE:
         ti:
         pdf:
         """
+        x, y = np.mgrid[
+               np.array(self.y[['x']]).min():
+               np.array(self.y[['x']]).max():bins * 1j,
+               np.array(self.y[['y']]).min():
+               np.array(self.y[['y']]).max():bins * 1j
+               ]
+
+        # entreno modelo
+        print("\nTarining Model...")
+        self.train_model(self.bw)
+
+        # genero los pdf a partir del modelo entrenado y la malla definida
+        z = self.kde.pdf(np.vstack([x.flatten(),
+                                    y.flatten(),
+                                    ti * np.ones(x.size)]))
+        # z = np.ma.masked_array(z, z < .1e-11)
 
         print("\nPlotting Heatmap...")
 
@@ -394,18 +395,6 @@ class STKDE:
                     alpha=.4,  # Ancho de las calles
                     color="gray",
                     zorder=1)
-
-        x, y = np.mgrid[
-               np.array(self.y[['x']]).min():
-               np.array(self.y[['x']]).max():bins * 1j,
-               np.array(self.y[['y']]).min():
-               np.array(self.y[['y']]).max():bins * 1j
-               ]
-
-        z = self.kde.pdf(np.vstack([x.flatten(),
-                                    y.flatten(),
-                                    ti * np.ones(x.size)]))
-        # z = np.ma.masked_array(z, z < .1e-11)
 
         heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
                                  shading='gouraud',
@@ -866,17 +855,16 @@ class STKDE:
                         self.pg[f'group_{j}']['t2_data'][
                             'y_day']).tolist()
 
-            self.kde = MyKDEMultivariate(
+            #Genero un nuevo kde para el grupo correspondiente, añadiendo la ventana de tiempo nueva
+            stkde = MyKDEMultivariate(
                 [np.array(x_training),
                  np.array(y_training),
                  np.array(t_training)],
                 'ccc')
 
-            self.kde.resample(len(x_training))
-
-            stkde = self.kde
-
             f_delitos = stkde.pdf([x, y, t])
+
+            stkde.resample(len(x_training))
 
             x, y, t = np.mgrid[
                       np.array(x_training).min():
@@ -888,6 +876,7 @@ class STKDE:
                       ]
 
             f_nodos = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
+
             if self.ng:
                 return f_delitos, f_nodos
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
@@ -907,8 +896,6 @@ class STKDE:
             area_percentaje = [i / len(f_nodos) for i in area_h]
             if self.ng == 1:
                 self.hr, self.ap = HR, area_percentaje
-                # print(self.ap)
-                # print(self.hr)
                 return self.ap, self.hr
             hr_by_group.append(HR), ap_by_group.append(area_percentaje)
         self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
@@ -926,7 +913,6 @@ class STKDE:
             if self.ng == 1:
                 f_delitos, f_nodos = f_delitos_by_group, f_nodos_by_group
                 c = np.linspace(0, f_nodos.max(), 100)
-
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]
@@ -937,7 +923,6 @@ class STKDE:
                 range(len(HR))]
             if self.ng == 1:
                 self.ap, self.hr, self.pai = area_percentaje, HR, PAI
-                print(self.ap, self.hr)
                 return self.pai, self.ap
             pai_by_group.append(PAI), ap_by_group.append(area_percentaje)
         self.pai_by_group, self.hr_by_group, self.ap_by_group = pai_by_group, hr_by_group, ap_by_group
@@ -993,7 +978,6 @@ class STKDE:
         plt.plot(area_percentaje_mean, param_mean, label=f'group {i}')
         plt.savefig(hr_or_pai + " vs Area", format='pdf')
         plt.show()
-
 
 class RForestRegressor:
     def __init__(self, i_df=None, shps=None,
