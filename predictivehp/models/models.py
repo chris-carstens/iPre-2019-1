@@ -72,6 +72,7 @@ class STKDE:
         self.name = name
         self.n = n
         self.year = year
+        self.bw = bw
 
         self.X_months = training_months
         self.ng = number_of_groups
@@ -83,32 +84,18 @@ class STKDE:
         self.hr = None
         self.ap = None
         self.pai = None
-        # self.data, self.training_data, self.testing_data, self.predict_groups = get_data(
-        #   model='STKDE', year=year, n=n)
         # training data 3000
         # testing data  600
-        # self.df = get_data(
-        #   model='STKDE', year=year, n=n)
         self.df = df
 
-        print('-' * 100)
-        print('\n\t\tSTKDE')
+        print('-' * 30)
+        print('\t\tSTKDE')
         print(print_mes(self.X_months, self.X_months + 1, self.wd))
 
 
         self.data, self.X, self.y, self.pg = self.preparing_data()
 
-        # esto le pasa los datos al KDE
-        self.kde = KDEMultivariate(
-            [np.array(self.X[['x']]),
-             np.array(self.X[['y']]),
-             np.array(self.X[['y_day']])],
-            'ccc', bw=bw)
-        print('bw:', self.kde.bw)
-
-
-        print()
-        print('-' * 100)
+        print('-' * 30)
 
     def preparing_data(self):
         df = self.df
@@ -161,7 +148,7 @@ class STKDE:
         return df, X, y, predict_groups
 
     @timer
-    def train_model(self, x, y, t, bw=None):
+    def train_model(self, bw=None):
         """
         Entrena el modelo y genera un KDE
 
@@ -172,30 +159,12 @@ class STKDE:
             por el usuario
         """
         print("\nBuilding KDE...")
-        if not bw:
-            print(f"\n\tGiven Bandwidths: \n"
-                  f"\t\thx = {round(bw[0], 3)} ft\n"
-                  f"\t\thy = {round(bw[1], 3)} ft\n"
-                  f"\t\tht = {round(bw[2], 3)} days")
-            for g in self.pg:
-                self.pg[g]['STKDE'] = \
-                    MyKDEMultivariate(
-                        data=[
-                            np.array(self.pg[g]['t1_data'][['x']]),
-                            np.array(self.pg[g]['t1_data'][['y']]),
-                            np.array(self.pg[g]['t1_data'][['y_day']])
-                        ],
-                        var_type='ccc',
-                        bw=bw)
 
-        else:
-            self.kde = KDEMultivariate(data=[x, y, t],
-                                       var_type='ccc',
-                                       bw='cv_ml')
-            print(f"\n\tOptimal Bandwidths: \n"
-                  f"\t\thx = {round(self.kde.bw[0], 3)} ft\n"
-                  f"\t\thy = {round(self.kde.bw[1], 3)} ft\n"
-                  f"\t\tht = {round(self.kde.bw[2], 3)} days")
+        self.kde = MyKDEMultivariate(
+                [np.array(self.X[['x']]),
+                 np.array(self.X[['y']]),
+                 np.array(self.X[['y_day']])],
+                'ccc', bw=bw)
 
     @timer
     def data_barplot(self,
@@ -845,6 +814,8 @@ class STKDE:
             print("finished!")
 
     def predict(self, c):
+        self.train_model(self.bw)
+
         if self.ng > 1:
             f_nodos_by_group, f_delitos_by_group = {}, {}
         for i in range(1, self.ng + 1):
@@ -877,18 +848,21 @@ class STKDE:
                         self.pg[f'group_{j}']['t2_data'][
                             'y_day']).tolist()
 
-            self.kde = MyKDEMultivariate(
-                [np.array(x_training),
-                 np.array(y_training),
-                 np.array(t_training)],
-                'ccc')
+            if self.ng > 1:
 
-            self.kde.resample(len(x_training))
+                stkde = MyKDEMultivariate(
+                    [np.array(x_training),
+                     np.array(y_training),
+                     np.array(t_training)],
+                    'ccc', bw=self.bw)
 
-            stkde = self.kde
+            else:
+                stkde = self.kde
 
-            f_delitos = stkde.pdf([x, y, np.repeat(max(t_training), x.size)])
-            #el mismo t de abajo (f_nodos) -> t_training.max()
+            stkde.resample(len(x_training))
+
+            m = np.repeat(max(t_training), x.size)
+            f_delitos = stkde.pdf([x, y, m])
 
             x, y, t = np.mgrid[
                       np.array(x_training).min():
@@ -2133,8 +2107,8 @@ class ProMap:
 
         self.hr, self.pai, self.ap = None, None, None
 
-        print('-' * 100)
-        print('\n\t\tProMap')
+        print('-\n' * 100)
+        print('\t\tProMap')
         print(print_mes(self.month, self.month + 1, self.ventana_dias))
 
 
@@ -2147,8 +2121,8 @@ class ProMap:
                 'predictivehp/data/matriz_de_densidades.npy')
         else:
             self.calcular_densidades()
-        print()
-        print('-' * 100)
+
+        print('\n-' * 100)
 
     def generar_df(self):
 
@@ -2312,6 +2286,8 @@ class ProMap:
                 self.training_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
 
+
+
     def delitos_por_celda_testing(self, ventana_dias):
 
         delitos_agregados = 0
@@ -2396,7 +2372,7 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / n_celdas for
                                                i in area_hits]]
 
-    def calculate_pai2(self, c):
+    def calculate_pai(self, c):
 
         if not self.hr:
             self.calculate_hr(c)
@@ -2405,51 +2381,6 @@ class ProMap:
             0 if float(self.ap[i]) == 0
             else float(self.hr[i]) / float(self.ap[i])
             for i in range(len(self.ap))]
-
-    def calculate_pai(self, c):
-
-        self.delitos_por_celda_training()
-        self.delitos_por_celda_testing(self.ventana_dias)
-
-        k = c
-
-        hits_n = []
-
-        for i in range(k.size):
-            hits_n.append(
-                np.sum(
-                    (self.matriz_con_densidades >= k[
-                        i]) * self.testing_matrix))
-
-
-        area_hits = []
-
-        for i in range(k.size):
-            area_hits.append(
-                np.count_nonzero((self.matriz_con_densidades >= k[
-                    i]) * self.matriz_con_densidades
-                                 ))
-
-        n_delitos_testing = np.sum(self.testing_matrix)
-
-        self.hr = [i / n_delitos_testing for i in hits_n]
-
-        n_celdas = calcular_celdas(self.hx, self.hy, self.km2)
-
-        self.ap = [1 if j > 1 else j for j in [i / n_celdas for
-                                               i in area_hits]]
-
-        self.pai = [
-            0 if float(self.ap[i]) == 0
-            else float(self.hr[i]) / float(self.ap[i])
-            for i in range(len(self.ap))]
-
-        for i in range(len(self.pai)):
-            print(f'ap: {self.ap[i]}, hr: {self.hr[i]}, pai: {self.pai[i]}')
-
-        self.tabla_de_datos(k, hits_n, n_delitos_testing, self.hr, self.ap,
-                            self.pai, area_hits)
-
 
     def plot_delitos_meses(self):
         meses_training = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -2511,52 +2442,6 @@ class ProMap:
 
         plt.colorbar()
         plt.show()
-
-    def tabla_de_datos(self, k, hits_n, n_delitos_testing, HR,
-                       area_percentaje, PAI, area_hits):
-
-
-        pd.options.display.max_columns = None
-        pd.options.display.max_rows = None
-
-        d = {'k': k,
-             'numero de hits identificados (n)': hits_n,
-             'hits totales (N)': n_delitos_testing,
-             'HR': HR,
-             'celdas de area (a)': area_hits,
-             'area total (A)': 100_000,
-             'porcentaje de area': area_percentaje,
-             'PAI': PAI}
-
-        tabla = pd.DataFrame(data=d)
-
-        tabla_string = tabla.to_string()
-
-        df_split = tabla_string.split('\n')
-
-        # Get maximum value of a single column 'y'
-        maxPAI = tabla['PAI'].idxmax()
-        max_pai = tabla['PAI'].max()
-
-        columns = shutil.get_terminal_size().columns
-
-        print(f'\nMáximo valor de PAI: {max_pai}')
-        print('\n')
-        print(df_split[0].center(columns))
-        print(df_split[maxPAI].center(columns))
-        print("\033[94m" + df_split[maxPAI + 1].center(columns) + "\033[0m")
-        print(df_split[maxPAI + 2].center(columns))
-
-        # blue '\033[94m'
-
-        print('\n\n')
-
-        for i in range(len(tabla)):
-            if i == maxPAI + 1:
-                print("\033[94m" + df_split[i].center(
-                    columns) + "\033[0m")
-            else:
-                print(df_split[i].center(columns))
 
 
 if __name__ == '__main__':
