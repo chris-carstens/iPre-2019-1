@@ -3,6 +3,9 @@ from predictivehp.models.models import STKDE, RForestRegressor, ProMap
 from predictivehp.models.parameters import *
 from predictivehp.processing.data_processing import get_data
 from predictivehp.visualization.plotter import Plotter
+import numpy as np
+
+print('-' * 100)
 
 # %% Data
 
@@ -21,7 +24,8 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 #   entrega shapefiles
 
 # %% STKDE
-#stkde = STKDE(df=df)
+# stkde = STKDE(df=df)
+# stkde.heatmap(100,100)
 
 # %% Random Forest Regressor
 #rfr = RForestRegressor(i_df=df, shps=shps,
@@ -33,17 +37,20 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 # rfr.to_pickle('df.pkl')
 
 # %%
-pm = ProMap(i_df=df, bw=bw, read_files=False)
+pm = ProMap(i_df=df, bw=bw, read_files=True, ventana_dias=20)
+
+
+
 #pm.heatmap(c=0)
 
 # %% Plotter
 pltr = Plotter(models=[
-#     stkde,
-#     rfr,
+     #stkde,
+     #rfr,
      pm
   ])
 
-pltr.hr()
+# pltr.hr()
 pltr.pai()
 
 if __name__ == '__main__':

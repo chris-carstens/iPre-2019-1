@@ -103,7 +103,10 @@ class STKDE:
             [np.array(self.X[['x']]),
              np.array(self.X[['y']]),
              np.array(self.X[['y_day']])],
-            'ccc')
+            'ccc', bw=bw)
+        print('bw:', self.kde.bw)
+
+
         print()
         print('-' * 100)
 
@@ -884,7 +887,8 @@ class STKDE:
 
             stkde = self.kde
 
-            f_delitos = stkde.pdf([x, y, t])
+            f_delitos = stkde.pdf([x, y, np.repeat(max(t_training), x.size)])
+            #el mismo t de abajo (f_nodos) -> t_training.max()
 
             x, y, t = np.mgrid[
                       np.array(x_training).min():
@@ -2308,7 +2312,6 @@ class ProMap:
                 self.training_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
 
-
     def delitos_por_celda_testing(self, ventana_dias):
 
         delitos_agregados = 0
@@ -2393,7 +2396,7 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / n_celdas for
                                                i in area_hits]]
 
-    def calculate_pai(self, c):
+    def calculate_pai2(self, c):
 
         if not self.hr:
             self.calculate_hr(c)
@@ -2402,6 +2405,51 @@ class ProMap:
             0 if float(self.ap[i]) == 0
             else float(self.hr[i]) / float(self.ap[i])
             for i in range(len(self.ap))]
+
+    def calculate_pai(self, c):
+
+        self.delitos_por_celda_training()
+        self.delitos_por_celda_testing(self.ventana_dias)
+
+        k = c
+
+        hits_n = []
+
+        for i in range(k.size):
+            hits_n.append(
+                np.sum(
+                    (self.matriz_con_densidades >= k[
+                        i]) * self.testing_matrix))
+
+
+        area_hits = []
+
+        for i in range(k.size):
+            area_hits.append(
+                np.count_nonzero((self.matriz_con_densidades >= k[
+                    i]) * self.matriz_con_densidades
+                                 ))
+
+        n_delitos_testing = np.sum(self.testing_matrix)
+
+        self.hr = [i / n_delitos_testing for i in hits_n]
+
+        n_celdas = calcular_celdas(self.hx, self.hy, self.km2)
+
+        self.ap = [1 if j > 1 else j for j in [i / n_celdas for
+                                               i in area_hits]]
+
+        self.pai = [
+            0 if float(self.ap[i]) == 0
+            else float(self.hr[i]) / float(self.ap[i])
+            for i in range(len(self.ap))]
+
+        for i in range(len(self.pai)):
+            print(f'ap: {self.ap[i]}, hr: {self.hr[i]}, pai: {self.pai[i]}')
+
+        self.tabla_de_datos(k, hits_n, n_delitos_testing, self.hr, self.ap,
+                            self.pai, area_hits)
+
 
     def plot_delitos_meses(self):
         meses_training = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -2463,6 +2511,52 @@ class ProMap:
 
         plt.colorbar()
         plt.show()
+
+    def tabla_de_datos(self, k, hits_n, n_delitos_testing, HR,
+                       area_percentaje, PAI, area_hits):
+
+
+        pd.options.display.max_columns = None
+        pd.options.display.max_rows = None
+
+        d = {'k': k,
+             'numero de hits identificados (n)': hits_n,
+             'hits totales (N)': n_delitos_testing,
+             'HR': HR,
+             'celdas de area (a)': area_hits,
+             'area total (A)': 100_000,
+             'porcentaje de area': area_percentaje,
+             'PAI': PAI}
+
+        tabla = pd.DataFrame(data=d)
+
+        tabla_string = tabla.to_string()
+
+        df_split = tabla_string.split('\n')
+
+        # Get maximum value of a single column 'y'
+        maxPAI = tabla['PAI'].idxmax()
+        max_pai = tabla['PAI'].max()
+
+        columns = shutil.get_terminal_size().columns
+
+        print(f'\nMáximo valor de PAI: {max_pai}')
+        print('\n')
+        print(df_split[0].center(columns))
+        print(df_split[maxPAI].center(columns))
+        print("\033[94m" + df_split[maxPAI + 1].center(columns) + "\033[0m")
+        print(df_split[maxPAI + 2].center(columns))
+
+        # blue '\033[94m'
+
+        print('\n\n')
+
+        for i in range(len(tabla)):
+            if i == maxPAI + 1:
+                print("\033[94m" + df_split[i].center(
+                    columns) + "\033[0m")
+            else:
+                print(df_split[i].center(columns))
 
 
 if __name__ == '__main__':
