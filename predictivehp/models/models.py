@@ -1011,12 +1011,11 @@ class RForestRegressor:
         # for i in range(1, n_capas + 1):
         #     self.incidents.update({f"NC Incidents_{i}": m_dict})
 
-        if read_df:
+        if read_df and read_data:
             st = time()
             print("\nReading df pickle...", end=" ")
             self.df = pd.read_pickle('predictivehp/data/df.pkl')
             print(f"finished! ({time() - st:3.1f} sec)")
-        if read_data:
             st = time()
             print("Reading data pickle...", end=" ")
             self.data = pd.read_pickle('predictivehp/data/data.pkl')
@@ -1024,8 +1023,12 @@ class RForestRegressor:
         else:
             self.data = i_df
             self.generate_df()
-            self.assign_cells()
+
             self.ml_algorithm_2()
+            self.assign_cells()
+
+            self.to_pickle('data.pkl')
+            self.to_pickle('df.pkl')
 
     # @timer
     # def get_data(self):
