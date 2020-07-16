@@ -2107,7 +2107,7 @@ class ProMap:
 
         self.hr, self.pai, self.ap = None, None, None
 
-        print('-\n' * 100)
+        print('-' * 100)
         print('\t\tProMap')
         print(print_mes(self.month, self.month + 1, self.ventana_dias))
 
@@ -2122,7 +2122,7 @@ class ProMap:
         else:
             self.calcular_densidades()
 
-        print('\n-' * 100)
+        print('-' * 100)
 
     def generar_df(self):
 
@@ -2286,8 +2286,6 @@ class ProMap:
                 self.training_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
 
-
-
     def delitos_por_celda_testing(self, ventana_dias):
 
         delitos_agregados = 0
@@ -2299,6 +2297,7 @@ class ProMap:
         :param None
         :return: None
         """
+
 
         self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
         for index, row in self.Y.iterrows():
@@ -2317,14 +2316,12 @@ class ProMap:
                 #       f'matriz de '
                 #       f'testeo')
 
-
                 break
 
     def calculate_hr(self, c):
 
         self.delitos_por_celda_training()
         self.delitos_por_celda_testing(self.ventana_dias)
-
         k = c
 
         """
@@ -2339,13 +2336,15 @@ class ProMap:
         Se espera que los valores de la lista vayan disminuyendo a medida que el valor de K aumenta
         """
 
-        hits_n = []
+        self.hits_n = []
 
         for i in range(k.size):
-            hits_n.append(
+            self.hits_n.append(
                 np.sum(
                     (self.matriz_con_densidades >= k[
                         i]) * self.testing_matrix))
+
+
 
         """
         1. Solo considera las celdas que son mayor a un K
@@ -2355,22 +2354,22 @@ class ProMap:
         Se espera que los valores de la lista vayan disminuyendo a medida que el valor de K aumenta
         """
 
-        area_hits = []
+        self.area_hits = []
 
         for i in range(k.size):
-            area_hits.append(
-                np.count_nonzero((self.matriz_con_densidades >= k[
-                    i]) * self.matriz_con_densidades
-                                 ))
+            self.area_hits.append(
+                np.count_nonzero(self.matriz_con_densidades >= k[i]))
 
         n_delitos_testing = np.sum(self.testing_matrix)
 
-        self.hr = [i / n_delitos_testing for i in hits_n]
+        self.hr = [i / n_delitos_testing for i in self.hits_n]
 
         n_celdas = calcular_celdas(self.hx, self.hy, self.km2)
 
         self.ap = [1 if j > 1 else j for j in [i / n_celdas for
-                                               i in area_hits]]
+                                               i in self.area_hits]]
+
+
 
     def calculate_pai(self, c):
 
@@ -2381,6 +2380,11 @@ class ProMap:
             0 if float(self.ap[i]) == 0
             else float(self.hr[i]) / float(self.ap[i])
             for i in range(len(self.ap))]
+
+
+        # print("I - HITS - AREA - AREA PERCENTAJE - HR - PAI")
+        # for i in range(len(self.hr)):
+        #     print(f'{i} - {self.hits_n[i]} - {self.area_hits[i]} - {self.ap[i]} - {self.hr[i]} - {self.pai[i]}')
 
     def plot_delitos_meses(self):
         meses_training = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -2442,6 +2446,39 @@ class ProMap:
 
         plt.colorbar()
         plt.show()
+
+    def plot_incident(self, matriz, nombre_grafico):
+
+        """
+        Mostrar un heatmap de una matriz de riesgo.
+
+        :param matriz: np.mgrid
+        :return None
+        """
+
+        dallas = gpd.read_file('predictivehp/data/streets.shp')
+        dallas.crs = 2276
+        dallas.to_crs(epsg=3857, inplace=True)
+
+        fig, ax = plt.subplots(figsize=(15, 12))
+        ax.set_facecolor('xkcd:black')
+
+        plt.title(nombre_grafico)
+        plt.imshow(np.flipud(matriz.T),
+                   extent=[self.x_min, self.x_max, self.y_min, self.y_max],
+                   cmap='gist_heat',
+                   vmin=0, vmax=1)
+
+        dallas.plot(ax=ax,
+                    alpha=.1,  # Ancho de las calles
+                    #color="gray")
+                    )
+
+
+
+        plt.colorbar()
+        plt.show()
+
 
 
 if __name__ == '__main__':

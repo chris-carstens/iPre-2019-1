@@ -3,7 +3,7 @@ from predictivehp.models.models import STKDE, RForestRegressor, ProMap
 from predictivehp.models.parameters import *
 from predictivehp.processing.data_processing import get_data
 from predictivehp.visualization.plotter import Plotter
-import numpy as np
+
 
 print('-' * 100)
 
@@ -37,22 +37,25 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 # rfr.to_pickle('df.pkl')
 
 # %%
-pm = ProMap(i_df=df, bw=bw, read_files=True, ventana_dias=20)
 
+promaps = [ProMap(name= f'Ventana: {i} días',i_df=df, bw=bw, read_files=True,
+                  ventana_dias=i) for i in range(1,8)]
 
+pltr = Plotter(models=promaps)
 
-#pm.heatmap(c=0)
-
-# %% Plotter
-pltr = Plotter(models=[
-     #stkde,
-     #rfr,
-     pm
-  ])
-
-# pltr.hr()
+pltr.hr()
 pltr.pai()
 
-if __name__ == '__main__':
+pm = promaps[-1]
+pm.plot_incident(pm.training_matrix, f'días: {8}')
+pm.heatmap()
+pm.plot_incident(pm.testing_matrix, f'días: {8}')
 
+
+
+
+# %% Plotter
+
+
+if __name__ == '__main__':
     pass
