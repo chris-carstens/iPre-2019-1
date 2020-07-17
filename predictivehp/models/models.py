@@ -362,6 +362,8 @@ class STKDE:
 
         print("\nPlotting Heatmap...")
 
+        self.train_model(bw=self.bw)
+
         dallas = gpd.read_file('predictivehp/data/streets.shp')
 
         fig, ax = plt.subplots(figsize=(15, 12))
@@ -2428,10 +2430,11 @@ class ProMap:
         plt.imshow(np.flipud(matriz.T),
                    extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                    cmap='jet',
-                   vmin=0, vmax=1)
+                   vmin=0, vmax=0.7
+                   )
 
         dallas.plot(ax=ax,
-                    alpha=.1,  # Ancho de las calles
+                    alpha=.3,  # Ancho de las calles
                     color="gray")
 
         plt.colorbar()
