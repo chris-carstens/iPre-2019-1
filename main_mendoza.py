@@ -17,12 +17,13 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
              s_shp=s_shp_p, c_shp=c_shp_p, cl_shp=cl_shp_p)
 
 # %% STKDE
-# stkde = STKDE(df=df)
+# stkde = STKDE(df=df, bw=bw)
 
 # %% Random Forest Regressor
 rfr = RForestRegressor(i_df=df, shps=shps,
                        xc_size=100, yc_size=100, layers_n=7,
-                       read_data=False, read_df=False)
+                       read_data=True, read_df=True)
+rfr.calculate_hr(c=np.array([0]))
 
 # %%
 # pm = ProMap(i_df=df, bw=bw, read_files=False)
@@ -30,10 +31,10 @@ rfr = RForestRegressor(i_df=df, shps=shps,
 # Plotter
 pltr = Plotter(models=[
     # stkde,
+    # pm,
     rfr,
-    # pm
-  ])
-#
+])
+
 pltr.pai()
 
 if __name__ == '__main__':

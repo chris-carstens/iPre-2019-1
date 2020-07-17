@@ -1,10 +1,9 @@
-import shutil
+from calendar import month_name
 from calendar import month_name
 from collections import defaultdict
 from functools import reduce
 
 import geopandas as gpd
-import matplotlib as mpl
 import matplotlib.image as mpimg
 import matplotlib.patches as mpatches
 import seaborn as sb
@@ -19,7 +18,6 @@ from statsmodels.nonparametric.kernel_density \
 
 import predictivehp.models.parameters as prm
 from predictivehp.processing.data_processing import *
-from sklearn.preprocessing import normalize
 
 # from paraview.simple import *
 
@@ -92,7 +90,6 @@ class STKDE:
         print('\t\tSTKDE')
         print(print_mes(self.X_months, self.X_months + 1, self.wd))
 
-
         self.data, self.X, self.y, self.pg = self.preparing_data()
 
         print('-' * 30)
@@ -127,7 +124,7 @@ class STKDE:
             predict_groups[f"group_{group_n}"]['t2_data'] = \
                 days[i - 1 + prm.days_by_month[self.md]:i - 1 +
                                                         prm.days_by_month[
-                                                                        self.md] + self.wd]
+                                                            self.md] + self.wd]
             group_n += 1
             if group_n > self.ng:
                 break
@@ -161,10 +158,10 @@ class STKDE:
         print("\nBuilding KDE...")
 
         self.kde = MyKDEMultivariate(
-                [np.array(self.X[['x']]),
-                 np.array(self.X[['y']]),
-                 np.array(self.X[['y_day']])],
-                'ccc', bw=bw)
+            [np.array(self.X[['x']]),
+             np.array(self.X[['y']]),
+             np.array(self.X[['y_day']])],
+            'ccc', bw=bw)
 
     @timer
     def data_barplot(self,
@@ -390,7 +387,7 @@ class STKDE:
         heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
                                  shading='gouraud',
                                  alpha=.2,
-                                 cmap=mpl.cm.get_cmap("jet"),
+                                 cmap='jet',
                                  zorder=2)
 
         plt.title(f"Dallas Incidents - Heatmap\n"
@@ -1209,22 +1206,18 @@ class RForestRegressor:
 
         :return:
         """
-
+        print("\nAssigning cells...\n")
         data = self.data[self.data.month1 == month]
-        d_limits = prm.d_limits
+        x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
 
-        x_bins = abs(d_limits['x_max'] - d_limits['x_min']) / 100
-        y_bins = abs(d_limits['y_max'] - d_limits['y_min']) / 100
+        x_bins = abs(x_max - x_min) / self.xc_size
+        y_bins = abs(y_max - y_min) / self.yc_size
 
-        x, y = np.mgrid[
-               d_limits['x_min']:
-               d_limits['x_max']:x_bins * 1j,
-               d_limits['y_min']:
-               d_limits['y_max']:y_bins * 1j,
-               ]
+        x, y = np.mgrid[x_min:x_max:x_bins * 1j, y_min:y_max:y_bins * 1j, ]
 
         nx = x.shape[0] - 1
         ny = y.shape[1] - 1
+
         hx = (x.max() - x.min()) / nx
         hy = (y.max() - y.min()) / ny
 
@@ -1232,7 +1225,8 @@ class RForestRegressor:
             xi, yi = inc.geometry.x, inc.geometry.y
             nx_i = n_i(xi, x.min(), hx)
             ny_i = n_i(yi, y.min(), hy)
-            cell_idx = cell_index(nx_i, ny_i, ny)
+            # cell_idx = cell_index(nx_i, ny_i, ny)
+            cell_idx = ny_i + ny*nx_i
 
             self.data.loc[idx, 'Cell'] = cell_idx
 
@@ -1450,22 +1444,27 @@ class RForestRegressor:
         :rtype: int
         :return:
         """
-
         if c.size == 1:
-            incidents = pd.DataFrame(self.data)
-            incidents_oct = incidents[incidents.month1 == 'October']  # 332
+            # incidents = pd.DataFrame(self.data)
+            # incidents_oct = incidents[incidents.month1 == 'October']  # 332
 
             data_oct = pd.DataFrame(self.data[self.data.month1 == 'October'])
             data_oct.drop(columns='geometry', inplace=True)
+            # print(data_oct['Cell'])
+            # print(self.df.shape)
 
             ans = data_oct.join(other=self.df, on='Cell', how='left')
-            ans = ans[ans[('geometry', '')].notna()]
+            # ans = ans[ans[('geometry', '')].notna()]
+            # print(f"Data Oct: {data_oct.shape}")
+            # print(f"Ans shape: {ans.shape}")
+            # print(ans[('Dangerous_pred_Oct_rfr', '')])
 
-            incidentsh = ans[ans[('Dangerous_pred_Oct', '')] == 1]
-            incidentsh = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= c]
+            # incidentsh = ans[ans[('Dangerous_pred_Oct', '')] == 1]
+            incidentsh = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= c[0]]
+            # print(incidentsh.shape)
 
-            hr = incidentsh.shape[0] / incidents_oct.shape[0]
-
+            hr = incidentsh.shape[0] / data_oct.shape[0]
+            # print(hr)
             return hr
         else:
             A = self.df.shape[0]
@@ -1477,7 +1476,7 @@ class RForestRegressor:
             hr_l = []
             ap_l = []
             for c in c_arr:
-                hr_l.append(self.calculate_hr(c=c))
+                hr_l.append(self.calculate_hr(c=np.array([c])))
                 ap_l.append(a(self.df, c) / A)
             self.hr = np.array(hr_l)
             self.ap = np.array(ap_l)
@@ -1517,7 +1516,7 @@ class RForestRegressor:
             ap_l = []
             pai_l = []
             for c in c_arr:
-                hr = self.calculate_hr(c=c)
+                hr = self.calculate_hr(c=np.array([c]))
                 ap = a(self.df, c) / A
                 hr_l.append(hr)
                 ap_l.append(ap)
@@ -1548,7 +1547,7 @@ class RForestRegressor:
                        label="Streets")
         ans.plot(ax=ax,
                  column=('Dangerous_pred_Oct_rfr', ''),
-                 cmap='gist_heat')
+                 cmap='jet')
 
         # Background
         ax.set_axis_off()
@@ -2085,7 +2084,6 @@ class ProMap:
                  month=10,
                  km2=1_000, name='Promap'):
 
-
         self.name = name
         self.data = i_df
         self.X, self.Y = None, None
@@ -2114,9 +2112,7 @@ class ProMap:
         print('\t\tProMap')
         print(print_mes(self.month, self.month + 1, self.ventana_dias))
 
-
         self.generar_df()
-
 
         if read_files:
 
@@ -2212,8 +2208,6 @@ class ProMap:
         print(
             f'\tNº de datos para testear el modelo: {len(self.Y)}')
 
-
-
         matriz_con_ceros = np.zeros((self.bins_x, self.bins_y))
 
         if self.radio is None:
@@ -2265,7 +2259,7 @@ class ProMap:
         np.save('predictivehp/data/matriz_de_densidades.npy',
                 self.matriz_con_densidades)
 
-    #borrar
+    # borrar
     def delitos_por_celda_training(self):
 
         """
@@ -2277,7 +2271,6 @@ class ProMap:
         """
 
         delitos_agregados = 0
-
 
         self.training_matrix = np.zeros((self.bins_x, self.bins_y))
         for index, row in self.X.iterrows():
@@ -2301,7 +2294,6 @@ class ProMap:
         :return: None
         """
 
-
         self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
         for index, row in self.Y.iterrows():
             x, y, t = row['x'], row['y'], row['y_day']
@@ -2315,7 +2307,7 @@ class ProMap:
 
 
             else:
-                #print(f'Se han cargado: {delitos_agregados} delitos a la '
+                # print(f'Se han cargado: {delitos_agregados} delitos a la '
                 #       f'matriz de '
                 #       f'testeo')
 
@@ -2347,8 +2339,6 @@ class ProMap:
                     (self.matriz_con_densidades >= k[
                         i]) * self.testing_matrix))
 
-
-
         """
         1. Solo considera las celdas que son mayor a un K
             Esto me entrega una matriz con True/False (Matriz A)
@@ -2372,8 +2362,6 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / n_celdas for
                                                i in self.area_hits]]
 
-
-
     def calculate_pai(self, c):
 
         if not self.hr:
@@ -2383,7 +2371,6 @@ class ProMap:
             0 if float(self.ap[i]) == 0
             else float(self.hr[i]) / float(self.ap[i])
             for i in range(len(self.ap))]
-
 
         # print("I - HITS - AREA - AREA PERCENTAJE - HR - PAI")
         # for i in range(len(self.hr)):
@@ -2417,8 +2404,8 @@ class ProMap:
         plt.legend(['Meses de training', 'Meses de Test'])
         plt.show()
 
-    def heatmap(self, c=0, nombre_grafico='Predictive Crime Map - Dallas ('
-                                          'Method: Promap)'):
+    def heatmap(self, c=0,
+                nombre_grafico='Predictive Crime Map - Dallas (Method: Promap)'):
 
         """
         Mostrar un heatmap de una matriz de riesgo.
@@ -2440,8 +2427,8 @@ class ProMap:
         plt.title(nombre_grafico)
         plt.imshow(np.flipud(matriz.T),
                    extent=[self.x_min, self.x_max, self.y_min, self.y_max],
-                   cmap='gist_heat',
-                   vmin= 0, vmax=1)
+                   cmap='jet',
+                   vmin=0, vmax=1)
 
         dallas.plot(ax=ax,
                     alpha=.1,  # Ancho de las calles
@@ -2474,14 +2461,11 @@ class ProMap:
 
         dallas.plot(ax=ax,
                     alpha=.1,  # Ancho de las calles
-                    #color="gray")
+                    # color="gray")
                     )
-
-
 
         plt.colorbar()
         plt.show()
-
 
 
 if __name__ == '__main__':
