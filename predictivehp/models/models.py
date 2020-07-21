@@ -82,6 +82,10 @@ class STKDE:
         self.hr = None
         self.ap = None
         self.pai = None
+        self.hr_by_group = None
+        self.ap_by_group = None
+        self.pai_by_group = None
+        self.kde = None
         # training data 3000
         # testing data  600
         self.df = df
@@ -123,8 +127,7 @@ class STKDE:
         for i in range(1, len(days))[::self.wd]:
             predict_groups[f"group_{group_n}"]['t2_data'] = \
                 days[i - 1 + prm.days_by_month[self.md]:i - 1 +
-                                                        prm.days_by_month[
-                                                            self.md] + self.wd]
+                                            prm.days_by_month[self.md] + self.wd]
             group_n += 1
             if group_n > self.ng:
                 break
@@ -164,8 +167,7 @@ class STKDE:
             'ccc', bw=bw)
 
     @timer
-    def data_barplot(self,
-                     pdf: bool = False):
+    def data_barplot(self, pdf: bool = False):
         """
         Bar Plot
         pdf: True si se desea guardar el plot en formato pdf
@@ -188,8 +190,7 @@ class STKDE:
         plt.xticks(
             [i for i in range(1, 13)],
             [datetime.datetime.strptime(str(i), "%m").strftime('%b')
-             for i in range(1, 13)]
-        )
+             for i in range(1, 13)])
 
         sb.despine()
 
@@ -360,7 +361,11 @@ class STKDE:
         pdf:
         """
 
+        self.train_model(bw=self.bw)
+
         print("\nPlotting Heatmap...")
+
+        self.train_model(bw=self.bw)
 
         dallas = gpd.read_file('predictivehp/data/streets.shp')
 
@@ -810,11 +815,9 @@ class STKDE:
             Interact()
             print("finished!")
 
-    def predict(self, c):
+    def predict(self):
         self.train_model(self.bw)
-
-        if self.ng > 1:
-            f_nodos_by_group, f_delitos_by_group = {}, {}
+        f_nodos_by_group, f_delitos_by_group = {}, {}
         for i in range(1, self.ng + 1):
             x, y, t = \
                 np.array(self.pg[f'group_{i}']['t2_data']['x']), \
@@ -822,6 +825,7 @@ class STKDE:
                 np.array(self.pg[f'group_{i}']['t2_data']['y_day'])
 
             if i == 1:
+                #Data base, para primer grupo
                 x_training = pd.Series(
                     self.X["x"]).tolist() + pd.Series(
                     self.pg[f'group_{i}']['t1_data']['x']).tolist()
@@ -834,6 +838,7 @@ class STKDE:
                         'y_day']).tolist()
 
             else:
+                #Data agregada del grupo anterior, para re-entrenamiento
                 for j in range(1, i):
                     x_training += pd.Series(
                         self.pg[f'group_{j}']['t2_data'][
@@ -845,8 +850,8 @@ class STKDE:
                         self.pg[f'group_{j}']['t2_data'][
                             'y_day']).tolist()
 
-            if self.ng > 1:
-
+            if i > 1:
+                #re-entrenamos modelo
                 stkde = MyKDEMultivariate(
                     [np.array(x_training),
                      np.array(y_training),
@@ -870,113 +875,57 @@ class STKDE:
                       np.array(t_training).max():1 * 1j
                       ]
 
+            #pdf para nodos
             f_nodos = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
-            if self.ng:
-                return f_delitos, f_nodos
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
         return f_delitos_by_group, f_nodos_by_group
 
     def calculate_hr(self, c):
-        f_delitos_by_group, f_nodos_by_group = self.predict(c)
+        f_delitos_by_group, f_nodos_by_group = self.predict()
         hr_by_group, ap_by_group = [], []
         for i in range(1, self.ng + 1):
-            if self.ng == 1:
-                f_delitos, f_nodos = f_delitos_by_group, f_nodos_by_group
-                c = np.linspace(0, f_nodos.max(), 100)
-
+            f_delitos, f_nodos = f_delitos_by_group[i], f_nodos_by_group[i]
+            c = np.linspace(0, f_nodos.max(), 100)
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]
             area_percentaje = [i / len(f_nodos) for i in area_h]
-            if self.ng == 1:
+            if i == 1:
+                #caso base para el grupo 1 (o cuando se utiliza solo un grupo), sirve para función plotter
                 self.hr, self.ap = HR, area_percentaje
-                # print(self.ap)
-                # print(self.hr)
-                return self.ap, self.hr
             hr_by_group.append(HR), ap_by_group.append(area_percentaje)
         self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
         return self.hr_by_group, self.ap_by_group
 
     def calculate_pai(self, c):
-        if self.hr:
-            PAI = [float(self.hr[i]) / float(self.ap[i]) for i in
-                   range(len(self.hr))]
-            self.pai = PAI
-            return self.ap, self.pai
-        f_delitos_by_group, f_nodos_by_group = self.predict(c)
-        pai_by_group, hr_by_group, ap_by_group = [], [], []
-        for i in range(1, self.ng + 1):
-            if self.ng == 1:
-                f_delitos, f_nodos = f_delitos_by_group, f_nodos_by_group
+        pai_by_group = []
+        if self.hr_by_group:
+            for g in range(1, self.ng + 1):
+                PAI = [float(self.hr_by_group[g-1][i]) / float(self.ap_by_group[g-1][i]) for i in
+                       range(len(self.hr_by_group[g-1]))]
+                pai_by_group.append(PAI)
+                if g == 1:
+                    self.pai = PAI
+        else:
+            f_delitos_by_group, f_nodos_by_group = self.predict()
+            hr_by_group, ap_by_group = [], []
+            for i in range(1, self.ng + 1):
+                f_delitos, f_nodos = f_delitos_by_group[i], f_nodos_by_group[i]
                 c = np.linspace(0, f_nodos.max(), 100)
-
-            hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
-            area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
-            HR = [i / len(f_delitos) for i in hits]
-            area_percentaje = [i / len(f_nodos) for i in area_h]
-            PAI = [
-                float(HR[i]) / float(area_percentaje[i]) if float(HR[i]) else 0
-                for i in
-                range(len(HR))]
-            if self.ng == 1:
-                self.ap, self.hr, self.pai = area_percentaje, HR, PAI
-                print(self.ap, self.hr)
-                return self.pai, self.ap
-            pai_by_group.append(PAI), ap_by_group.append(area_percentaje)
-        self.pai_by_group, self.hr_by_group, self.ap_by_group = pai_by_group, hr_by_group, ap_by_group
+                hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
+                area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
+                HR = [i / len(f_delitos) for i in hits]
+                area_percentaje = [i / len(f_nodos) for i in area_h]
+                PAI = [
+                    float(HR[i]) / float(area_percentaje[i]) if float(HR[i]) else 0
+                    for i in
+                    range(len(HR))]
+                if i == 1:
+                    self.ap, self.hr, self.pai = area_percentaje, HR, PAI
+                pai_by_group.append(PAI), ap_by_group.append(area_percentaje), hr_by_group.append(HR)
+                self.hr_by_group, self.ap_by_group = pai_by_group, hr_by_group
+        self.pai_by_group = ap_by_group
         return self.pai_by_group, self.hr_by_group, self.ap_by_group
-
-    def plot_HR(self):
-        if not self.results_HR_PAI:
-            self.results_HR_PAI = self.calculate_HR_PAI()
-        results_HR = self.results_HR_PAI['HR']
-        plt.xlabel('Area percentage')
-        plt.ylabel('HR')
-        plt.title("HR vs Area")
-        for i in range(1, self.ng + 1):
-            HRs, area_percentaje = results_HR[i][0], results_HR[i][1]
-            plt.plot(area_percentaje, HRs, label=f'group {i}')
-        plt.legend()
-        plt.savefig("HRvsArea", format='pdf')
-        plt.show()
-
-    def plot_PAI(self):
-        if not self.results_HR_PAI:
-            self.results_HR_PAI = self.calculate_HR_PAI()
-        results_PAI = self.results_HR_PAI['PAI']
-        plt.xlabel('Area percentage')
-        plt.ylabel('PAI')
-        plt.title("PAI vs Area")
-        for i in range(1, self.ng + 1):
-            PAIs, area_percentaje = results_PAI[i][0], results_PAI[i][1]
-            plt.plot(area_percentaje, PAIs, label=f'group {i}')
-        plt.legend()
-        plt.savefig("PAIvsArea", format='pdf')
-        plt.show()
-
-    def plot_mean(self, hr_or_pai="PAI"):
-        if not self.results_HR_PAI:
-            self.results_HR_PAI = self.calculate_HR_PAI()
-        results = self.results_HR_PAI[hr_or_pai]
-
-        plt.xlabel('Area percentage')
-        plt.ylabel("Mean " + hr_or_pai)
-        plt.title("Mean: " + hr_or_pai + " vs Area")
-
-        param_mean = []
-        area_percentaje_mean = []
-
-        for i in range(0, 100):
-            HR_or_PAI = [results[group][0][i] for group in results]
-            mean = sum(HR_or_PAI) / len(HR_or_PAI)
-            param_mean.append(mean)
-            area = [results[group][1][i] for group in results]
-            area_mean = sum(area) / len(area)
-            area_percentaje_mean.append(area_mean)
-        plt.plot(area_percentaje_mean, param_mean, label=f'group {i}')
-        plt.savefig(hr_or_pai + " vs Area", format='pdf')
-        plt.show()
-
 
 class RForestRegressor:
     def __init__(self, i_df=None, shps=None,
@@ -1454,6 +1403,7 @@ class RForestRegressor:
             # print(self.df.shape)
 
             ans = data_oct.join(other=self.df, on='Cell', how='left')
+
             # ans = ans[ans[('geometry', '')].notna()]
             # print(f"Data Oct: {data_oct.shape}")
             # print(f"Ans shape: {ans.shape}")
@@ -1480,6 +1430,7 @@ class RForestRegressor:
                 ap_l.append(a(self.df, c) / A)
             self.hr = np.array(hr_l)
             self.ap = np.array(ap_l)
+        plt.savefig(f"frheatmap.pdf", format='pdf')
 
     def calculate_pai(self, c=0.9):
         """
@@ -2076,51 +2027,49 @@ class RForestRegressor:
         plt.show()
         plt.close()
 
-
 class ProMap:
-    def __init__(self, bw, i_df=None, n_datos=3600, read_files=False,
+
+    def __init__(self, bw, i_df=None, n_datos=3600, read_density=False,
                  hx=100, hy=100,
                  radio=None, ventana_dias=7, tiempo_entrenamiento=None,
                  month=10,
-                 km2=1_000, name='Promap'):
+                 km2=1_000, name='Promap', shps=None):
 
-        self.name = name
+        #DATA
         self.data = i_df
-        self.X, self.Y = None, None
         self.n = n_datos
         self.month = month
+        self.X, self.Y = None, None
+        self.shps = shps
 
-        self.bw_x = bw[0]
-        self.bw_y = bw[1]
-        self.bw_t = bw[2] if not tiempo_entrenamiento else tiempo_entrenamiento
-
+        #MAP
         self.hx, self.hy, self.km2 = hx, hy, km2
-
-        self.x_min, self.x_max = prm.d_limits['x_min'], prm.d_limits['x_max']
-        self.y_min, self.y_max = prm.d_limits['y_min'], prm.d_limits['y_max']
-
-        self.bins_x, self.bins_y = None, None
-
+        self.x_min, self.y_min, self.x_max, self.y_max = self.shps['streets'].total_bounds
+        self.bw_x, self.bw_y= bw[0], bw[1]
+        self.bw_t = bw[2] if not tiempo_entrenamiento else tiempo_entrenamiento
         self.radio = radio
+        self.bins_x = round(abs(self.x_max - self.x_min) / self.hx)
+        self.bins_y = round(abs(self.y_max - self.y_min) / self.hy)
+
+        #MODEL
+        self.name = name
         self.ventana_dias = ventana_dias
-
-        self.matriz_con_densidades = None
-
+        self.matriz_con_densidades = np.zeros((self.bins_x, self.bins_y))
+        self.training_matrix = np.zeros((self.bins_x, self.bins_y))
+        self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
         self.hr, self.pai, self.ap = None, None, None
 
         print('-' * 100)
-        print('\t\tProMap')
+        print('\t\t', self.name)
         print(print_mes(self.month, self.month + 1, self.ventana_dias))
 
         self.generar_df()
 
-        if read_files:
-
+        if read_density:
             self.matriz_con_densidades = np.load(
-                'predictivehp/data/matriz_de_densidades.npy')
+                'predictivehp/data/density_matrix.npy')
         else:
             self.calcular_densidades()
-
         print('-' * 100)
 
     def generar_df(self):
@@ -2147,48 +2096,31 @@ class ProMap:
             np.array(self.data[['y']]))
                     ]
 
-        self.geo_data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
-                                         crs=2276,
-                                         geometry=geometry)
+        geo_data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
+                                    crs=2276,
+                                    geometry=geometry)
 
-        self.geo_data.to_crs(epsg=3857, inplace=True)
+        geo_data.to_crs(epsg=3857, inplace=True)
 
-        # Ahora debemos juntar los datos del geo data y los day_y
-
-        data = defaultdict(list)
-
-        for i in range(len(self.data)):
-            data['x'].append(self.geo_data.geometry[i].x)
-            data['y'].append(self.geo_data.geometry[i].y)
-            data['date'].append(self.data['date'][i])
-            data['y_day'].append(self.data['y_day'][i])
-
-        data_ok = pd.DataFrame(data=data)
+        self.data['x_point'] = geo_data['geometry'].x
+        self.data['y_point'] = geo_data['geometry'].y
 
         # División en training y testing data
 
-        self.X = data_ok[
-            self.data["date"].apply(lambda x: x.month) <= self.month
-            ]
+        self.X = self.data[self.data["date"].apply(lambda x: x.month) <= \
+                           self.month]
+        self.Y = self.data[self.data["date"].apply(lambda x: x.month) > \
+                           self.month]
 
-        self.Y = data_ok[
-            self.data["date"].apply(lambda x: x.month) > self.month
-            ]
-
-        self.bins_x = round(abs(self.x_max - self.x_min) / self.hx)
-        self.bins_y = round(abs(self.y_max - self.y_min) / self.hy)
 
         print(f'\thx: {self.hx} mts, hy: {self.hy} mts')
         print(
             f'\tbw.x: {self.bw_x} mts, bw.y: {self.bw_y} mts, bw.t: {self.bw_t} dias')
 
-        self.xx, self.yy = np.mgrid[self.x_min + self.hx / 2:self.x_max -
-                                                             self.hx /
-                                                             2:self.bins_x *
-                                                               1j,
-                           self.y_min + self.hy / 2:self.y_max - self.hy /
-                                                    2:self.bins_y *
-                                                      1j]
+        self.xx, self.yy = np.mgrid[
+                           self.x_min + self.hx / 2:self.x_max - self.hx / 2:self.bins_x * 1j,
+                           self.y_min + self.hy / 2:self.y_max - self.hy /2:self.bins_y *1j
+                           ]
 
         self.total_dias_training = self.X['y_day'].max()
 
@@ -2208,9 +2140,9 @@ class ProMap:
         print(
             f'\tNº de datos para testear el modelo: {len(self.Y)}')
 
-        matriz_con_ceros = np.zeros((self.bins_x, self.bins_y))
 
-        if self.radio is None:
+
+        if not self.radio:
             ancho_x = radio_pintar(self.hx, self.bw_x)
             ancho_y = radio_pintar(self.hy, self.bw_y)
         else:
@@ -2218,53 +2150,41 @@ class ProMap:
             ancho_y = radio_pintar(self.hy, self.radio)
 
         for k in range(len(self.X)):
-
-            x, y, t = self.X['x'][k], \
-                      self.X['y'][
-                          k], \
-                      self.X['y_day'][k]
-
+            x, y, t = self.X['x_point'][k], self.X['y_point'][k], self.X['y_day'][k]
             x_in_matrix, y_in_matrix = find_position(self.xx, self.yy, x, y,
                                                      self.hx, self.hy)
             x_left, x_right = limites_x(ancho_x, x_in_matrix, self.xx)
             y_abajo, y_up = limites_y(ancho_y, y_in_matrix, self.yy)
 
             for i in range(x_left, x_right + 1):
-
                 for j in range(y_abajo, y_up):
-
                     elem_x = self.xx[i][0]
                     elem_y = self.yy[0][j]
-
-                    time_weight = 1 / n_semanas(self.total_dias_training,
-                                                t)
+                    time_weight = 1 / n_semanas(self.total_dias_training, t)
 
                     if linear_distance(elem_x, x) > self.bw_x or \
-                            linear_distance(
-                                elem_y, y) > self.bw_y:
-
+                            linear_distance(elem_y, y) > self.bw_y:
                         cell_weight = 0
-                        pass
+
                     else:
                         cell_weight = 1 / cells_distance(x, y, elem_x,
                                                          elem_y,
                                                          self.hx,
                                                          self.hy)
 
-                    matriz_con_ceros[i][j] += time_weight * cell_weight
+                    self.matriz_con_densidades[i][j] += time_weight * cell_weight
 
-        self.matriz_con_densidades = matriz_con_ceros / matriz_con_ceros.max()
+        self.matriz_con_densidades = self.matriz_con_densidades / self.matriz_con_densidades.max()
 
         print('\nGuardando datos...')
         np.save('predictivehp/data/matriz_de_densidades.npy',
                 self.matriz_con_densidades)
 
     # borrar
-    def delitos_por_celda_training(self):
+    def load_train_matrix(self):
 
         """
-        Calcula el nº de delitos que hay por cada celda en la matrix de
-        training
+        Ubica los delitos en la matriz de training
 
         :param None
         :return None
@@ -2272,7 +2192,6 @@ class ProMap:
 
         delitos_agregados = 0
 
-        self.training_matrix = np.zeros((self.bins_x, self.bins_y))
         for index, row in self.X.iterrows():
             x, y, t = row['x'], row['y'], row['y_day']
 
@@ -2282,76 +2201,64 @@ class ProMap:
                 self.training_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
 
-    def delitos_por_celda_testing(self, ventana_dias):
-
-        delitos_agregados = 0
+    def load_test_matrix(self, ventana_dias):
 
         """
-        Calcula el nº de delitos que hay por cada celda en la matrix de
-        testeo
+        Ubica los delitos en la matriz de testeo
 
         :param None
         :return: None
         """
+        delitos_agregados = 0
 
-        self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
         for index, row in self.Y.iterrows():
             x, y, t = row['x'], row['y'], row['y_day']
 
             if t <= (self.total_dias_training + ventana_dias):
-
                 x_pos, y_pos = find_position(self.xx, self.yy, x, y, self.hx,
                                              self.hy)
                 self.testing_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
-
-
             else:
-                # print(f'Se han cargado: {delitos_agregados} delitos a la '
-                #       f'matriz de '
-                #       f'testeo')
-
                 break
 
     def calculate_hr(self, c):
 
-        self.delitos_por_celda_training()
-        self.delitos_por_celda_testing(self.ventana_dias)
-        k = c
 
-        """
-        1. Solo considera las celdas que son mayor a un K
-            Esto me entrega una matriz con True/False (Matriz A)
-        2. La matriz de True/False la multiplico con una matriz que tiene la 
-        cantidad de delitos que hay por cada celda (Matriz B)
-        3. Al multiplicar A * B obtengo una matriz C donde todos los False en 
-        A son 0 en B. Todos los True en A mantienen su valor en B
-        4. Contar cuantos delitos quedaron luego de haber pasado este proceso.
+        # 1. Solo considera las celdas que son mayor a un K
+        #     Esto me entrega una matriz con True/False (Matriz A)
+        # 2. La matriz de True/False la multiplico con una matriz que tiene la
+        # cantidad de delitos que hay por cada celda (Matriz B)
+        # 3. Al multiplicar A * B obtengo una matriz C donde todos los False en
+        # A son 0 en B. Todos los True en A mantienen su valor en B
+        # 4. Contar cuantos delitos quedaron luego de haber pasado este proceso.
+        #
+        # Se espera que los valores de la lista vayan disminuyendo a medida que el valor de K aumenta
 
-        Se espera que los valores de la lista vayan disminuyendo a medida que el valor de K aumenta
-        """
+        self.load_train_matrix()
+        self.load_test_matrix(self.ventana_dias)
 
         self.hits_n = []
 
-        for i in range(k.size):
+        for i in range(c.size):
             self.hits_n.append(
                 np.sum(
-                    (self.matriz_con_densidades >= k[
+                    (self.matriz_con_densidades >= c[
                         i]) * self.testing_matrix))
 
-        """
-        1. Solo considera las celdas que son mayor a un K
-            Esto me entrega una matriz con True/False (Matriz A)
-        2. Contar cuantos celdas quedaron luego de haber pasado este proceso.
-
-        Se espera que los valores de la lista vayan disminuyendo a medida que el valor de K aumenta
-        """
+        # """
+        # 1. Solo considera las celdas que son mayor a un K
+        #     Esto me entrega una matriz con True/False (Matriz A)
+        # 2. Contar cuantos celdas quedaron luego de haber pasado este proceso.
+        #
+        # Se espera que los valores de la lista vayan disminuyendo a medida que el valor de K aumenta
+        # """
 
         self.area_hits = []
 
-        for i in range(k.size):
+        for i in range(c.size):
             self.area_hits.append(
-                np.count_nonzero(self.matriz_con_densidades >= k[i]))
+                np.count_nonzero(self.matriz_con_densidades >= c[i]))
 
         n_delitos_testing = np.sum(self.testing_matrix)
 
@@ -2372,37 +2279,6 @@ class ProMap:
             else float(self.hr[i]) / float(self.ap[i])
             for i in range(len(self.ap))]
 
-        # print("I - HITS - AREA - AREA PERCENTAJE - HR - PAI")
-        # for i in range(len(self.hr)):
-        #     print(f'{i} - {self.hits_n[i]} - {self.area_hits[i]} - {self.ap[i]} - {self.hr[i]} - {self.pai[i]}')
-
-    def plot_delitos_meses(self):
-        meses_training = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-                          'Jul', 'Ago', 'Sept', 'Oct']
-
-        meses_test = ['Nov', 'Dic']
-
-        n_por_mes = []
-
-        n_mes = 1
-        n_datos = 0
-
-        while n_mes <= 12:
-            for x in self.data['date']:
-                if x.month == n_mes:
-                    n_datos += 1
-            n_por_mes.append(n_datos)
-            n_mes += 1
-            n_datos = 0
-
-        datos_training = n_por_mes[0:10]
-        datos_test = n_por_mes[10:12]
-
-        plt.bar(meses_training, datos_training, align='center')
-        plt.bar(meses_test, datos_test, color='g', align='center')
-        plt.title('Distribución de delitos por mes')
-        plt.legend(['Meses de training', 'Meses de Test'])
-        plt.show()
 
     def heatmap(self, c=0,
                 nombre_grafico='Predictive Crime Map - Dallas (Method: Promap)'):
@@ -2428,10 +2304,11 @@ class ProMap:
         plt.imshow(np.flipud(matriz.T),
                    extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                    cmap='jet',
-                   vmin=0, vmax=1)
+                   vmin=0, vmax=0.7
+                   )
 
         dallas.plot(ax=ax,
-                    alpha=.1,  # Ancho de las calles
+                    alpha=.3,  # Ancho de las calles
                     color="gray")
 
         plt.colorbar()
