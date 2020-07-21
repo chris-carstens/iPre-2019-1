@@ -6,8 +6,6 @@ from predictivehp.visualization.plotter import Plotter
 
 # %% Data
 
-import numpy as np
-print(type(round(np.float64(2.5))))
 b_path = 'predictivehp/data/'
 s_shp_p = b_path + 'streets.shp'
 c_shp_p = 'predictivehp/data/councils.shp'

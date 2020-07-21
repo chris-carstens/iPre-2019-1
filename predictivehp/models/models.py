@@ -67,14 +67,14 @@ class STKDE:
         t_model: Entrenamiento del modelo, True en caso de que se quieran
         usar los métodos contour_plot o heatmap.
         """
-        self.name, self.n, self.year, self.bw = name, n, year, bw
+        self.name, self.n, self.year = name, n, year
         self.X_months = training_months
         self.ng, self.wd, self.md = number_of_groups, window_days, month_division
         self.sn = sample_number
 
         self.hr, self.ap, self.pai = None, None, None
         self.hr_by_group, self.ap_by_group, self.pai_by_group = None, None, None
-        self.kde = None
+
         # training data 3000
         # testing data  600
         self.df = df
@@ -83,6 +83,9 @@ class STKDE:
         print(print_mes(self.X_months, self.X_months + 1, self.wd))
 
         self.data, self.X, self.y, self.pg = self.preparing_data()
+
+        #asigna self.kde y self.bw
+        self.train_model(bw=bw)
 
         print('-' * 30)
 
@@ -153,6 +156,8 @@ class STKDE:
              np.array(self.X[['y']]),
              np.array(self.X[['y_day']])],
             'ccc', bw=bw)
+
+        self.bw = self.kde.bw
 
     @timer
     def data_barplot(self, pdf: bool = False):
@@ -339,21 +344,16 @@ class STKDE:
 
     @timer
     def heatmap(self,
-                bins: int,
-                ti: int,
-                pdf: bool = False):
+                bins=100,
+                ti=100,
+                pdf=False):
         """
         Plots the heatmap associated to a given t_i
         bins:
         ti:
         pdf:
         """
-
-        self.train_model(bw=self.bw)
-
         print("\nPlotting Heatmap...")
-
-        self.train_model(bw=self.bw)
 
         dallas = gpd.read_file('predictivehp/data/streets.shp')
 
@@ -804,7 +804,6 @@ class STKDE:
             print("finished!")
 
     def predict(self):
-        self.train_model(self.bw)
         f_nodos_by_group, f_delitos_by_group = {}, {}
         for i in range(1, self.ng + 1):
             x, y, t = \
@@ -863,7 +862,7 @@ class STKDE:
                       np.array(t_training).max():1 * 1j
                       ]
 
-            #pdf para nodos
+            #pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
             f_nodos = stkde.pdf(checked_points(np.array([x.flatten(), y.flatten(), t.flatten()])))
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
         return f_delitos_by_group, f_nodos_by_group
