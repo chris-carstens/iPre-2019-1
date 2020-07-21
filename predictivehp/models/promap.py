@@ -244,8 +244,6 @@ class Promap:
 
     def delitos_por_celda_testing(self, ventana_dias):
 
-        delitos_agregados = 0
-
         """
         Calcula el nº de delitos que hay por cada celda en la matrix de
         testeo
@@ -254,7 +252,10 @@ class Promap:
         :return: None
         """
 
+        delitos_agregados = 0
+
         self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
+
         for index, row in self.df_testing_data.iterrows():
             x, y, t = row['x'], row['y'], row['y_day']
 
@@ -265,14 +266,7 @@ class Promap:
                 self.testing_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
 
-
             else:
-                print(f'Se han cargado: {delitos_agregados} delitos a la '
-                      f'matriz de '
-                      f'testeo')
-                print(f'Se hará una predicción para los próximos: '
-                      f'{ventana_dias} días')
-
                 break
 
     def calcular_hr_and_pai(self):

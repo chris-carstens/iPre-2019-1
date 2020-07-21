@@ -8,7 +8,7 @@ import predictivehp.aux_functions as af
 
 
 class Plotter:
-    def __init__(self, models=None, n=100):
+    def __init__(self, models=None, n=500):
         """
 
         :param list models: Lista con los objetos de los diferentes
@@ -39,25 +39,8 @@ class Plotter:
 
         :return:
         """
-        fig = plt.figure()
-        ax = fig.gca(projection='3d')
-
-        X = np.arange(-5, 5, 0.25)
-        Z = np.arange(-5, 5, 0.25)
-        X, Z = np.meshgrid(X, Z)
-        C = np.random.random(size=40 * 40 * 3).reshape((40, 40, 3))
-
-        ax.plot_surface(X, np.ones(shape=X.shape) - 1, Z,
-                        facecolors=C,
-                        linewidth=0)
-        ax.plot_surface(X, np.ones(shape=X.shape), Z,
-                        facecolors=C,
-                        linewidth=0)
-        ax.plot_surface(X, np.ones(shape=X.shape) + 1, Z,
-                        facecolors=C,
-                        linewidth=0)
-
-        pass
+        for m in self.models:
+            m.heatmap()
 
     def hr(self):
         """

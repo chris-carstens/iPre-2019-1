@@ -31,17 +31,18 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
     :param str cl_shp: path al archivo citylimits.shp
     :return:
     """
+    streets, councils, c_limits = [None, ]*3
 
-    streets = gpd.read_file(filename=s_shp) if s_shp else None
-    if not streets.empty:
+    if s_shp:
+        streets = gpd.read_file(filename=s_shp)
         streets.crs = 2276
         streets.to_crs(epsg=3857, inplace=True)
-    councils = gpd.read_file(filename=c_shp) if c_shp else None
-    if not councils.empty:
+    if c_shp:
+        councils = gpd.read_file(filename=c_shp)
         councils.crs = 2276
         councils.to_crs(epsg=3857, inplace=True)
-    c_limits = gpd.read_file(filename=cl_shp) if cl_shp else None
-    if not c_limits.empty:
+    if cl_shp:
+        c_limits = gpd.read_file(filename=cl_shp) if cl_shp else None
         c_limits.crs = 2276
         c_limits.to_crs(epsg=3857, inplace=True)
 
