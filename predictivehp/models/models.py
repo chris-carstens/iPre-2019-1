@@ -60,37 +60,24 @@ class STKDE:
                  year: str = "2017",
                  bw=None, df=None, sample_number=3600, training_months=10,
                  number_of_groups=1,
-                 window_days=7, month_division=10, name="STKDE", km2= 1000):
+                 window_days=7, month_division=10, name="STKDE"):
         """
         n: Número de registros que se piden a la database.
         year: Año de los registros pedidos
         t_model: Entrenamiento del modelo, True en caso de que se quieran
         usar los métodos contour_plot o heatmap.
         """
-        self.name = name
-        self.n = n
-        self.year = year
-        self.bw = bw
-        self.km2 = km2
-
+        self.name, self.n, self.year, self.bw = name, n, year, bw
         self.X_months = training_months
-        self.ng = number_of_groups
-        self.wd = window_days
-        self.md = month_division
+        self.ng, self.wd, self.md = number_of_groups, window_days, month_division
         self.sn = sample_number
 
-        self.results_HR_PAI = None
-        self.hr = None
-        self.ap = None
-        self.pai = None
-        self.hr_by_group = None
-        self.ap_by_group = None
-        self.pai_by_group = None
+        self.hr, self.ap, self.pai = None, None, None
+        self.hr_by_group, self.ap_by_group, self.pai_by_group = None, None, None
         self.kde = None
         # training data 3000
         # testing data  600
         self.df = df
-
         print('-' * 30)
         print('\t\tSTKDE')
         print(print_mes(self.X_months, self.X_months + 1, self.wd))
@@ -877,7 +864,7 @@ class STKDE:
                       ]
 
             #pdf para nodos
-            f_nodos = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
+            f_nodos = stkde.pdf(checked_points(np.array([x.flatten(), y.flatten(), t.flatten()])))
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
         return f_delitos_by_group, f_nodos_by_group
 
@@ -890,7 +877,6 @@ class STKDE:
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]
-            n_celdas = calcular_celdas(self.bw[0], self.bw[1], self.km2)
             area_percentaje = [i / len(f_nodos) for i in area_h]
             if i == 1:
                 #caso base para el grupo 1 (o cuando se utiliza solo un grupo), sirve para función plotter
