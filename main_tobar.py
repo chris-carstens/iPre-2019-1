@@ -24,8 +24,10 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 #   entrega shapefiles
 
 # %% STKDE
-# stkde = STKDE(df=df)
-# stkde.heatmap(100,100)
+
+
+# stkde2 = STKDE(df=df, bw = bw2)
+# stkde2.heatmap(100,100)
 
 # %% Random Forest Regressor
 #rfr = RForestRegressor(i_df=df, shps=shps,
@@ -38,18 +40,23 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 
 # %%
 
-promaps = [ProMap(name= f'Ventana: {i} días',i_df=df, bw=bw, read_files=True,
-                  ventana_dias=i) for i in range(1,8)]
+pm = ProMap(i_df=df, bw=bw, shps=shps)
 
-pltr = Plotter(models=promaps)
+#
+pltr = Plotter(models=[
+     #stkde,
+     #rfr,
+     pm
+  ])
 
-pltr.hr()
-pltr.pai()
+#pltr.pai()
 
-pm = promaps[-1]
-pm.plot_incident(pm.training_matrix, f'días: {8}')
-pm.heatmap()
-pm.plot_incident(pm.testing_matrix, f'días: {8}')
+
+#
+# pm = promaps[-1]
+# pm.plot_incident(pm.training_matrix, f'días: {8}')
+# pm.heatmap()
+# pm.plot_incident(pm.testing_matrix, f'días: {8}')
 
 
 

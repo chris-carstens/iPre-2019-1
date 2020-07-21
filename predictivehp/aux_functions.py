@@ -332,7 +332,7 @@ def calcular_celdas(hx, hy, superficie):
     """
     :param hx: en metros
     :param hy: en metros
-    :param superficie: en kilemtros
+    :param superficie: en kilomtros
     :return: numero de celdas asociadas
     """
 

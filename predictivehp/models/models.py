@@ -2193,7 +2193,7 @@ class ProMap:
         delitos_agregados = 0
 
         for index, row in self.X.iterrows():
-            x, y, t = row['x'], row['y'], row['y_day']
+            x, y, t = row['x_point'], row['y_point'], row['y_day']
 
             if t >= (self.total_dias_training - self.bw_t):
                 x_pos, y_pos = find_position(self.xx, self.yy, x, y, self.hx,
@@ -2212,7 +2212,7 @@ class ProMap:
         delitos_agregados = 0
 
         for index, row in self.Y.iterrows():
-            x, y, t = row['x'], row['y'], row['y_day']
+            x, y, t = row['x_point'], row['y_point'], row['y_day']
 
             if t <= (self.total_dias_training + ventana_dias):
                 x_pos, y_pos = find_position(self.xx, self.yy, x, y, self.hx,
