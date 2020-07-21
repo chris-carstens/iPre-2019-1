@@ -2027,23 +2027,31 @@ class RForestRegressor:
         plt.show()
         plt.close()
 
-
 class ProMap:
 
     def __init__(self, bw, i_df=None, n_datos=3600, read_density=False,
                  hx=100, hy=100,
                  radio=None, ventana_dias=7, tiempo_entrenamiento=None,
                  month=10,
-                 km2=1_000, name='Promap'):
+                 km2=1_000, name='Promap', shps=None):
 
         #DATA
         self.data = i_df
         self.n = n_datos
         self.month = month
         self.X, self.Y = None, None
+        self.shps = shps
+
+        #MAP
+        self.hx, self.hy, self.km2 = hx, hy, km2
+        self.x_min, self.y_min, self.x_max, self.y_max = self.shps['streets'].total_bounds
+        self.bw_x, self.bw_y= bw[0], bw[1]
+        self.bw_t = bw[2] if not tiempo_entrenamiento else tiempo_entrenamiento
+        self.radio = radio
+        self.bins_x = round(abs(self.x_max - self.x_min) / self.hx)
+        self.bins_y = round(abs(self.y_max - self.y_min) / self.hy)
 
         #MODEL
-        self.bins_x, self.bins_y = None, None
         self.name = name
         self.ventana_dias = ventana_dias
         self.matriz_con_densidades = np.zeros((self.bins_x, self.bins_y))
@@ -2051,16 +2059,8 @@ class ProMap:
         self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
         self.hr, self.pai, self.ap = None, None, None
 
-        #MAP
-        self.hx, self.hy, self.km2 = hx, hy, km2
-        self.x_min, self.x_max = prm.d_limits['x_min'], prm.d_limits['x_max']
-        self.y_min, self.y_max = prm.d_limits['y_min'], prm.d_limits['y_max']
-        self.bw_x, self.bw_y= bw[0], bw[1]
-        self.bw_t = bw[2] if not tiempo_entrenamiento else tiempo_entrenamiento
-        self.radio = radio
-
         print('-' * 100)
-        print('\t\t',self.name)
+        print('\t\t', self.name)
         print(print_mes(self.month, self.month + 1, self.ventana_dias))
 
         self.generar_df()
@@ -2097,11 +2097,10 @@ class ProMap:
                     ]
 
         geo_data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
-                                         crs=2276,
-                                         geometry=geometry)
+                                    crs=2276,
+                                    geometry=geometry)
 
         geo_data.to_crs(epsg=3857, inplace=True)
-
 
         self.data['x_point'] = geo_data['geometry'].x
         self.data['y_point'] = geo_data['geometry'].y
@@ -2109,12 +2108,10 @@ class ProMap:
         # División en training y testing data
 
         self.X = self.data[self.data["date"].apply(lambda x: x.month) <= \
-                 self.month]
+                           self.month]
         self.Y = self.data[self.data["date"].apply(lambda x: x.month) > \
-                 self.month]
+                           self.month]
 
-        self.bins_x = round(abs(self.x_max - self.x_min) / self.hx)
-        self.bins_y = round(abs(self.y_max - self.y_min) / self.hy)
 
         print(f'\thx: {self.hx} mts, hy: {self.hy} mts')
         print(
