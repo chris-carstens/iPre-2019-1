@@ -34,6 +34,8 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 
 # %%
 pm = ProMap(i_df=df, bw=bw, shps=shps)
+
+
 #pm.heatmap()
 
 # %% Plotter

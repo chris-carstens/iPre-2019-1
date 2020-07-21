@@ -2238,10 +2238,10 @@ class ProMap:
         self.load_train_matrix()
         self.load_test_matrix(self.ventana_dias)
 
-        self.hits_n = []
+        hits_n = []
 
         for i in range(c.size):
-            self.hits_n.append(
+            hits_n.append(
                 np.sum(
                     (self.matriz_con_densidades >= c[
                         i]) * self.testing_matrix))
@@ -2254,20 +2254,20 @@ class ProMap:
         # Se espera que los valores de la lista vayan disminuyendo a medida que el valor de K aumenta
         # """
 
-        self.area_hits = []
+        area_hits = []
 
         for i in range(c.size):
-            self.area_hits.append(
+            area_hits.append(
                 np.count_nonzero(self.matriz_con_densidades >= c[i]))
 
         n_delitos_testing = np.sum(self.testing_matrix)
 
-        self.hr = [i / n_delitos_testing for i in self.hits_n]
+        self.hr = [i / n_delitos_testing for i in hits_n]
 
         n_celdas = calcular_celdas(self.hx, self.hy, self.km2)
 
         self.ap = [1 if j > 1 else j for j in [i / n_celdas for
-                                               i in self.area_hits]]
+                                               i in area_hits]]
 
     def calculate_pai(self, c):
 
@@ -2278,7 +2278,6 @@ class ProMap:
             0 if float(self.ap[i]) == 0
             else float(self.hr[i]) / float(self.ap[i])
             for i in range(len(self.ap))]
-
 
     def heatmap(self, c=0,
                 nombre_grafico='Predictive Crime Map - Dallas (Method: Promap)'):
