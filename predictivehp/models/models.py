@@ -60,7 +60,7 @@ class STKDE:
                  year: str = "2017",
                  bw=None, df=None, sample_number=3600, training_months=10,
                  number_of_groups=1,
-                 window_days=7, month_division=10, name="STKDE"):
+                 window_days=7, month_division=10, name="STKDE", km2= 1000):
         """
         n: Número de registros que se piden a la database.
         year: Año de los registros pedidos
@@ -71,6 +71,7 @@ class STKDE:
         self.n = n
         self.year = year
         self.bw = bw
+        self.km2 = km2
 
         self.X_months = training_months
         self.ng = number_of_groups
@@ -889,6 +890,7 @@ class STKDE:
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]
+            n_celdas = calcular_celdas(self.bw[0], self.bw[1], self.km2)
             area_percentaje = [i / len(f_nodos) for i in area_h]
             if i == 1:
                 #caso base para el grupo 1 (o cuando se utiliza solo un grupo), sirve para función plotter
@@ -923,8 +925,8 @@ class STKDE:
                 if i == 1:
                     self.ap, self.hr, self.pai = area_percentaje, HR, PAI
                 pai_by_group.append(PAI), ap_by_group.append(area_percentaje), hr_by_group.append(HR)
-                self.hr_by_group, self.ap_by_group = pai_by_group, hr_by_group
-        self.pai_by_group = ap_by_group
+                self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
+        self.pai_by_group = pai_by_group
         return self.pai_by_group, self.hr_by_group, self.ap_by_group
 
 class RForestRegressor:
