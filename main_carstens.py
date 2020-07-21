@@ -35,7 +35,7 @@ stkde = STKDE(df=df, bw=bw2)
 # rfr.to_pickle('df.pkl')
 
 # %#%
-#pm #= ProMap(i_df=df, bw=bw, read_files=False)
+#pm = ProMap(i_df=df, bw=bw, read_files=False)
 #pm.heatmap(c=0)
 
 # %% Plotter
