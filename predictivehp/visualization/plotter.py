@@ -86,6 +86,25 @@ class Plotter:
 
         plt.show()
 
+    def hr_groups(self):
+
+        for m in self.models:
+            m.calculate_hr(c=self.c_arr)
+            for i in range(1, m.ng + 1):
+                af.lineplot(x=m.ap_by_group[i], y=m.hr_by_group[i], legend=m.name)
+        plt.xlabel('Area Percentage')
+        plt.ylabel('PAI')
+        plt.show()
+
+    def pai_groups(self):
+
+        for m in self.models:
+            m.calculate_pai(c=self.c_arr)
+            for i in range(1, m.ng + 1):
+                af.lineplot(x=m.ap_by_group[i], y=m.pai_by_group[i], legend=m.name)
+        plt.xlabel('Area Percentage')
+        plt.ylabel('PAI')
+        plt.show()
 
 if __name__ == '__main__':
     pass

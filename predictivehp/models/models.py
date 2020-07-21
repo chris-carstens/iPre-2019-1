@@ -84,6 +84,10 @@ class STKDE:
         self.hr = None
         self.ap = None
         self.pai = None
+        self.hr_by_group = None
+        self.ap_by_group = None
+        self.pai_by_group = None
+        self.kde = None
         # training data 3000
         # testing data  600
         self.df = df
@@ -126,8 +130,7 @@ class STKDE:
         for i in range(1, len(days))[::self.wd]:
             predict_groups[f"group_{group_n}"]['t2_data'] = \
                 days[i - 1 + prm.days_by_month[self.md]:i - 1 +
-                                                        prm.days_by_month[
-                                                                        self.md] + self.wd]
+                                            prm.days_by_month[self.md] + self.wd]
             group_n += 1
             if group_n > self.ng:
                 break
@@ -167,8 +170,7 @@ class STKDE:
                 'ccc', bw=bw)
 
     @timer
-    def data_barplot(self,
-                     pdf: bool = False):
+    def data_barplot(self, pdf: bool = False):
         """
         Bar Plot
         pdf: True si se desea guardar el plot en formato pdf
@@ -191,8 +193,7 @@ class STKDE:
         plt.xticks(
             [i for i in range(1, 13)],
             [datetime.datetime.strptime(str(i), "%m").strftime('%b')
-             for i in range(1, 13)]
-        )
+             for i in range(1, 13)])
 
         sb.despine()
 
@@ -362,6 +363,8 @@ class STKDE:
         ti:
         pdf:
         """
+
+        self.train_model(bw=self.bw)
 
         print("\nPlotting Heatmap...")
 
@@ -813,11 +816,9 @@ class STKDE:
             Interact()
             print("finished!")
 
-    def predict(self, c):
+    def predict(self):
         self.train_model(self.bw)
-
-        if self.ng > 1:
-            f_nodos_by_group, f_delitos_by_group = {}, {}
+        f_nodos_by_group, f_delitos_by_group = {}, {}
         for i in range(1, self.ng + 1):
             x, y, t = \
                 np.array(self.pg[f'group_{i}']['t2_data']['x']), \
@@ -825,6 +826,7 @@ class STKDE:
                 np.array(self.pg[f'group_{i}']['t2_data']['y_day'])
 
             if i == 1:
+                #Data base, para primer grupo
                 x_training = pd.Series(
                     self.X["x"]).tolist() + pd.Series(
                     self.pg[f'group_{i}']['t1_data']['x']).tolist()
@@ -837,6 +839,7 @@ class STKDE:
                         'y_day']).tolist()
 
             else:
+                #Data agregada del grupo anterior, para re-entrenamiento
                 for j in range(1, i):
                     x_training += pd.Series(
                         self.pg[f'group_{j}']['t2_data'][
@@ -848,8 +851,8 @@ class STKDE:
                         self.pg[f'group_{j}']['t2_data'][
                             'y_day']).tolist()
 
-            if self.ng > 1:
-
+            if i > 1:
+                #re-entrenamos modelo
                 stkde = MyKDEMultivariate(
                     [np.array(x_training),
                      np.array(y_training),
@@ -873,113 +876,57 @@ class STKDE:
                       np.array(t_training).max():1 * 1j
                       ]
 
+            #pdf para nodos
             f_nodos = stkde.pdf([x.flatten(), y.flatten(), t.flatten()])
-            if self.ng:
-                return f_delitos, f_nodos
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
         return f_delitos_by_group, f_nodos_by_group
 
     def calculate_hr(self, c):
-        f_delitos_by_group, f_nodos_by_group = self.predict(c)
+        f_delitos_by_group, f_nodos_by_group = self.predict()
         hr_by_group, ap_by_group = [], []
         for i in range(1, self.ng + 1):
-            if self.ng == 1:
-                f_delitos, f_nodos = f_delitos_by_group, f_nodos_by_group
-                c = np.linspace(0, f_nodos.max(), 100)
-
+            f_delitos, f_nodos = f_delitos_by_group[i], f_nodos_by_group[i]
+            c = np.linspace(0, f_nodos.max(), 100)
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]
             area_percentaje = [i / len(f_nodos) for i in area_h]
-            if self.ng == 1:
+            if i == 1:
+                #caso base para el grupo 1 (o cuando se utiliza solo un grupo), sirve para función plotter
                 self.hr, self.ap = HR, area_percentaje
-                # print(self.ap)
-                # print(self.hr)
-                return self.ap, self.hr
             hr_by_group.append(HR), ap_by_group.append(area_percentaje)
         self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
         return self.hr_by_group, self.ap_by_group
 
     def calculate_pai(self, c):
-        if self.hr:
-            PAI = [float(self.hr[i]) / float(self.ap[i]) for i in
-                   range(len(self.hr))]
-            self.pai = PAI
-            return self.ap, self.pai
-        f_delitos_by_group, f_nodos_by_group = self.predict(c)
-        pai_by_group, hr_by_group, ap_by_group = [], [], []
-        for i in range(1, self.ng + 1):
-            if self.ng == 1:
-                f_delitos, f_nodos = f_delitos_by_group, f_nodos_by_group
+        pai_by_group = []
+        if self.hr_by_group:
+            for g in range(1, self.ng + 1):
+                PAI = [float(self.hr_by_group[g-1][i]) / float(self.ap_by_group[g-1][i]) for i in
+                       range(len(self.hr_by_group[g-1]))]
+                pai_by_group.append(PAI)
+                if g == 1:
+                    self.pai = PAI
+        else:
+            f_delitos_by_group, f_nodos_by_group = self.predict()
+            hr_by_group, ap_by_group = [], []
+            for i in range(1, self.ng + 1):
+                f_delitos, f_nodos = f_delitos_by_group[i], f_nodos_by_group[i]
                 c = np.linspace(0, f_nodos.max(), 100)
-
-            hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
-            area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
-            HR = [i / len(f_delitos) for i in hits]
-            area_percentaje = [i / len(f_nodos) for i in area_h]
-            PAI = [
-                float(HR[i]) / float(area_percentaje[i]) if float(HR[i]) else 0
-                for i in
-                range(len(HR))]
-            if self.ng == 1:
-                self.ap, self.hr, self.pai = area_percentaje, HR, PAI
-                print(self.ap, self.hr)
-                return self.pai, self.ap
-            pai_by_group.append(PAI), ap_by_group.append(area_percentaje)
-        self.pai_by_group, self.hr_by_group, self.ap_by_group = pai_by_group, hr_by_group, ap_by_group
+                hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
+                area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
+                HR = [i / len(f_delitos) for i in hits]
+                area_percentaje = [i / len(f_nodos) for i in area_h]
+                PAI = [
+                    float(HR[i]) / float(area_percentaje[i]) if float(HR[i]) else 0
+                    for i in
+                    range(len(HR))]
+                if i == 1:
+                    self.ap, self.hr, self.pai = area_percentaje, HR, PAI
+                pai_by_group.append(PAI), ap_by_group.append(area_percentaje), hr_by_group.append(HR)
+                self.hr_by_group, self.ap_by_group = pai_by_group, hr_by_group
+        self.pai_by_group = ap_by_group
         return self.pai_by_group, self.hr_by_group, self.ap_by_group
-
-    def plot_HR(self):
-        if not self.results_HR_PAI:
-            self.results_HR_PAI = self.calculate_HR_PAI()
-        results_HR = self.results_HR_PAI['HR']
-        plt.xlabel('Area percentage')
-        plt.ylabel('HR')
-        plt.title("HR vs Area")
-        for i in range(1, self.ng + 1):
-            HRs, area_percentaje = results_HR[i][0], results_HR[i][1]
-            plt.plot(area_percentaje, HRs, label=f'group {i}')
-        plt.legend()
-        plt.savefig("HRvsArea", format='pdf')
-        plt.show()
-
-    def plot_PAI(self):
-        if not self.results_HR_PAI:
-            self.results_HR_PAI = self.calculate_HR_PAI()
-        results_PAI = self.results_HR_PAI['PAI']
-        plt.xlabel('Area percentage')
-        plt.ylabel('PAI')
-        plt.title("PAI vs Area")
-        for i in range(1, self.ng + 1):
-            PAIs, area_percentaje = results_PAI[i][0], results_PAI[i][1]
-            plt.plot(area_percentaje, PAIs, label=f'group {i}')
-        plt.legend()
-        plt.savefig("PAIvsArea", format='pdf')
-        plt.show()
-
-    def plot_mean(self, hr_or_pai="PAI"):
-        if not self.results_HR_PAI:
-            self.results_HR_PAI = self.calculate_HR_PAI()
-        results = self.results_HR_PAI[hr_or_pai]
-
-        plt.xlabel('Area percentage')
-        plt.ylabel("Mean " + hr_or_pai)
-        plt.title("Mean: " + hr_or_pai + " vs Area")
-
-        param_mean = []
-        area_percentaje_mean = []
-
-        for i in range(0, 100):
-            HR_or_PAI = [results[group][0][i] for group in results]
-            mean = sum(HR_or_PAI) / len(HR_or_PAI)
-            param_mean.append(mean)
-            area = [results[group][1][i] for group in results]
-            area_mean = sum(area) / len(area)
-            area_percentaje_mean.append(area_mean)
-        plt.plot(area_percentaje_mean, param_mean, label=f'group {i}')
-        plt.savefig(hr_or_pai + " vs Area", format='pdf')
-        plt.show()
-
 
 class RForestRegressor:
     def __init__(self, i_df=None, shps=None,
@@ -1458,7 +1405,7 @@ class RForestRegressor:
             ans = data_oct.join(other=self.df, on='Cell', how='left')
             ans = ans[ans[('geometry', '')].notna()]
 
-            incidentsh = ans[ans[('Dangerous_pred_Oct', '')] == 1]
+            #incidentsh = ans[ans[('Dangerous_pred_Oct', '')] == 1]
             incidentsh = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= c]
 
             hr = incidentsh.shape[0] / incidents_oct.shape[0]
@@ -1478,6 +1425,7 @@ class RForestRegressor:
                 ap_l.append(a(self.df, c) / A)
             self.hr = np.array(hr_l)
             self.ap = np.array(ap_l)
+        plt.savefig(f"frheatmap.pdf", format='pdf')
 
     def calculate_pai(self, c=0.9):
         """
