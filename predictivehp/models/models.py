@@ -2035,8 +2035,8 @@ class ProMap:
         self.bw_x, self.bw_y= bw[0], bw[1]
         self.bw_t = bw[2] if not tiempo_entrenamiento else tiempo_entrenamiento
         self.radio = radio
-        self.bins_x = round(abs(self.x_max - self.x_min) / self.hx)
-        self.bins_y = round(abs(self.y_max - self.y_min) / self.hy)
+        self.bins_x = int(round(abs(self.x_max - self.x_min) / self.hx))
+        self.bins_y = int(round(abs(self.y_max - self.y_min) / self.hy))
 
         #MODEL
         self.name = name
@@ -2056,7 +2056,7 @@ class ProMap:
             self.matriz_con_densidades = np.load(
                 'predictivehp/data/density_matrix.npy')
         else:
-            self.calcular_densidades()
+            self.predict()
         print('-' * 100)
 
     def generar_df(self):
@@ -2111,7 +2111,7 @@ class ProMap:
 
         self.total_dias_training = self.X['y_day'].max()
 
-    def calcular_densidades(self):
+    def predict(self):
 
         """""
         Calcula los scores de la malla en base a los delitos del self.data
@@ -2126,8 +2126,6 @@ class ProMap:
             f'\tNº de días usados para entrenar el modelo: {self.total_dias_training}')
         print(
             f'\tNº de datos para testear el modelo: {len(self.Y)}')
-
-
 
         if not self.radio:
             ancho_x = radio_pintar(self.hx, self.bw_x)
