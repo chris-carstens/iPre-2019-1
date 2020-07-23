@@ -86,7 +86,7 @@ class STKDE:
         self.df = df
         print('-' * 30)
         print('\t\tSTKDE')
-        print(print_mes(self.X_months, self.X_months + 1, self.wd))
+        print(self.X_months, self.X_months + 1, self.wd)
 
         self.data, self.X, self.y, self.pg = self.preparing_data()
 
@@ -382,13 +382,17 @@ class STKDE:
         z = self.kde.pdf(np.vstack([x.flatten(),
                                     y.flatten(),
                                     ti * np.ones(x.size)]))
-        # z = np.ma.masked_array(z, z < .1e-11)
+
+        #Normalizar
+        z = z/z.max()
 
         heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
                                  shading='gouraud',
                                  alpha=.2,
                                  cmap='jet',
-                                 zorder=2)
+                                 zorder=2,
+                               #  vmin=0, vmax=1
+                                 )
 
         plt.title(f"Dallas Incidents - Heatmap\n"
                   f"n = {self.data.shape[0]}   Year = {self.year}",
