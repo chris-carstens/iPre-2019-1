@@ -870,7 +870,7 @@ class STKDE:
                       ]
 
             # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
-            f_nodos = stkde.pdf(checked_points(
+            f_nodos = stkde.pdf(af.checked_points(
                 np.array([x.flatten(), y.flatten(), t.flatten()])))
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
         return f_delitos_by_group, f_nodos_by_group
@@ -880,7 +880,8 @@ class STKDE:
         hr_by_group, ap_by_group = [], []
         for i in range(1, self.ng + 1):
             f_delitos, f_nodos = f_delitos_by_group[i], f_nodos_by_group[i]
-            c = np.linspace(0, f_nodos.max(), 100)
+            #normalizar
+            f_delitos = f_delitos / f_delitos.max()
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]
