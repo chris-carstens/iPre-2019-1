@@ -2242,7 +2242,7 @@ class ProMap:
         plt.imshow(np.flipud(matriz.T),
                    extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                    cmap='jet',
-                   vmin=0, vmax=0.7
+                   #vmin=0, vmax=1
                    )
 
         dallas.plot(ax=ax,
