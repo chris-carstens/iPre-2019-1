@@ -25,12 +25,12 @@ stkde = STKDE(df=df, bw=bw)
 #                        read_data=True, read_df=True)
 
 # %%
-# pm = ProMap(i_df=df, bw=bw, read_files=False)
+pm = ProMap(i_df=df, bw=bw, shps=shps)
 
 # Plotter
 pltr = Plotter(models=[
     stkde,
-    # pm,
+    pm
     #rfr,
 ])
 

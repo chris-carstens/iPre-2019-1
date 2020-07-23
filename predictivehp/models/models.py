@@ -362,6 +362,7 @@ class STKDE:
 
         dallas = gpd.read_file('predictivehp/data/streets.shp')
 
+
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
 
@@ -2136,7 +2137,7 @@ class ProMap:
             x, y, t = row['x_point'], row['y_point'], row['y_day']
 
             if t >= (self.total_dias_training - self.bw_t):
-                x_pos, y_pos = find_position(self.xx, self.yy, x, y, self.hx,
+                x_pos, y_pos = af.find_position(self.xx, self.yy, x, y, self.hx,
                                              self.hy)
                 self.training_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
