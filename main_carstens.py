@@ -23,7 +23,7 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 # %% STKDE
 stkde = STKDE(df=df, bw=bw2)
 
-#stkde.heatmap()
+stkde.heatmap()
 
 # %% Random Forest Regressor
 #rfr = RForestRegressor(i_df=df, shps=shps,
@@ -39,13 +39,15 @@ stkde = STKDE(df=df, bw=bw2)
 #pm.heatmap(c=0)
 
 # %% Plotter
-pltr = Plotter(models=[
-     stkde,
+#pltr = Plotter(models=[
+#     stkde,
  ##    rfr,
  #    pm
-  ])
+ # ])
 
-pltr.pai()
+#pltr.hr()
+#pltr.pai()
+
 #pltr.heatmap()
 
 if __name__ == '__main__':

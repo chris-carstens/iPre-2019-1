@@ -376,7 +376,6 @@ class STKDE:
                np.array(self.y[['y']]).min():
                np.array(self.y[['y']]).max():bins * 1j
                ]
-
         z = self.kde.pdf(np.vstack([x.flatten(),
                                     y.flatten(),
                                     ti * np.ones(x.size)]))
@@ -388,7 +387,8 @@ class STKDE:
                                  shading='gouraud',
                                  alpha=.2,
                                  cmap='jet',
-                                 zorder=2)
+                                 zorder=2,
+                                 )
 
         plt.title(f"Dallas Incidents - Heatmap\n"
                   f"n = {self.data.shape[0]}   Year = {self.year}",
@@ -880,8 +880,7 @@ class STKDE:
         hr_by_group, ap_by_group = [], []
         for i in range(1, self.ng + 1):
             f_delitos, f_nodos = f_delitos_by_group[i], f_nodos_by_group[i]
-            #normalizar
-            f_delitos = f_delitos / f_delitos.max()
+            c = np.linspace(0, f_nodos.max(), 100)
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]

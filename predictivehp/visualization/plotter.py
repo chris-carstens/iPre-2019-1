@@ -8,7 +8,7 @@ import predictivehp.aux_functions as af
 
 
 class Plotter:
-    def __init__(self, models=None, n=500):
+    def __init__(self, models=None, n=100):
         """
 
         :param list models: Lista con los objetos de los diferentes
