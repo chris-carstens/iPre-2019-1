@@ -10,10 +10,11 @@ Pontifical Catholic University of Chile
 
 import datetime
 
+import geopandas as gpd
+import pandas as pd
 from sodapy import Socrata
 
 import predictivehp.credentials as cre
-from predictivehp.aux_functions import *
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -31,7 +32,7 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
     :param str cl_shp: path al archivo citylimits.shp
     :return:
     """
-    streets, councils, c_limits = [None, ]*3
+    streets, councils, c_limits = [None, ] * 3
 
     if s_shp:
         streets = gpd.read_file(filename=s_shp)
@@ -112,34 +113,5 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
         return df, streets, councils, c_limits
 
 
-def grades_to_meters(point):
-    lat, lon = point
-
-    ans = gpd.GeoDataFrame(
-        geometry=[Point((lat, lon))],
-        crs=4326,
-    )
-    ans.to_crs(epsg=3857, inplace=True)
-
-    value = ans.geometry[0]
-
-    return value.x, value.y
-
-
-def get_limits_shp(s_shp=''):
-    dll = gpd.read_file('./../data/streets.shp')
-    dll.crs = 2276  # Source en ft
-    dll.to_crs(epsg=3857, inplace=True)
-    return dll
-
-
 if __name__ == '__main__':
-    s_shp_path = './../data/streets.shp'
-    c_shp_path = './../data/councils.shp'
-    cl_shp_path = './../data/citylimit.shp'
-
-    # streets = gpd.read_file(filename=s_shp_path)
-
-    # get_data(s_shp=s_shp_path,
-    #          c_shp=c_shp_path,
-    #          cl_shp=cl_shp_path)
+    pass
