@@ -45,7 +45,7 @@ class MyKDEMultivariate(KDEMultivariate):
 
         # simulated and checked points
         s_points = np.transpose(means + norm)
-        c_points = checked_points(s_points)
+        c_points = af.checked_points(s_points)
 
         # print(f"\n{size - c_points.shape[1]} invalid points found")
 
@@ -84,7 +84,7 @@ class STKDE:
         self.df = df
         print('-' * 30)
         print('\t\tSTKDE')
-        print(print_mes(self.X_months, self.X_months + 1, self.wd))
+        print(af.print_mes(self.X_months, self.X_months + 1, self.wd))
 
         self.data, self.X, self.y, self.pg = self.preparing_data()
 
@@ -361,6 +361,8 @@ class STKDE:
         print("\nPlotting Heatmap...")
 
         dallas = gpd.read_file('predictivehp/data/streets.shp')
+        #dallas.crs = 2276
+        #dallas.to_crs(epsg=3857, inplace=True)
 
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
