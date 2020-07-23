@@ -34,6 +34,14 @@ class Plotter:
         """
         pass
 
+    def predict(self):
+        """
+
+
+        :return:
+        """
+        pass
+
     def heatmap(self):
         """
 
@@ -47,7 +55,9 @@ class Plotter:
 
         :return:
         """
+        print("\nPlotting Hit Rates:", end="")
         for m in self.models:
+            print(f"\t {m.name}")
             m.calculate_hr(c=self.c_arr)
             af.lineplot(x=m.ap, y=m.hr, legend=m.name)
 
@@ -74,7 +84,8 @@ class Plotter:
         for m in self.models:
             m.calculate_hr(c=self.c_arr)
             for i in range(1, m.ng + 1):
-                af.lineplot(x=m.ap_by_group[i], y=m.hr_by_group[i], legend=m.name)
+                af.lineplot(x=m.ap_by_group[i], y=m.hr_by_group[i],
+                            legend=m.name)
         plt.xlabel('Area Percentage')
         plt.ylabel('PAI')
         plt.show()
@@ -84,10 +95,12 @@ class Plotter:
         for m in self.models:
             m.calculate_pai(c=self.c_arr)
             for i in range(1, m.ng + 1):
-                af.lineplot(x=m.ap_by_group[i], y=m.pai_by_group[i], legend=m.name)
+                af.lineplot(x=m.ap_by_group[i], y=m.pai_by_group[i],
+                            legend=m.name)
         plt.xlabel('Area Percentage')
         plt.ylabel('PAI')
         plt.show()
+
 
 if __name__ == '__main__':
     pass

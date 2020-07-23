@@ -1,6 +1,5 @@
 from calendar import month_name
 from calendar import month_name
-from collections import defaultdict
 from functools import reduce
 
 import geopandas as gpd
@@ -84,7 +83,7 @@ class STKDE:
 
         self.data, self.X, self.y, self.pg = self.preparing_data()
 
-        #asigna self.kde y self.bw
+        # asigna self.kde y self.bw
         self.train_model(bw=bw)
 
         print('-' * 30)
@@ -118,7 +117,8 @@ class STKDE:
         for i in range(1, len(days))[::self.wd]:
             predict_groups[f"group_{group_n}"]['t2_data'] = \
                 days[i - 1 + prm.days_by_month[self.md]:i - 1 +
-                                            prm.days_by_month[self.md] + self.wd]
+                                                        prm.days_by_month[
+                                                            self.md] + self.wd]
             group_n += 1
             if group_n > self.ng:
                 break
@@ -812,7 +812,7 @@ class STKDE:
                 np.array(self.pg[f'group_{i}']['t2_data']['y_day'])
 
             if i == 1:
-                #Data base, para primer grupo
+                # Data base, para primer grupo
                 x_training = pd.Series(
                     self.X["x"]).tolist() + pd.Series(
                     self.pg[f'group_{i}']['t1_data']['x']).tolist()
@@ -825,7 +825,7 @@ class STKDE:
                         'y_day']).tolist()
 
             else:
-                #Data agregada del grupo anterior, para re-entrenamiento
+                # Data agregada del grupo anterior, para re-entrenamiento
                 for j in range(1, i):
                     x_training += pd.Series(
                         self.pg[f'group_{j}']['t2_data'][
@@ -838,7 +838,7 @@ class STKDE:
                             'y_day']).tolist()
 
             if i > 1:
-                #re-entrenamos modelo
+                # re-entrenamos modelo
                 stkde = MyKDEMultivariate(
                     [np.array(x_training),
                      np.array(y_training),
@@ -862,8 +862,9 @@ class STKDE:
                       np.array(t_training).max():1 * 1j
                       ]
 
-            #pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
-            f_nodos = stkde.pdf(checked_points(np.array([x.flatten(), y.flatten(), t.flatten()])))
+            # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
+            f_nodos = stkde.pdf(checked_points(
+                np.array([x.flatten(), y.flatten(), t.flatten()])))
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
         return f_delitos_by_group, f_nodos_by_group
 
@@ -878,7 +879,7 @@ class STKDE:
             HR = [i / len(f_delitos) for i in hits]
             area_percentaje = [i / len(f_nodos) for i in area_h]
             if i == 1:
-                #caso base para el grupo 1 (o cuando se utiliza solo un grupo), sirve para función plotter
+                # caso base para el grupo 1 (o cuando se utiliza solo un grupo), sirve para función plotter
                 self.hr, self.ap = HR, area_percentaje
             hr_by_group.append(HR), ap_by_group.append(area_percentaje)
         self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
@@ -888,8 +889,9 @@ class STKDE:
         pai_by_group = []
         if self.hr_by_group:
             for g in range(1, self.ng + 1):
-                PAI = [float(self.hr_by_group[g-1][i]) / float(self.ap_by_group[g-1][i]) for i in
-                       range(len(self.hr_by_group[g-1]))]
+                PAI = [float(self.hr_by_group[g - 1][i]) / float(
+                    self.ap_by_group[g - 1][i]) for i in
+                       range(len(self.hr_by_group[g - 1]))]
                 pai_by_group.append(PAI)
                 if g == 1:
                     self.pai = PAI
@@ -904,15 +906,18 @@ class STKDE:
                 HR = [i / len(f_delitos) for i in hits]
                 area_percentaje = [i / len(f_nodos) for i in area_h]
                 PAI = [
-                    float(HR[i]) / float(area_percentaje[i]) if float(HR[i]) else 0
+                    float(HR[i]) / float(area_percentaje[i]) if float(
+                        HR[i]) else 0
                     for i in
                     range(len(HR))]
                 if i == 1:
                     self.ap, self.hr, self.pai = area_percentaje, HR, PAI
-                pai_by_group.append(PAI), ap_by_group.append(area_percentaje), hr_by_group.append(HR)
+                pai_by_group.append(PAI), ap_by_group.append(
+                    area_percentaje), hr_by_group.append(HR)
                 self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
         self.pai_by_group = pai_by_group
         return self.pai_by_group, self.hr_by_group, self.ap_by_group
+
 
 class RForestRegressor:
     def __init__(self, i_df=None, shps=None,
@@ -1162,7 +1167,7 @@ class RForestRegressor:
             nx_i = n_i(xi, x.min(), hx)
             ny_i = n_i(yi, y.min(), hy)
             # cell_idx = cell_index(nx_i, ny_i, ny)
-            cell_idx = ny_i + ny*nx_i
+            cell_idx = ny_i + ny * nx_i
 
             self.data.loc[idx, 'Cell'] = cell_idx
 
@@ -2014,6 +2019,7 @@ class RForestRegressor:
         plt.show()
         plt.close()
 
+
 class ProMap:
 
     def __init__(self, bw, i_df=None, n_datos=3600, read_density=False,
@@ -2022,23 +2028,24 @@ class ProMap:
                  month=10,
                  km2=1_000, name='Promap', shps=None):
 
-        #DATA
+        # DATA
         self.data = i_df
         self.n = n_datos
         self.month = month
         self.X, self.Y = None, None
         self.shps = shps
 
-        #MAP
+        # MAP
         self.hx, self.hy, self.km2 = hx, hy, km2
-        self.x_min, self.y_min, self.x_max, self.y_max = self.shps['streets'].total_bounds
-        self.bw_x, self.bw_y= bw[0], bw[1]
+        self.x_min, self.y_min, self.x_max, self.y_max = self.shps[
+            'streets'].total_bounds
+        self.bw_x, self.bw_y = bw[0], bw[1]
         self.bw_t = bw[2] if not tiempo_entrenamiento else tiempo_entrenamiento
         self.radio = radio
         self.bins_x = int(round(abs(self.x_max - self.x_min) / self.hx))
         self.bins_y = int(round(abs(self.y_max - self.y_min) / self.hy))
 
-        #MODEL
+        # MODEL
         self.name = name
         self.ventana_dias = ventana_dias
         self.matriz_con_densidades = np.zeros((self.bins_x, self.bins_y))
@@ -2099,14 +2106,13 @@ class ProMap:
         self.Y = self.data[self.data["date"].apply(lambda x: x.month) > \
                            self.month]
 
-
         print(f'\thx: {self.hx} mts, hy: {self.hy} mts')
         print(
             f'\tbw.x: {self.bw_x} mts, bw.y: {self.bw_y} mts, bw.t: {self.bw_t} dias')
 
         self.xx, self.yy = np.mgrid[
                            self.x_min + self.hx / 2:self.x_max - self.hx / 2:self.bins_x * 1j,
-                           self.y_min + self.hy / 2:self.y_max - self.hy /2:self.bins_y *1j
+                           self.y_min + self.hy / 2:self.y_max - self.hy / 2:self.bins_y * 1j
                            ]
 
         self.total_dias_training = self.X['y_day'].max()
@@ -2135,7 +2141,8 @@ class ProMap:
             ancho_y = radio_pintar(self.hy, self.radio)
 
         for k in range(len(self.X)):
-            x, y, t = self.X['x_point'][k], self.X['y_point'][k], self.X['y_day'][k]
+            x, y, t = self.X['x_point'][k], self.X['y_point'][k], \
+                      self.X['y_day'][k]
             x_in_matrix, y_in_matrix = find_position(self.xx, self.yy, x, y,
                                                      self.hx, self.hy)
             x_left, x_right = limites_x(ancho_x, x_in_matrix, self.xx)
@@ -2157,7 +2164,8 @@ class ProMap:
                                                          self.hx,
                                                          self.hy)
 
-                    self.matriz_con_densidades[i][j] += time_weight * cell_weight
+                    self.matriz_con_densidades[i][
+                        j] += time_weight * cell_weight
 
         self.matriz_con_densidades = self.matriz_con_densidades / self.matriz_con_densidades.max()
 
@@ -2208,7 +2216,6 @@ class ProMap:
                 break
 
     def calculate_hr(self, c):
-
 
         # 1. Solo considera las celdas que son mayor a un K
         #     Esto me entrega una matriz con True/False (Matriz A)

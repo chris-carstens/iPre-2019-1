@@ -39,6 +39,10 @@ def timer(fn):
 # Plots
 
 def lineplot(x, y, x_label=None, y_label=None, title=None, legend=None):
+    """
+    Para testear colores de la paleta
+    sns.palplot(sns.dark_palette("red", 100))
+    """
     rc = {
         'figure.facecolor': 'black',
         # 'figure.figsize': (5.51, 3.54),
