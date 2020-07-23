@@ -2119,7 +2119,7 @@ class ProMap:
         self.matriz_con_densidades = self.matriz_con_densidades / self.matriz_con_densidades.max()
 
         print('\nGuardando datos...')
-        np.save('predictivehp/data/matriz_de_densidades.npy',
+        np.save('predictivehp/data/density_matrix.npy',
                 self.matriz_con_densidades)
 
     # borrar
