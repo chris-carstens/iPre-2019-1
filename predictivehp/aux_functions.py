@@ -267,13 +267,11 @@ def cells_distance(x1, y1, x2, y2, hx, hy):
     dx = abs(x1 - x2)
     dy = abs(y1 - y2)
     d = 1 + floor(dx / hx) + floor(dy / hy)
-    # print('CENTROIDE DISTANCE: ', d)
     return d
 
 
 def linear_distance(a1, a2):
     linear_distance = abs(a1 - a2)
-    # print('DISTANCIA LINEAL: ', linear_distance)
     return float(linear_distance)
 
 
@@ -293,10 +291,6 @@ def n_celdas_pintar(xi, yi, x, y, hx, hy):
 
 def radio_pintar(ancho_celda, bw):
     return ceil(bw / ancho_celda)
-
-
-def square_matrix(lado):
-    return np.ones((lado, lado), dtype=bool)
 
 
 def limites_x(ancho_pintura, punto, malla):
@@ -324,14 +318,6 @@ def limites_y(ancho_pintura, punto, malla):
     return abajo, up
 
 
-def grafico(x, y, name_x, name_y):
-    plt.xlabel(name_x)
-    plt.ylabel(name_y)
-    plt.title(name_x + ' VS ' + name_y)
-    plt.plot(x, y)
-    plt.show()
-
-
 def calcular_celdas(hx, hy, superficie):
     """
     :param hx: en metros
@@ -347,8 +333,8 @@ def calcular_celdas(hx, hy, superficie):
 
     return round((raiz / hx) * (raiz / hy))
 
-def print_mes(m_train, m_predict, dias):
 
+def print_mes(m_train, m_predict, dias):
     """
     m_train: int
     m_predict: int
@@ -356,9 +342,9 @@ def print_mes(m_train, m_predict, dias):
     :return str
     """
 
-    meses = {1:'Enero',
-             2:'Febrero',
-             3:'Marzo',
+    meses = {1: 'Enero',
+             2: 'Febrero',
+             3: 'Marzo',
              4: 'Abril',
              5: 'Mayo',
              6: 'Junio',
@@ -374,5 +360,4 @@ def print_mes(m_train, m_predict, dias):
 
 
 if __name__ == '__main__':
-    print(calcular_celdas(100, 100, 1_000))
     pass

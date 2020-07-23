@@ -20,9 +20,7 @@ from statsmodels.nonparametric.kernel_density \
     import KDEMultivariate, EstimatorSettings
 
 import predictivehp.models.parameters as prm
-from predictivehp.aux_functions import \
-    timer, checked_points, filter_cells, il_neighbors, n_i, lineplot, \
-    to_df_col
+import predictivehp.aux_functions as af
 from predictivehp.processing.data_processing import *
 
 # from paraview.simple import *
@@ -145,7 +143,7 @@ class STKDE:
                                     predict_groups[group]['t2_data'][-1])]
         return df, X, y, predict_groups
 
-    @timer
+    @af.timer
     def train_model(self, bw=None):
         """
         Entrena el modelo y genera un KDE
@@ -166,7 +164,7 @@ class STKDE:
 
         self.bw = self.kde.bw
 
-    @timer
+    @af.timer
     def data_barplot(self, pdf: bool = False):
         """
         Bar Plot
@@ -210,7 +208,7 @@ class STKDE:
 
         plt.show()
 
-    @timer
+    @af.timer
     def spatial_pattern(self,
                         pdf: bool = False):
         """
@@ -296,7 +294,7 @@ class STKDE:
             plt.savefig("output/spatial_pattern.pdf", format='pdf')
         plt.show()
 
-    @timer
+    @af.timer
     def contour_plot(self,
                      bins: int,
                      ti: int,
@@ -349,7 +347,7 @@ class STKDE:
             plt.savefig("output/dallas_contourplot.pdf", format='pdf')
         plt.show()
 
-    @timer
+    @af.timer
     def heatmap(self,
                 bins=100,
                 ti=100,
@@ -405,7 +403,7 @@ class STKDE:
             plt.savefig("output/dallas_heatmap.pdf", format='pdf')
         plt.show()
 
-    @timer
+    @af.timer
     def generate_grid(self,
                       bins: int = 100):
         """
@@ -440,7 +438,7 @@ class STKDE:
                   pointData={"density": d,
                              "y_day": t})
 
-    @timer
+    @af.timer
     def plot_4d(self,
                 jpg: bool = False,
                 interactive: bool = False):
@@ -975,67 +973,8 @@ class RForestRegressor:
             self.to_pickle('data.pkl')
             self.to_pickle('df.pkl')
 
-    # @timer
-    # def get_data(self):
-    #     """
-    #     Obtención de datos a partir de la Socrata API.
-    #
-    #     Por ahora se está realizando un filtro para obtener solo  incidentes
-    #     asociados a robos residenciales
-    #
-    #     :return:
-    #     """
-    #
-    #     print("\nRequesting data...")
-    #
-    #     with Socrata(cre.socrata_domain,
-    #                  cre.API_KEY_S,
-    #                  username=cre.USERNAME_S,
-    #                  password=cre.PASSWORD_S) as client:
-    #         # Actualmente estamos filtrando por robos a domicilios
-    #         where = \
-    #             f"""
-    #                 year1 = {self.year}
-    #                 and date1 is not null
-    #                 and time1 is not null
-    #                 and x_coordinate is not null
-    #                 and y_cordinate is not null
-    #                 and offincident = 'BURGLARY OF HABITATION - FORCED ENTRY'
-    #             """  #  571000 max. 09/07/2019
-    #
-    #         results = client.get(cre.socrata_dataset_identifier,
-    #                              where=where,
-    #                              order="date1 ASC",
-    #                              limit=self.n,
-    #                              content_type='json')
-    #
-    #         df = pd.DataFrame.from_records(results)
-    #
-    #         print(f"\n\t{df.shape[0]} records successfully retrieved!")
-    #
-    #         # DB Cleaning & Formatting
-    #         df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
-    #             lambda x: float(x))
-    #         df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
-    #             lambda x: float(x))
-    #         df.loc[:, 'date1'] = df['date1'].apply(
-    #             lambda x: datetime.datetime.strptime(
-    #                 x.split(' ')[0], '%Y-%m-%d')
-    #         )
-    #         df.loc[:, 'y_day'] = df["date1"].apply(
-    #             lambda x: x.timetuple().tm_yday
-    #         )
-    #
-    #         df.rename(columns={'x_coordinate': 'x',
-    #                            'y_cordinate': 'y',
-    #                            'date1': 'date'},
-    #                   inplace=True)
-    #         df.sort_values(by=['date'], inplace=True)
-    #         df.reset_index(drop=True, inplace=True)
-    #
-    #         self.data = df
-
-    @timer
+   
+    @af.timer
     def generate_df(self):
         """
         La malla se genera de la esquina inf-izquierda a la esquina sup-derecha,
@@ -1129,7 +1068,7 @@ class RForestRegressor:
         # Garbage recollection
         # del self.incidents
 
-    @timer
+    @af.timer
     def to_pickle(self, file_name):
         """
         Genera un pickle de self.df o self.data dependiendo el nombre
@@ -1147,7 +1086,7 @@ class RForestRegressor:
                 self.generate_df()
             self.data.to_pickle(f"predictivehp/data/{file_name}")
 
-    @timer
+    @af.timer
     def assign_cells(self, month='October'):
         """
         Asigna el número de celda asociado a cada incidente en self.data
@@ -1178,7 +1117,7 @@ class RForestRegressor:
 
             self.data.loc[idx, 'Cell'] = cell_idx
 
-    @timer
+    @af.timer
     def ml_algorithm(self, f_importance=False, pickle=False):
         """
         Produce la predicción de acuerdo a los datos entregados, utilizando
@@ -1324,7 +1263,7 @@ class RForestRegressor:
         #
         # print(c_matrix_y)
 
-    @timer
+    @af.timer
     def ml_algorithm_2(self, statistics=False):
         """
         Algoritmo implementado con un Random Forest Regressor (rfr)
@@ -1581,7 +1520,7 @@ class RForestRegressor:
         )
         plt.show()
 
-    @timer
+    @af.timer
     def plot_incidents(self, i_type="real", month="October"):
         """
         Plotea los incidentes almacenados en self.data en el mes dado.
@@ -1726,7 +1665,7 @@ class RForestRegressor:
         plt.show()
         plt.close()
 
-    @timer
+    @af.timer
     def plot_hotspots(self):
         """
         Utiliza el método estático asociado para plotear los hotspots
@@ -1966,7 +1905,7 @@ class RForestRegressor:
         plt.show()
         plt.close()
 
-    @timer
+    @af.timer
     def plot_joined_cells(self):
         """
 
@@ -2062,7 +2001,7 @@ class ProMap:
 
         print('-' * 100)
         print('\t\t', self.name)
-        print(print_mes(self.month, self.month + 1, self.ventana_dias))
+        print(af.print_mes(self.month, self.month + 1, self.ventana_dias))
 
         self.generar_df()
 
@@ -2141,32 +2080,32 @@ class ProMap:
             f'\tNº de datos para testear el modelo: {len(self.Y)}')
 
         if not self.radio:
-            ancho_x = radio_pintar(self.hx, self.bw_x)
-            ancho_y = radio_pintar(self.hy, self.bw_y)
+            ancho_x = af.radio_pintar(self.hx, self.bw_x)
+            ancho_y = af.radio_pintar(self.hy, self.bw_y)
         else:
-            ancho_x = radio_pintar(self.hx, self.radio)
-            ancho_y = radio_pintar(self.hy, self.radio)
+            ancho_x = af.radio_pintar(self.hx, self.radio)
+            ancho_y = af.radio_pintar(self.hy, self.radio)
 
         for k in range(len(self.X)):
             x, y, t = self.X['x_point'][k], self.X['y_point'][k], \
                       self.X['y_day'][k]
-            x_in_matrix, y_in_matrix = find_position(self.xx, self.yy, x, y,
+            x_in_matrix, y_in_matrix = af.find_position(self.xx, self.yy, x, y,
                                                      self.hx, self.hy)
-            x_left, x_right = limites_x(ancho_x, x_in_matrix, self.xx)
-            y_abajo, y_up = limites_y(ancho_y, y_in_matrix, self.yy)
+            x_left, x_right = af.limites_x(ancho_x, x_in_matrix, self.xx)
+            y_abajo, y_up = af.limites_y(ancho_y, y_in_matrix, self.yy)
 
             for i in range(x_left, x_right + 1):
                 for j in range(y_abajo, y_up):
                     elem_x = self.xx[i][0]
                     elem_y = self.yy[0][j]
-                    time_weight = 1 / n_semanas(self.total_dias_training, t)
+                    time_weight = 1 / af.n_semanas(self.total_dias_training, t)
 
-                    if linear_distance(elem_x, x) > self.bw_x or \
-                            linear_distance(elem_y, y) > self.bw_y:
+                    if af.linear_distance(elem_x, x) > self.bw_x or \
+                            af.linear_distance(elem_y, y) > self.bw_y:
                         cell_weight = 0
 
                     else:
-                        cell_weight = 1 / cells_distance(x, y, elem_x,
+                        cell_weight = 1 / af.cells_distance(x, y, elem_x,
                                                          elem_y,
                                                          self.hx,
                                                          self.hy)
@@ -2196,7 +2135,7 @@ class ProMap:
             x, y, t = row['x_point'], row['y_point'], row['y_day']
 
             if t >= (self.total_dias_training - self.bw_t):
-                x_pos, y_pos = find_position(self.xx, self.yy, x, y, self.hx,
+                x_pos, y_pos = af.find_position(self.xx, self.yy, x, y, self.hx,
                                              self.hy)
                 self.training_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
@@ -2215,7 +2154,7 @@ class ProMap:
             x, y, t = row['x_point'], row['y_point'], row['y_day']
 
             if t <= (self.total_dias_training + ventana_dias):
-                x_pos, y_pos = find_position(self.xx, self.yy, x, y, self.hx,
+                x_pos, y_pos = af.find_position(self.xx, self.yy, x, y, self.hx,
                                              self.hy)
                 self.testing_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
@@ -2263,7 +2202,7 @@ class ProMap:
 
         self.hr = [i / n_delitos_testing for i in hits_n]
 
-        n_celdas = calcular_celdas(self.hx, self.hy, self.km2)
+        n_celdas = af.calcular_celdas(self.hx, self.hy, self.km2)
 
         self.ap = [1 if j > 1 else j for j in [i / n_celdas for
                                                i in area_hits]]
