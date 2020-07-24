@@ -842,19 +842,16 @@ class STKDE:
 
     def calculate_pai(self, c=None):
         pai_by_group = []
-        if self.hr_by_group:
-            for g in range(1, self.ng + 1):
-                PAI = [float(self.hr_by_group[g - 1][i]) / float(self.ap_by_group[g - 1][i]) if
-                        self.ap_by_group[g - 1][i] else 0 for i in
-                       range(len(self.hr_by_group[g - 1]))]
-                pai_by_group.append(PAI)
-                if g == 1:
-                    self.pai = PAI
-            return self.pai_by_group, self.hr_by_group, self.ap_by_group
-        else:
+        if not self.hr_by_group:
             self.calculate_hr()
-            return self.calculate_pai()
-
+        for g in range(1, self.ng + 1):
+            PAI = [float(self.hr_by_group[g - 1][i]) / float(self.ap_by_group[g - 1][i]) if
+                    self.ap_by_group[g - 1][i] else 0 for i in
+                   range(len(self.hr_by_group[g - 1]))]
+            pai_by_group.append(PAI)
+            if g == 1:
+                self.pai = PAI
+        return self.pai_by_group, self.hr_by_group, self.ap_by_group
 
 class RForestRegressor:
     def __init__(self, i_df=None, shps=None,
