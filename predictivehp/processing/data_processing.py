@@ -130,9 +130,9 @@ class PreProcessing:
             self.df = get_data(year, n, s_shp, c_shp, cl_shp)[0]
 
     def preparing_data(self):
-        if self.model.name == "STKDE":
+        if  "STKDE" in self.model.name:
             return self.prepare_stkde()
-        elif self.model.name == "Promap":
+        elif "Promap" in self.model.name:
             return self.prepare_promap()
         return self.prepare_rfr()
 
@@ -222,8 +222,6 @@ class PreProcessing:
                            self.model.month]
 
         return X, y
-
-
 
     def prepare_rfr(self, mode='train'):
         """Prepara el set de datos correspondiente para entrenar RFR y

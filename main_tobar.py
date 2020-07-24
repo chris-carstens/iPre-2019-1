@@ -18,7 +18,7 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 
 
 # %% STKDE
-stkde = STKDE(df=df, bw=bw_stkde)
+stkde = STKDE(bw=bw_stkde, shps=shps)
 stkde.fit(*PreProcessing(stkde).preparing_data())
 
 
