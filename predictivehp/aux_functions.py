@@ -8,19 +8,16 @@ Pontifical Catholic University of Chile
 
 """
 
+from math import floor, sqrt, ceil
 from time import time
 
+import geopandas as gpd
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
-from math import floor, sqrt, ceil
-from scipy.signal import convolve2d
-
-import geopandas as gpd
-from shapely.geometry import Point
-
-import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy.signal import convolve2d
+from shapely.geometry import Point
 
 
 # General
@@ -356,7 +353,7 @@ def print_mes(m_train, m_predict, dias):
              12: 'Diciembre'}
 
     return f'Entrenando hasta: {meses[m_train]}\n' \
-        f'Predicción de: {dias} días para {meses[m_predict]} '
+           f'Predicción de: {dias} días para {meses[m_predict]} '
 
 
 if __name__ == '__main__':

@@ -103,7 +103,9 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
         df.loc[:, 'y_day'] = df["date1"].apply(
             lambda x: x.timetuple().tm_yday
         )
-
+        df.loc[:, 'date1'] = df["date1"].apply(
+            lambda x: x.date()
+        )
         df.rename(columns={'x_coordinate': 'x',
                            'y_cordinate': 'y',
                            'date1': 'date'},
