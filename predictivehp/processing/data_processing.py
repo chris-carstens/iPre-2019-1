@@ -188,36 +188,36 @@ class PreProcessing:
 
     def prepare_promap(self):
 
-        if len(self.model.data) >= self.model.n:
+        if len(self.df) >= self.model.n:
             print(f'\nEligiendo {self.model.n} datos...')
-            self.model.data = self.model.data.sample(n=self.model.n,
+            self.df = self.df.sample(n=self.model.n,
                                          replace=False,
                                          random_state=250499)
-            self.model.data.sort_values(by=['date'], inplace=True)
-            self.model.data.reset_index(drop=True, inplace=True)
+            self.df.sort_values(by=['date'], inplace=True)
+            self.df.reset_index(drop=True, inplace=True)
 
         print("\nGenerando dataframe...\n")
 
         geometry = [Point(xy) for xy in zip(
-            np.array(self.model.data[['x']]),
-            np.array(self.model.data[['y']]))
+            np.array(self.df[['x']]),
+            np.array(self.df[['y']]))
                     ]
 
-        geo_data = gpd.GeoDataFrame(self.model.data,  # gdf de incidentes
+        geo_data = gpd.GeoDataFrame(self.df,  # gdf de incidentes
                                     crs=2276,
                                     geometry=geometry)
 
         geo_data.to_crs(epsg=3857, inplace=True)
 
-        self.model.data['x_point'] = geo_data['geometry'].x
-        self.model.data['y_point'] = geo_data['geometry'].y
+        self.df['x_point'] = geo_data['geometry'].x
+        self.df['y_point'] = geo_data['geometry'].y
 
         # División en training y testing data
 
-        X = self.model.data[self.model.data["date"].apply(lambda x:
+        X = self.df[self.df["date"].apply(lambda x:
                                                               x.month) <= \
                            self.model.month]
-        y = self.model.data[self.model.data["date"].apply(lambda x:
+        y = self.df[self.df["date"].apply(lambda x:
                                                                x.month) > \
                            self.model.month]
 

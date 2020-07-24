@@ -1,4 +1,5 @@
-a = ''
+import numpy as np
 
-b = 2 if a else 3
-print(b)
+print(type(round(2.5)))
+
+print(type(round(np.float64(2.5))))

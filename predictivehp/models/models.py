@@ -1902,14 +1902,13 @@ class RForestRegressor:
 
 class ProMap:
 
-    def __init__(self, bw, i_df=None, n_datos=3600, read_density=False,
+    def __init__(self, bw, n_datos=3600, read_density=False,
                  hx=100, hy=100,
                  radio=None, ventana_dias=7, tiempo_entrenamiento=None,
                  month=10,
                  km2=1_000, name='Promap', shps=None):
 
         # DATA
-        self.data = i_df
         self.n = n_datos
         self.month = month
         self.X, self.y = None, None

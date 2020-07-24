@@ -18,7 +18,9 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 
 
 # %% STKDE
-#stkde = STKDE(df=df, bw=bw)
+stkde = STKDE(df=df, bw=bw_stkde)
+stkde.fit(*PreProcessing(stkde).preparing_data())
+
 
 # %% Random Forest Regressor
 # rfr = RForestRegressor(i_df=df, shps=shps,
@@ -26,14 +28,14 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 #                        read_data=True, read_df=True)
 
 # %%
-pm = ProMap(i_df=df, bw=bw, shps=shps)
+pm = ProMap(bw=bw, shps=shps)
 pm.predict(*PreProcessing(pm).preparing_data())
 
 
 
 # Plotter
 pltr = Plotter(models=[
-    #stkde,
+    stkde,
     pm
     #rfr,
 ])
