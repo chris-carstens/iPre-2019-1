@@ -23,7 +23,7 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 
 
 # %% STKDE
-stkde = STKDE(df=df, bw=bw2)
+stkde = STKDE(df=df, bw=bw2, sample_number=3600)
 
 #stkde.heatmap()
 

@@ -70,10 +70,9 @@ class STKDE:
         t_model: Entrenamiento del modelo, True en caso de que se quieran
         usar los métodos contour_plot o heatmap.
         """
-        self.name, self.n, self.year, self.bw = name, n, year, bw
+        self.name, self.sn, self.year, self.bw = name, sample_number, year, bw
         self.X_months = training_months
         self.ng, self.wd, self.md = number_of_groups, window_days, month_division
-        self.sn = sample_number
 
         self.hr, self.ap, self.pai = None, None, None
         self.hr_by_group, self.ap_by_group, self.pai_by_group = None, None, None
@@ -804,7 +803,8 @@ class STKDE:
             stkde.resample(len(x_training))
 
             m = np.repeat(max(t_training), x.size)
-            f_delitos = stkde.pdf([x, y, m])
+            f_delitos = stkde.pdf(af.checked_points(
+                np.array([x.flatten(), y.flatten(), m.flatten()])))
 
             x, y, t = np.mgrid[
                       np.array(x_training).min():
