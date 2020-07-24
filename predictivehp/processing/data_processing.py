@@ -117,7 +117,7 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
         return df, streets, councils, c_limits
 
 
-class pre_processing:
+class PreProcessing:
 
     def __init__(self, model, df=None, year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
 
