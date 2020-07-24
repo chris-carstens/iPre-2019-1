@@ -15,6 +15,8 @@ import pandas as pd
 from sodapy import Socrata
 
 import predictivehp.credentials as cre
+import predictivehp.models.parameters as prm
+from functools import reduce
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -112,6 +114,79 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
 
         return df, streets, councils, c_limits
 
+
+class pre_processing:
+
+    def __init__(self, model, df=None, year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
+
+        self.model = model
+        if self.df:
+            self.df = df
+        else:
+            self.df = get_data(year, n, s_shp, c_shp, cl_shp)
+
+    def preparing_data(self):
+        if self.model.name == "STKDE":
+            return self.prepare_stkde()
+        elif self.model.name == "Promap":
+            return self.prepare_promap()
+        return self.prepare_rfr()
+
+    def prepare_stkde(self):
+        df = self.df
+        df = df.sample(n=self.model.sn, replace=False, random_state=250499)
+        df.sort_values(by=['date'], inplace=True)
+        df.reset_index(drop=True, inplace=True)
+
+        # División en training data (X) y testing data (y)
+        X = df[df["date"].apply(lambda x: x.month) <= self.model.md]
+        X = X[X["date"].apply(
+            lambda x: x.month) >= self.model.md - self.model.X_months]
+        y = df[df["date"].apply(lambda x: x.month) > self.model.X_months]
+        predict_groups = {
+            f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None}
+            for i in range(1, self.model.ng + 1)}
+        days = prm.days_year[self.model.md - 1:]
+        days = reduce(lambda a, b: a + b, days)
+        # Time 1 Data for building STKDE models : 1 Month
+        group_n = 1
+        for i in range(1, len(days))[::self.model.wd]:
+            predict_groups[f"group_{group_n}"]['t1_data'] = \
+                days[i - 1:i - 1 + prm.days_by_month[self.model.md]]
+            group_n += 1
+            if group_n > self.model.ng:
+                break
+            # Time 2 Data for Prediction            : 1 Week
+        group_n = 1
+        for i in range(1, len(days))[::self.model.wd]:
+            predict_groups[f"group_{group_n}"]['t2_data'] = \
+                days[i - 1 + prm.days_by_month[self.md]:i - 1 +
+                                                        prm.days_by_month[
+                                                            self.model.md] + self.model.wd]
+            group_n += 1
+            if group_n > self.model.ng:
+                break
+        # Time 1 Data for building STKDE models : 1 Month
+        for group in predict_groups:
+            predict_groups[group]['t1_data'] = \
+                df[df['date'].apply(lambda x:
+                                    predict_groups[group]['t1_data'][0]
+                                    <= x.date() <=
+                                    predict_groups[group]['t1_data'][-1])]
+        # Time 2 Data for Prediction            : 1 Week
+        for group in predict_groups:
+            predict_groups[group]['t2_data'] = \
+                df[df['date'].apply(lambda x:
+                                    predict_groups[group]['t2_data'][0]
+                                    <= x.date() <=
+                                    predict_groups[group]['t2_data'][-1])]
+        return df, X, y, predict_groups
+
+    def prepare_promap(self):
+        pass
+
+    def prepare_rfr(self):
+        pass
 
 if __name__ == '__main__':
     pass
