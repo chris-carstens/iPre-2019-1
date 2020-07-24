@@ -1,5 +1,5 @@
 from calendar import month_name
-from functools import reduce
+from datetime import date, timedelta
 from time import time
 
 import geopandas as gpd
@@ -19,7 +19,6 @@ from sklearn.metrics \
 from statsmodels.nonparametric.kernel_density \
     import KDEMultivariate, EstimatorSettings
 
-import predictivehp.models.parameters as prm
 import predictivehp.aux_functions as af
 from predictivehp.processing.data_processing import *
 
@@ -71,7 +70,7 @@ class STKDE:
         t_model: Entrenamiento del modelo, True en caso de que se quieran
         usar los métodos contour_plot o heatmap.
         """
-        self.name, self.n, self.year = name, n, year
+        self.name, self.n, self.year, self.bw = name, n, year, bw
         self.X_months = training_months
         self.ng, self.wd, self.md = number_of_groups, window_days, month_division
         self.sn = sample_number
@@ -86,65 +85,11 @@ class STKDE:
         print('\t\tSTKDE')
         print(af.print_mes(self.X_months, self.X_months + 1, self.wd))
 
-        self.data, self.X, self.y, self.pg = self.preparing_data()
-
-        # asigna self.kde y self.bw
-        self.train_model(bw=bw)
-
         print('-' * 30)
 
-    def preparing_data(self):
-        df = self.df
-        df = df.sample(n=self.sn, replace=False, random_state=250499)
-        df.sort_values(by=['date'], inplace=True)
-        df.reset_index(drop=True, inplace=True)
-
-        # División en training data (X) y testing data (y)
-        X = df[df["date"].apply(lambda x: x.month) <= self.md]
-        X = X[X["date"].apply(
-            lambda x: x.month) >= self.md - self.X_months]
-        y = df[df["date"].apply(lambda x: x.month) > self.X_months]
-        predict_groups = {
-            f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None}
-            for i in range(1, self.ng + 1)}
-        days = prm.days_year[self.md - 1:]
-        days = reduce(lambda a, b: a + b, days)
-        # Time 1 Data for building STKDE models : 1 Month
-        group_n = 1
-        for i in range(1, len(days))[::self.wd]:
-            predict_groups[f"group_{group_n}"]['t1_data'] = \
-                days[i - 1:i - 1 + prm.days_by_month[self.md]]
-            group_n += 1
-            if group_n > self.ng:
-                break
-            # Time 2 Data for Prediction            : 1 Week
-        group_n = 1
-        for i in range(1, len(days))[::self.wd]:
-            predict_groups[f"group_{group_n}"]['t2_data'] = \
-                days[i - 1 + prm.days_by_month[self.md]:i - 1 +
-                                                        prm.days_by_month[
-                                                            self.md] + self.wd]
-            group_n += 1
-            if group_n > self.ng:
-                break
-        # Time 1 Data for building STKDE models : 1 Month
-        for group in predict_groups:
-            predict_groups[group]['t1_data'] = \
-                df[df['date'].apply(lambda x:
-                                    predict_groups[group]['t1_data'][0]
-                                    <= x.date() <=
-                                    predict_groups[group]['t1_data'][-1])]
-        # Time 2 Data for Prediction            : 1 Week
-        for group in predict_groups:
-            predict_groups[group]['t2_data'] = \
-                df[df['date'].apply(lambda x:
-                                    predict_groups[group]['t2_data'][0]
-                                    <= x.date() <=
-                                    predict_groups[group]['t2_data'][-1])]
-        return df, X, y, predict_groups
 
     @af.timer
-    def train_model(self, bw=None):
+    def fit(self, df, X, y, predict_groups):
         """
         Entrena el modelo y genera un KDE
 
@@ -154,13 +99,15 @@ class STKDE:
             Si es un arreglo, este debe contener los bandwidths dados
             por el usuario
         """
+        self.data, self.X, self.y, self.pg = df, X, y, predict_groups
+
         print("\nBuilding KDE...")
 
         self.kde = MyKDEMultivariate(
             [np.array(self.X[['x']]),
              np.array(self.X[['y']]),
              np.array(self.X[['y_day']])],
-            'ccc', bw=bw)
+            'ccc', bw=self.bw)
 
         self.bw = self.kde.bw
 
@@ -190,7 +137,7 @@ class STKDE:
             [datetime.datetime.strptime(str(i), "%m").strftime('%b')
              for i in range(1, 13)])
 
-        sb.despine()
+        sns.despine()
 
         plt.xlabel("Month",
                    fontdict={'fontsize': 12.5,
@@ -894,7 +841,6 @@ class STKDE:
 
     def calculate_pai(self, c):
         pai_by_group = []
-        print(self.hr_by_group)
         if self.hr_by_group:
             for g in range(1, self.ng + 1):
                 PAI = [float(self.hr_by_group[g - 1][i]) / float(
@@ -929,7 +875,8 @@ class STKDE:
 
 class RForestRegressor:
     def __init__(self, i_df=None, shps=None,
-                 xc_size=100, yc_size=100, layers_n=7,
+                 xc_size=100, yc_size=100, n_layers=7,
+                 n_weeks=4, f_date=date(2017, 10, 31),
                  # nx=None, ny=None,
                  read_data=False, read_df=False, name='RForestRegressor'):
         """
@@ -947,9 +894,13 @@ class RForestRegressor:
         self.name = name
         self.shps = shps
         self.xc_size, self.yc_size = xc_size, yc_size
-        self.layers_n = layers_n
+        self.n_layers = n_layers
         self.nx, self.ny, self.hx, self.hy = None, None, None, None
+        self.n_weeks = n_weeks
+        self.f_date = f_date
+        self.weeks = []
 
+        self.rfr = RandomForestRegressor(n_jobs=8)
         self.ap, self.hr, self.pai = None, None, None
 
         # m_dict = {month_name[i]: None for i in range(1, 13)}
@@ -960,7 +911,7 @@ class RForestRegressor:
         if read_df and read_data:
             st = time()
             print("\nReading df pickle...", end=" ")
-            self.df = pd.read_pickle('predictivehp/data/df.pkl')
+            self.X = pd.read_pickle('predictivehp/data/X.pkl')
             print(f"finished! ({time() - st:3.1f} sec)")
             st = time()
             print("Reading data pickle...", end=" ")
@@ -969,12 +920,10 @@ class RForestRegressor:
         else:
             self.data = i_df
             self.generate_df()
-
-            self.ml_algorithm_2()
             self.assign_cells()
 
             self.to_pickle('data.pkl')
-            self.to_pickle('df.pkl')
+            self.to_pickle('X.pkl')
 
     @af.timer
     def generate_df(self):
@@ -1013,11 +962,17 @@ class RForestRegressor:
 
         # Creación del esqueleto del dataframe
         print("\tCreating dataframe columns...")
-        months = [month_name[i] for i in range(1, 13)]
-        columns = pd.MultiIndex.from_product(
-            [[f"Incidents_{i}" for i in range(self.layers_n + 1)], months]
+        i_date = self.f_date + timedelta(days=1)  # For prediction
+        c_date = self.f_date
+        for _ in range(self.n_weeks):
+            c_date -= timedelta(days=7)
+            self.weeks.append(c_date + timedelta(days=1))
+        self.weeks.reverse()
+        self.weeks.append(i_date)
+        X_cols = pd.MultiIndex.from_product(
+            [[f"Incidents_{i}" for i in range(self.n_layers + 1)], self.weeks]
         )
-        self.df = pd.DataFrame(columns=columns)
+        self.X = pd.DataFrame(columns=X_cols)
 
         # Creación de los parámetros para el cálculo de los índices
         print("\tFilling df...")
@@ -1029,46 +984,44 @@ class RForestRegressor:
         # Manejo de los puntos de incidentes para poder trabajar en (x, y)
         geometry = [Point(xy) for xy in zip(np.array(self.data[['x']]),
                                             np.array(self.data[['y']]))]
-        self.data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
-                                     crs=2276,
-                                     geometry=geometry)
+        self.data = gpd.GeoDataFrame(self.data, crs=2276, geometry=geometry)
         self.data.to_crs(epsg=3857, inplace=True)
         self.data['Cell'] = None
 
         # Nro. incidentes en la i-ésima capa de la celda (i, j)
-        for month in [month_name[i] for i in range(1, 13)]:
-            print(f"\t\t{month}... ", end=' ')
-            fil_incidents = self.data[self.data.month1 == month]
+        for week in self.weeks:
+            print(f"\t\t{week}... ", end=' ')
+            wi_date = week
+            wf_date = week + timedelta(days=1)
+            fil_incidents = self.data[
+                (wi_date <= self.data.date) & (self.data.date <= wf_date)
+                ]
             D = np.zeros((self.nx, self.ny), dtype=int)
 
             for _, row in fil_incidents.iterrows():
                 xi, yi = row.geometry.x, row.geometry.y
-                nx_i = n_i(xi, x.min(), self.hx)
-                ny_i = n_i(yi, y.min(), self.hy)
+                nx_i = af.n_i(xi, x.min(), self.hx)
+                ny_i = af.n_i(yi, y.min(), self.hy)
                 D[nx_i, ny_i] += 1
 
             # Actualización del pandas dataframe
-            for i in range(self.layers_n + 1):
-                self.df.loc[:, (f"Incidents_{i}", month)] = \
-                    to_df_col(D) if i == 0 else \
-                        to_df_col(il_neighbors(matrix=D, i=i))
-
+            for i in range(self.n_layers + 1):
+                self.X.loc[:, (f"Incidents_{i}", week)] = \
+                    af.to_df_col(D) if i == 0 else \
+                        af.to_df_col(af.il_neighbors(D, i))
             print('finished!')
 
         # Adición de las columnas 'geometry' e 'in_dallas' al df
         print("\tPreparing df for filtering...")
 
-        self.df['geometry'] = [Point(i) for i in
-                               zip(x[:-1, :-1].flatten(),
-                                   y[:-1, :-1].flatten())]
-        self.df['in_dallas'] = 0
+        self.X['geometry'] = [Point(i) for i in
+                              zip(x[:-1, :-1].flatten(),
+                                  y[:-1, :-1].flatten())]
+        self.X['in_dallas'] = 0
 
         # Filtrado de celdas (llenado de la columna 'in_dallas')
-        self.df = filter_cells(df=self.df, shp=self.shps['councils'])
-        self.df.drop(columns=[('in_dallas', '')], inplace=True)
-
-        # Garbage recollection
-        # del self.incidents
+        self.X = af.filter_cells(df=self.X, shp=self.shps['councils'])
+        self.X.drop(columns=[('in_dallas', '')], inplace=True)
 
     @af.timer
     def to_pickle(self, file_name):
@@ -1082,21 +1035,25 @@ class RForestRegressor:
 
         print("\nPickling dataframe...", end=" ")
         if file_name == "df.pkl":
-            self.df.to_pickle(f"predictivehp/data/{file_name}")
+            self.X.to_pickle(f"predictivehp/data/{file_name}")
         if file_name == "data.pkl":
             if self.data is None:
                 self.generate_df()
             self.data.to_pickle(f"predictivehp/data/{file_name}")
 
     @af.timer
-    def assign_cells(self, month='October'):
+    def assign_cells(self, week=date(2017, 11, 1)):
         """
         Asigna el número de celda asociado a cada incidente en self.data
 
         :return:
         """
         print("\nAssigning cells...\n")
-        data = self.data[self.data.month1 == month]
+        i_date = week
+        f_date = week + timedelta(days=6)
+        data = self.data[
+            (i_date <= self.data.date) & (self.data.date <= f_date)
+            ]
         x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
 
         x_bins = abs(x_max - x_min) / self.xc_size
@@ -1112,9 +1069,8 @@ class RForestRegressor:
 
         for idx, inc in data.iterrows():
             xi, yi = inc.geometry.x, inc.geometry.y
-            nx_i = n_i(xi, x.min(), hx)
-            ny_i = n_i(yi, y.min(), hy)
-            # cell_idx = cell_index(nx_i, ny_i, ny)
+            nx_i = af.n_i(xi, x.min(), hx)
+            ny_i = af.n_i(yi, y.min(), hy)
             cell_idx = ny_i + ny * nx_i
 
             self.data.loc[idx, 'Cell'] = cell_idx
@@ -1138,7 +1094,7 @@ class RForestRegressor:
         print("\n\tPreparing input...")
 
         # Jan-Sep
-        x_ft = self.df.loc[
+        x_ft = self.X.loc[
                :,
                [('Incidents_0', month_name[i]) for i in range(1, 10)] +
                [('Incidents_1', month_name[i]) for i in range(1, 10)] +
@@ -1150,7 +1106,7 @@ class RForestRegressor:
                [('Incidents_7', month_name[i]) for i in range(1, 10)]
                ]
         # Oct
-        x_lbl = self.df.loc[
+        x_lbl = self.X.loc[
                 :,
                 [('Incidents_0', 'October'), ('Incidents_1', 'October'),
                  ('Incidents_2', 'October'), ('Incidents_3', 'October'),
@@ -1179,23 +1135,23 @@ class RForestRegressor:
         print("\n\tx\n")
 
         # Sirven para determinar celdas con TP/FN
-        self.df[('Dangerous_Oct', '')] = x_lbl
-        self.df[('Dangerous_pred_Oct', '')] = x_pred_rfc
+        self.X[('Dangerous_Oct', '')] = x_lbl
+        self.X[('Dangerous_pred_Oct', '')] = x_pred_rfc
 
         # Comparación para determinar si las celdas predichas son TP/FN
-        self.df[('TP', '')] = 0
-        self.df[('FN', '')] = 0
-        self.df[('TP', '')] = np.where(
-            (self.df[('Dangerous_Oct', '')] == self.df[
+        self.X[('TP', '')] = 0
+        self.X[('FN', '')] = 0
+        self.X[('TP', '')] = np.where(
+            (self.X[('Dangerous_Oct', '')] == self.X[
                 ('Dangerous_pred_Oct', '')]) &
-            (self.df[('Dangerous_Oct', '')] == 1),
+            (self.X[('Dangerous_Oct', '')] == 1),
             1,
             0
         )
-        self.df[('FN', '')] = np.where(
-            (self.df[('Dangerous_Oct', '')] != self.df[
+        self.X[('FN', '')] = np.where(
+            (self.X[('Dangerous_Oct', '')] != self.X[
                 ('Dangerous_pred_Oct', '')]) &
-            (self.df[('Dangerous_pred_Oct', '')] == 0),
+            (self.X[('Dangerous_pred_Oct', '')] == 0),
             1,
             0
         )
@@ -1213,7 +1169,7 @@ class RForestRegressor:
 
         print("\n\ty\n")
 
-        y_ft = self.df.loc[
+        y_ft = self.X.loc[
                :,
                [('Incidents_0', month_name[i]) for i in range(2, 11)] +
                [('Incidents_1', month_name[i]) for i in range(2, 11)] +
@@ -1224,7 +1180,7 @@ class RForestRegressor:
                [('Incidents_6', month_name[i]) for i in range(2, 11)] +
                [('Incidents_7', month_name[i]) for i in range(2, 11)]
                ]
-        y_lbl = self.df.loc[
+        y_lbl = self.X.loc[
                 :,
                 [('Incidents_0', 'November'), ('Incidents_1', 'November'),
                  ('Incidents_2', 'November'), ('Incidents_3', 'November'),
@@ -1266,61 +1222,54 @@ class RForestRegressor:
         # print(c_matrix_y)
 
     @af.timer
-    def ml_algorithm_2(self, statistics=False):
+    def fit(self, X, y):
         """
-        Algoritmo implementado con un Random Forest Regressor (rfr)
 
-        :return:
+        Parameters
+        ----------
+        X : pd.DataFrame
+            X_train
+        y : pd.DataFrame
+            y_train
+
+        Returns
+        -------
+
         """
-        print("\nInitializing...")
-        print("\n\tPreparing input...")
-        # Jan-Sep
-        X = self.df.loc[
-            :,
-            [('Incidents_0', month_name[i]) for i in range(1, 10)] +
-            [('Incidents_1', month_name[i]) for i in range(1, 10)] +
-            [('Incidents_2', month_name[i]) for i in range(1, 10)] +
-            [('Incidents_3', month_name[i]) for i in range(1, 10)] +
-            [('Incidents_4', month_name[i]) for i in range(1, 10)] +
-            [('Incidents_5', month_name[i]) for i in range(1, 10)] +
-            [('Incidents_6', month_name[i]) for i in range(1, 10)] +
-            [('Incidents_7', month_name[i]) for i in range(1, 10)]
-            ]
-        # Oct
-        y = self.df.loc[
-            :,
-            [('Incidents_0', 'October'), ('Incidents_1', 'October'),
-             ('Incidents_2', 'October'), ('Incidents_3', 'October'),
-             ('Incidents_4', 'October'), ('Incidents_5', 'October'),
-             ('Incidents_6', 'October'), ('Incidents_7', 'October')]
-            ]
-        y[('Dangerous', '')] = y.T.any().astype(int)
-        y = y[('Dangerous', '')]
-
-        # Algoritmo
-        print("\tRunning algorithms...")
-
-        rfr = RandomForestRegressor(n_jobs=8)
-        rfr.fit(X, y.to_numpy().ravel())
-        y_pred_rfr = rfr.predict(X)
+        print("\tFitting Model...")
+        self.rfr.fit(X, y.to_numpy().ravel())
 
         # Sirven para determinar celdas con TP/FN
-        self.df[('Dangerous_Oct_rfr', '')] = y
-        self.df[('Dangerous_pred_Oct_rfr', '')] = y_pred_rfr
+        self.X[('Dangerous_Oct', '')] = y
 
-        # Estadísticas
+    def predict(self, X):
+        """
 
-        if statistics:
-            rfr_score = rfr.score(X, y)
-            rfr_precision = precision_score(y, y_pred_rfr)
-            rfr_recall = recall_score(y, y_pred_rfr)
-            print(
-                f"""
-                rfr score           {rfr_score:1.3f}
-                rfr precision       {rfr_precision:1.3f}
-                rfr recall          {rfr_recall:1.3f}
-                    """
-            )
+        Parameters
+        ----------
+        X: pd.DataFrame
+            X_test for prediction
+
+        Returns
+        -------
+
+        """
+        print("\tMaking predictions...")
+        y_pred = self.rfr.predict(X)
+        self.X[('Dangerous_pred_Oct', '')] = y_pred
+
+        return y_pred
+        # if statistics:
+        #     rfr_score = self.rfr.score(X_train, X)
+        #     rfr_precision = precision_score(y_test, y_pred)
+        #     rfr_recall = recall_score(y_test, y_pred)
+        #     print(
+        #         f"""
+        #         rfr score           {rfr_score:1.3f}
+        #         rfr precision       {rfr_precision:1.3f}
+        #         rfr recall          {rfr_recall:1.3f}
+        #             """
+        #     )
 
     def calculate_hr(self, plot=False, c=0.9):
         """
@@ -1342,7 +1291,7 @@ class RForestRegressor:
             # print(data_oct['Cell'])
             # print(self.df.shape)
 
-            ans = data_oct.join(other=self.df, on='Cell', how='left')
+            ans = data_oct.join(other=self.X, on='Cell', how='left')
 
             # ans = ans[ans[('geometry', '')].notna()]
             # print(f"Data Oct: {data_oct.shape}")
@@ -1357,7 +1306,7 @@ class RForestRegressor:
             # print(hr)
             return hr
         else:
-            A = self.df.shape[0]
+            A = self.X.shape[0]
 
             def a(x, c):
                 return x[x[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
@@ -1367,7 +1316,7 @@ class RForestRegressor:
             ap_l = []
             for c in c_arr:
                 hr_l.append(self.calculate_hr(c=np.array([c])))
-                ap_l.append(a(self.df, c) / A)
+                ap_l.append(a(self.X, c) / A)
             self.hr = np.array(hr_l)
             self.ap = np.array(ap_l)
         plt.savefig(f"frheatmap.pdf", format='pdf')
@@ -1391,10 +1340,10 @@ class RForestRegressor:
         def a(x, c):
             return x[x[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
 
-        A = self.df.shape[0]  # Celdas en Dallas
+        A = self.X.shape[0]  # Celdas en Dallas
         if c.size == 1:
             hr = self.calculate_hr(c=c)
-            ap = a(self.df, c) / A
+            ap = a(self.X, c) / A
 
             # print(f"a: {a} cells    A: {A} cells")
             # print(f"Area Percentage: {ap:1.3f}")
@@ -1408,7 +1357,7 @@ class RForestRegressor:
             pai_l = []
             for c in c_arr:
                 hr = self.calculate_hr(c=np.array([c]))
-                ap = a(self.df, c) / A
+                ap = a(self.X, c) / A
                 hr_l.append(hr)
                 ap_l.append(ap)
                 pai_l.append(hr / ap)
@@ -1425,7 +1374,7 @@ class RForestRegressor:
         :return:
         """
         # Datos Oct luego de aplicar el rfr
-        ans = self.df[[('geometry', ''), ('Dangerous_pred_Oct_rfr', '')]]
+        ans = self.X[[('geometry', ''), ('Dangerous_pred_Oct_rfr', '')]]
         ans = gpd.GeoDataFrame(ans)
         ans = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= c]
         d_streets = self.shps['streets']
@@ -1456,8 +1405,8 @@ class RForestRegressor:
 
         ap_l, hr_l, pai_l = [], [], []
         for c in c_arr:
-            A = self.df.shape[0]  # Celdas en Dallas
-            ap = a(self.df, c) / A  # in [0.00, 0.25]
+            A = self.X.shape[0]  # Celdas en Dallas
+            ap = a(self.X, c) / A  # in [0.00, 0.25]
             hr = self.calculate_hr(c=c)
             pai = hr / ap
 
@@ -1466,7 +1415,7 @@ class RForestRegressor:
         ap_arr = np.array(ap_l)
         hr_arr, pai_arr = np.array(hr_l), np.array(pai_l)
 
-        lineplot(
+        af.lineplot(
             x=c_arr, y=ap_arr,
             x_label='c',
             y_label='Area Percentage',
@@ -1477,7 +1426,7 @@ class RForestRegressor:
             edgecolor='black'
         )
         plt.show()
-        lineplot(
+        af.lineplot(
             x=c_arr, y=hr_arr,
             x_label='c',
             y_label='Hit Rate',
@@ -1488,7 +1437,7 @@ class RForestRegressor:
             edgecolor='black'
         )
         plt.show()
-        lineplot(
+        af.lineplot(
             x=c_arr, y=pai_arr,
             x_label='c',
             y_label='PAI',
@@ -1499,7 +1448,7 @@ class RForestRegressor:
             edgecolor='black'
         )
         plt.show()
-        lineplot(
+        af.lineplot(
             x=ap_arr, y=pai_arr,
             x_label='Area Percentage',
             y_label='PAI',
@@ -1510,7 +1459,7 @@ class RForestRegressor:
             edgecolor='black'
         )
         plt.show()
-        lineplot(
+        af.lineplot(
             x=ap_arr, y=hr_arr,
             x_label='Area Percentage',
             y_label='Hit Rate',
@@ -1542,22 +1491,22 @@ class RForestRegressor:
         tp_data, fn_data, data = None, None, None
 
         if i_type == "TP & FN":
-            data = gpd.GeoDataFrame(self.df)
-            tp_data = data[self.df.TP == 1]
-            fn_data = data[self.df.FN == 1]
+            data = gpd.GeoDataFrame(self.X)
+            tp_data = data[self.X.TP == 1]
+            fn_data = data[self.X.FN == 1]
         if i_type == "TP":
-            data = gpd.GeoDataFrame(self.df)
-            tp_data = self.df[self.df.TP == 1]
+            data = gpd.GeoDataFrame(self.X)
+            tp_data = self.X[self.X.TP == 1]
         if i_type == "FN":
-            data = gpd.GeoDataFrame(self.df)
-            fn_data = self.df[self.df.FN == 1]
+            data = gpd.GeoDataFrame(self.X)
+            fn_data = self.X[self.X.FN == 1]
         if i_type == "real":
             data = self.data[self.data.month1 == month]
             n_incidents = data.shape[0]
             print(f"\tNumber of Incidents in {month}: {n_incidents}")
         if i_type == "pred":
-            data = gpd.GeoDataFrame(self.df)
-            all_hp = data[self.df[('Dangerous_pred_Oct', '')] == 1]
+            data = gpd.GeoDataFrame(self.X)
+            all_hp = data[self.X[('Dangerous_pred_Oct', '')] == 1]
 
         print("\tReading shapefile...")
         d_streets = gpd.GeoDataFrame.from_file(
@@ -1676,9 +1625,9 @@ class RForestRegressor:
         :return:
         """
 
-        data = self.df[[('geometry', ''),
-                        ('Dangerous_Oct', ''),
-                        ('Dangerous_pred_Oct', '')]]
+        data = self.X[[('geometry', ''),
+                       ('Dangerous_Oct', ''),
+                       ('Dangerous_pred_Oct', '')]]
 
         # Quitamos el nivel ''
         data = data.T.reset_index(level=1, drop=True).T
@@ -1917,7 +1866,7 @@ class RForestRegressor:
         data_oct = pd.DataFrame(self.data[self.data.month1 == 'October'])
         data_oct.drop(columns='geometry', inplace=True)
 
-        ans = data_oct.join(other=self.df, on='Cell', how='left')
+        ans = data_oct.join(other=self.X, on='Cell', how='left')
         ans = ans[ans[('geometry', '')].notna()]
 
         gpd_ans = gpd.GeoDataFrame(ans, geometry=ans[('geometry', '')])
