@@ -1,4 +1,5 @@
 from calendar import month_name
+from datetime import date, timedelta
 from functools import reduce
 from time import time
 
@@ -928,7 +929,8 @@ class STKDE:
 
 class RForestRegressor:
     def __init__(self, i_df=None, shps=None,
-                 xc_size=100, yc_size=100, layers_n=7,
+                 xc_size=100, yc_size=100, n_layers=7,
+                 n_weeks=4, f_date=date(2017, 10, 31),
                  # nx=None, ny=None,
                  read_data=False, read_df=False, name='RForestRegressor'):
         """
@@ -937,7 +939,7 @@ class RForestRegressor:
             datos extraídos en primera instancia desde la Socrata API
         :param int xc_size: Ancho de las celdas en metros
         :param int yc_size: Largo de las celdas en metros
-        :param int layers_n: Nro. de capas
+        :param int n_layers: Nro. de capas
         :param bool read_data: True si se desea
         :param bool read_df: True para leer el df con la
             información de las celdas
@@ -946,9 +948,13 @@ class RForestRegressor:
         self.name = name
         self.shps = shps
         self.xc_size, self.yc_size = xc_size, yc_size
-        self.layers_n = layers_n
+        self.n_weeks = n_weeks
+        self.f_date = f_date
+        self.weeks = []
+        self.n_layers = n_layers
         self.nx, self.ny, self.hx, self.hy = None, None, None, None
 
+        self.rfr = RandomForestRegressor(n_jobs=8)
         self.ap, self.hr, self.pai = None, None, None
 
         # m_dict = {month_name[i]: None for i in range(1, 13)}
@@ -969,71 +975,11 @@ class RForestRegressor:
             self.data = i_df
             self.generate_df()
 
-            self.ml_algorithm_2()
+            self.fit()
             self.assign_cells()
 
             self.to_pickle('data.pkl')
             self.to_pickle('df.pkl')
-
-    # @timer
-    # def get_data(self):
-    #     """
-    #     Obtención de datos a partir de la Socrata API.
-    #
-    #     Por ahora se está realizando un filtro para obtener solo  incidentes
-    #     asociados a robos residenciales
-    #
-    #     :return:
-    #     """
-    #
-    #     print("\nRequesting data...")
-    #
-    #     with Socrata(cre.socrata_domain,
-    #                  cre.API_KEY_S,
-    #                  username=cre.USERNAME_S,
-    #                  password=cre.PASSWORD_S) as client:
-    #         # Actualmente estamos filtrando por robos a domicilios
-    #         where = \
-    #             f"""
-    #                 year1 = {self.year}
-    #                 and date1 is not null
-    #                 and time1 is not null
-    #                 and x_coordinate is not null
-    #                 and y_cordinate is not null
-    #                 and offincident = 'BURGLARY OF HABITATION - FORCED ENTRY'
-    #             """  #  571000 max. 09/07/2019
-    #
-    #         results = client.get(cre.socrata_dataset_identifier,
-    #                              where=where,
-    #                              order="date1 ASC",
-    #                              limit=self.n,
-    #                              content_type='json')
-    #
-    #         df = pd.DataFrame.from_records(results)
-    #
-    #         print(f"\n\t{df.shape[0]} records successfully retrieved!")
-    #
-    #         # DB Cleaning & Formatting
-    #         df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
-    #             lambda x: float(x))
-    #         df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
-    #             lambda x: float(x))
-    #         df.loc[:, 'date1'] = df['date1'].apply(
-    #             lambda x: datetime.datetime.strptime(
-    #                 x.split(' ')[0], '%Y-%m-%d')
-    #         )
-    #         df.loc[:, 'y_day'] = df["date1"].apply(
-    #             lambda x: x.timetuple().tm_yday
-    #         )
-    #
-    #         df.rename(columns={'x_coordinate': 'x',
-    #                            'y_cordinate': 'y',
-    #                            'date1': 'date'},
-    #                   inplace=True)
-    #         df.sort_values(by=['date'], inplace=True)
-    #         df.reset_index(drop=True, inplace=True)
-    #
-    #         self.data = df
 
     @timer
     def generate_df(self):
@@ -1072,11 +1018,19 @@ class RForestRegressor:
 
         # Creación del esqueleto del dataframe
         print("\tCreating dataframe columns...")
-        months = [month_name[i] for i in range(1, 13)]
-        columns = pd.MultiIndex.from_product(
-            [[f"Incidents_{i}" for i in range(self.layers_n + 1)], months]
-        )
-        self.df = pd.DataFrame(columns=columns)
+        # months = [month_name[i] for i in range(1, 13)]
+        # columns = pd.MultiIndex.from_product(
+        #     [[f"Incidents_{i}" for i in range(self.layers_n + 1)], months]
+        # )
+        layers = [f"Incidents_{i}" for i in range(self.n_layers)]
+        c_date = self.f_date
+        for _ in range(0, self.n_weeks):
+            c_date -= timedelta(days=6)
+            self.weeks.append(c_date)
+        self.weeks.reverse()
+        self.weeks.append(self.f_date + timedelta(days=1))
+        X_cols = pd.MultiIndex.from_product([self.weeks, layers])
+        self.df = pd.DataFrame(columns=X_cols)
 
         # Creación de los parámetros para el cálculo de los índices
         print("\tFilling df...")
@@ -1095,9 +1049,32 @@ class RForestRegressor:
         self.data['Cell'] = None
 
         # Nro. incidentes en la i-ésima capa de la celda (i, j)
-        for month in [month_name[i] for i in range(1, 13)]:
-            print(f"\t\t{month}... ", end=' ')
-            fil_incidents = self.data[self.data.month1 == month]
+        # for month in [month_name[i] for i in range(1, 13)]:
+        #     print(f"\t\t{month}... ", end=' ')
+        #     fil_incidents = self.data[self.data.month1 == month]
+        #     D = np.zeros((self.nx, self.ny), dtype=int)
+        #
+        #     for _, row in fil_incidents.iterrows():
+        #         xi, yi = row.geometry.x, row.geometry.y
+        #         nx_i = n_i(xi, x.min(), self.hx)
+        #         ny_i = n_i(yi, y.min(), self.hy)
+        #         D[nx_i, ny_i] += 1
+        #
+        #     # Actualización del pandas dataframe
+        #     for i in range(self.n_layers + 1):
+        #         self.df.loc[:, (f"Incidents_{i}", month)] = \
+        #             to_df_col(D) if i == 0 else \
+        #                 to_df_col(il_neighbors(matrix=D, i=i))
+        #
+        #     print('finished!')
+
+        for week in self.weeks:
+            print(f"\t\t{week}... ", end=' ')
+            w_idate = week
+            w_fdate = week + timedelta(days=6)
+            fil_incidents = self.data[
+                (w_idate <= self.data.date) & (self.data.date <= w_fdate)
+                ]
             D = np.zeros((self.nx, self.ny), dtype=int)
 
             for _, row in fil_incidents.iterrows():
@@ -1107,16 +1084,13 @@ class RForestRegressor:
                 D[nx_i, ny_i] += 1
 
             # Actualización del pandas dataframe
-            for i in range(self.layers_n + 1):
-                self.df.loc[:, (f"Incidents_{i}", month)] = \
-                    to_df_col(D) if i == 0 else \
-                        to_df_col(il_neighbors(matrix=D, i=i))
-
+            for i in range(self.n_layers + 1):
+                self.df.loc[:, (f"Incidents_{i}", week)] = \
+                    to_df_col(D) if i == 0 else to_df_col(il_neighbors(D, i))
             print('finished!')
 
         # Adición de las columnas 'geometry' e 'in_dallas' al df
         print("\tPreparing df for filtering...")
-
         self.df['geometry'] = [Point(i) for i in
                                zip(x[:-1, :-1].flatten(),
                                    y[:-1, :-1].flatten())]
@@ -1125,9 +1099,6 @@ class RForestRegressor:
         # Filtrado de celdas (llenado de la columna 'in_dallas')
         self.df = filter_cells(df=self.df, shp=self.shps['councils'])
         self.df.drop(columns=[('in_dallas', '')], inplace=True)
-
-        # Garbage recollection
-        # del self.incidents
 
     @timer
     def to_pickle(self, file_name):
@@ -1325,7 +1296,7 @@ class RForestRegressor:
         # print(c_matrix_y)
 
     @timer
-    def ml_algorithm_2(self, statistics=False):
+    def fit(self):
         """
         Algoritmo implementado con un Random Forest Regressor (rfr)
 
@@ -1333,52 +1304,64 @@ class RForestRegressor:
         """
         print("\nInitializing...")
         print("\n\tPreparing input...")
-        # Jan-Sep
-        X = self.df.loc[
+        # Weeks before 25-10-2017
+        # X = self.df.loc[
+        #     :,
+        #     [('Incidents_0', month_name[i]) for i in range(1, 10)] +
+        #     [('Incidents_1', month_name[i]) for i in range(1, 10)] +
+        #     [('Incidents_2', month_name[i]) for i in range(1, 10)] +
+        #     [('Incidents_3', month_name[i]) for i in range(1, 10)] +
+        #     [('Incidents_4', month_name[i]) for i in range(1, 10)] +
+        #     [('Incidents_5', month_name[i]) for i in range(1, 10)] +
+        #     [('Incidents_6', month_name[i]) for i in range(1, 10)] +
+        #     [('Incidents_7', month_name[i]) for i in range(1, 10)]
+        #     ]
+        X_train = self.df.loc[
             :,
-            [('Incidents_0', month_name[i]) for i in range(1, 10)] +
-            [('Incidents_1', month_name[i]) for i in range(1, 10)] +
-            [('Incidents_2', month_name[i]) for i in range(1, 10)] +
-            [('Incidents_3', month_name[i]) for i in range(1, 10)] +
-            [('Incidents_4', month_name[i]) for i in range(1, 10)] +
-            [('Incidents_5', month_name[i]) for i in range(1, 10)] +
-            [('Incidents_6', month_name[i]) for i in range(1, 10)] +
-            [('Incidents_7', month_name[i]) for i in range(1, 10)]
+            reduce(lambda a, b: a + b, [[(f"Incident_{i}", week)]
+                                        for week in self.weeks
+                                        for i in range(8)]
+                   )
             ]
-        # Oct
-        y = self.df.loc[
-            :,
-            [('Incidents_0', 'October'), ('Incidents_1', 'October'),
-             ('Incidents_2', 'October'), ('Incidents_3', 'October'),
-             ('Incidents_4', 'October'), ('Incidents_5', 'October'),
-             ('Incidents_6', 'October'), ('Incidents_7', 'October')]
-            ]
-        y[('Dangerous', '')] = y.T.any().astype(int)
-        y = y[('Dangerous', '')]
 
-        # Algoritmo
+        # 25-10-2017 week
+        y_train = self.df.loc[
+            :,
+            reduce(lambda a, b: a + b, [[(f"Incident_{i}", self.f_date)]
+                                        for i in range(8)]
+                   )
+            ]
+        y_train[('Dangerous', '')] = y_train.T.any().astype(int)
+        y_train = y_train[('Dangerous', '')]
+
+        # Fit
         print("\tRunning algorithms...")
+        self.rfr.fit(X_train, y_train.to_numpy().ravel())
 
+        # Para determinar celdas con TP/FN
+        self.df[('Dangerous_Oct', '')] = y_train
+
+
+    @timer
+    def predict(self, X, y, statistics=False):
         rfr = RandomForestRegressor(n_jobs=8)
         rfr.fit(X, y.to_numpy().ravel())
-        y_pred_rfr = rfr.predict(X)
+        y_pred = rfr.predict(X)
 
-        # Sirven para determinar celdas con TP/FN
-        self.df[('Dangerous_Oct_rfr', '')] = y
-        self.df[('Dangerous_pred_Oct_rfr', '')] = y_pred_rfr
+        # Para determinar celdas con TP/FN
+        self.df[('Dangerous_pred_Oct', '')] = y_pred
 
         # Estadísticas
-
         if statistics:
-            rfr_score = rfr.score(X, y)
-            rfr_precision = precision_score(y, y_pred_rfr)
-            rfr_recall = recall_score(y, y_pred_rfr)
+            rfr_score = self.rfr.score(X_train, y_train)
+            rfr_precision = precision_score(y_train, y_pred)
+            rfr_recall = recall_score(y_train, y_pred)
             print(
                 f"""
-                rfr score           {rfr_score:1.3f}
-                rfr precision       {rfr_precision:1.3f}
-                rfr recall          {rfr_recall:1.3f}
-                    """
+                rfr score       {rfr_score:1.3f}
+                rfr precision   {rfr_precision:1.3f}
+                rfr recall      {rfr_recall:1.3f}
+                """
             )
 
     def calculate_hr(self, plot=False, c=0.9):

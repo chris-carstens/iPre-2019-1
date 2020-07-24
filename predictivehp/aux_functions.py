@@ -8,19 +8,16 @@ Pontifical Catholic University of Chile
 
 """
 
+from math import floor, sqrt, ceil
 from time import time
 
+import geopandas as gpd
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
-from math import floor, sqrt, ceil
-from scipy.signal import convolve2d
-
-import geopandas as gpd
-from shapely.geometry import Point
-
-import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy.signal import convolve2d
+from shapely.geometry import Point
 
 
 # General
@@ -347,8 +344,8 @@ def calcular_celdas(hx, hy, superficie):
 
     return round((raiz / hx) * (raiz / hy))
 
-def print_mes(m_train, m_predict, dias):
 
+def print_mes(m_train, m_predict, dias):
     """
     m_train: int
     m_predict: int
@@ -356,9 +353,9 @@ def print_mes(m_train, m_predict, dias):
     :return str
     """
 
-    meses = {1:'Enero',
-             2:'Febrero',
-             3:'Marzo',
+    meses = {1: 'Enero',
+             2: 'Febrero',
+             3: 'Marzo',
              4: 'Abril',
              5: 'Mayo',
              6: 'Junio',
@@ -370,7 +367,7 @@ def print_mes(m_train, m_predict, dias):
              12: 'Diciembre'}
 
     return f'Entrenando hasta: {meses[m_train]}\n' \
-        f'Predicción de: {dias} días para {meses[m_predict]} '
+           f'Predicción de: {dias} días para {meses[m_predict]} '
 
 
 if __name__ == '__main__':

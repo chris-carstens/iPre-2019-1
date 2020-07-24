@@ -1,5 +1,5 @@
 from calendar import monthrange
-from datetime import date
+from datetime import date, timedelta
 
 import pandas as pd
 
@@ -16,28 +16,16 @@ layers = [f"Layer_{i}" for i in range(8)]
 n_weeks = 5
 f_date = date(2017, 10, 31)  # For training
 i_date = date(2017, 11, 1)  # For prediction
+# yy, mm, dd = f_date.year, f_date.month, f_date.day
 weeks = []
-yy, mm, dd = f_date.year, f_date.month, f_date.day
+
+c_date = f_date
 for _ in range(0, n_weeks):
-    if dd - 7 >= 1:  # Descenso en días válido
-        dd -= 7
-        dt = date(yy, mm, dd + 1)
-    else:
-        if mm - 1 >= 1:  # Descenso en meses válido
-            mm -= 1
-            diff1 = dd
-            diff2 = 7 - diff1
-            dd = monthrange(yy, mm)[1] - diff2
-            dt = date(yy, mm, dd + 1)
-        else:  # Descendemos un año y nos paramos al final de éste - diff2
-            yy -= 1
-            mm = 12
-            diff1 = dd
-            diff2 = 7 - diff1
-            dd = monthrange(yy, mm)[1] - diff2
-            dt = date(yy, mm, dd + 1)
-    weeks.append(dt)
+    c_date -= timedelta(days=6)
+    weeks.append(c_date)
 weeks.reverse()
+
+print(weeks[::-1])
 
 X_train_cols = pd.MultiIndex.from_product([weeks[:-1], layers])
 y_train_cols = pd.MultiIndex.from_product([[f"{weeks[-1]}"], ['Dangerous']])
