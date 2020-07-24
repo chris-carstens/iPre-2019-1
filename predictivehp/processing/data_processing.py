@@ -9,6 +9,7 @@ Pontifical Catholic University of Chile
 """
 
 import datetime
+from functools import reduce
 
 import geopandas as gpd
 import pandas as pd
@@ -16,7 +17,6 @@ from sodapy import Socrata
 
 import predictivehp.credentials as cre
 import predictivehp.models.parameters as prm
-from functools import reduce
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -98,13 +98,11 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
             lambda x: datetime.datetime.strptime(
                 x.split(' ')[0], '%Y-%m-%d')
         )
+        df.loc[:, 'date1'] = df["date1"].apply(lambda x: x.date())
 
         df = df[['x_coordinate', 'y_cordinate', 'date1', 'month1']]
         df.loc[:, 'y_day'] = df["date1"].apply(
             lambda x: x.timetuple().tm_yday
-        )
-        df.loc[:, 'date1'] = df["date1"].apply(
-            lambda x: x.date()
         )
         df.rename(columns={'x_coordinate': 'x',
                            'y_cordinate': 'y',
@@ -119,7 +117,8 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
 
 class PreProcessing:
 
-    def __init__(self, model, df=None, year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
+    def __init__(self, model, df=None, year=2017, n=150000, s_shp='', c_shp='',
+                 cl_shp=''):
 
         self.model = model
         if df is not None:
@@ -187,8 +186,50 @@ class PreProcessing:
     def prepare_promap(self):
         pass
 
-    def prepare_rfr(self):
-        pass
+    def prepare_rfr(self, mode='train'):
+        """Prepara el set de datos correspondiente para entrenar RFR y
+        predecir para un set dado
+
+        Parameters
+        ----------
+        mode : str
+            Tipo de X, y a retornar. Elegir entre {'train', 'test'}
+
+        Returns
+        -------
+        (pd.DataFrame, pd.DataFrame)
+
+        """
+        print("\n\tPreparing input for RFR...")
+        if mode == 'train':
+            # First three weeks of October
+            X = self.model.X.loc[
+                      :,
+                      reduce(lambda a, b: a + b,
+                             [(f'Incidents_{i}', week)
+                              for i in range(self.model.n_layers)
+                              for week in self.model.weeks[:-2]]
+                             )
+                      ]
+            # Last week of October
+            y = self.model.X.loc[:, [('Incidents_0', self.model.weeks[-2])]]
+            y[('Dangerous', '')] = y.T.any().astype(int)
+            y = y[('Dangerous', '')]
+        else:
+            # Nos movemos una semana adelante
+            X = self.model.X.loc[
+                      :,
+                      reduce(lambda a, b: a + b,
+                             [(f'Incidents_{i}', week)
+                              for i in range(self.model.n_layers)
+                              for week in self.model.weeks[1:-1]]
+                             )
+                      ]
+            y = self.model.X.loc[:, [('Incidents_0', self.model.weeks[-1])]]
+            y[('Dangerous', '')] = y.T.any().astype(int)
+            y = y[('Dangerous', '')]
+        return X, y
+
 
 if __name__ == '__main__':
-    pass
+    df, _, _, _ = get_data()
