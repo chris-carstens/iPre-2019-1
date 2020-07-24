@@ -122,7 +122,7 @@ class PreProcessing:
     def __init__(self, model, df=None, year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
 
         self.model = model
-        if self.df:
+        if df is not None:
             self.df = df
         else:
             self.df = get_data(year, n, s_shp, c_shp, cl_shp)
@@ -162,7 +162,7 @@ class PreProcessing:
         group_n = 1
         for i in range(1, len(days))[::self.model.wd]:
             predict_groups[f"group_{group_n}"]['t2_data'] = \
-                days[i - 1 + prm.days_by_month[self.md]:i - 1 +
+                days[i - 1 + prm.days_by_month[self.model.md]:i - 1 +
                                                         prm.days_by_month[
                                                             self.model.md] + self.model.wd]
             group_n += 1
@@ -173,14 +173,14 @@ class PreProcessing:
             predict_groups[group]['t1_data'] = \
                 df[df['date'].apply(lambda x:
                                     predict_groups[group]['t1_data'][0]
-                                    <= x.date() <=
+                                    <= x <=
                                     predict_groups[group]['t1_data'][-1])]
         # Time 2 Data for Prediction            : 1 Week
         for group in predict_groups:
             predict_groups[group]['t2_data'] = \
                 df[df['date'].apply(lambda x:
                                     predict_groups[group]['t2_data'][0]
-                                    <= x.date() <=
+                                    <= x <=
                                     predict_groups[group]['t2_data'][-1])]
         return df, X, y, predict_groups
 

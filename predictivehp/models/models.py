@@ -70,7 +70,7 @@ class STKDE:
         t_model: Entrenamiento del modelo, True en caso de que se quieran
         usar los métodos contour_plot o heatmap.
         """
-        self.name, self.n, self.year = name, n, year
+        self.name, self.n, self.year, self.bw = name, n, year, bw
         self.X_months = training_months
         self.ng, self.wd, self.md = number_of_groups, window_days, month_division
         self.sn = sample_number
@@ -85,65 +85,11 @@ class STKDE:
         print('\t\tSTKDE')
         print(af.print_mes(self.X_months, self.X_months + 1, self.wd))
 
-        self.data, self.X, self.y, self.pg = self.preparing_data()
-
-        # asigna self.kde y self.bw
-        self.train_model(bw=bw)
-
         print('-' * 30)
 
-    def preparing_data(self):
-        df = self.df
-        df = df.sample(n=self.sn, replace=False, random_state=250499)
-        df.sort_values(by=['date'], inplace=True)
-        df.reset_index(drop=True, inplace=True)
-
-        # División en training data (X) y testing data (y)
-        X = df[df["date"].apply(lambda x: x.month) <= self.md]
-        X = X[X["date"].apply(
-            lambda x: x.month) >= self.md - self.X_months]
-        y = df[df["date"].apply(lambda x: x.month) > self.X_months]
-        predict_groups = {
-            f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None}
-            for i in range(1, self.ng + 1)}
-        days = prm.days_year[self.md - 1:]
-        days = reduce(lambda a, b: a + b, days)
-        # Time 1 Data for building STKDE models : 1 Month
-        group_n = 1
-        for i in range(1, len(days))[::self.wd]:
-            predict_groups[f"group_{group_n}"]['t1_data'] = \
-                days[i - 1:i - 1 + prm.days_by_month[self.md]]
-            group_n += 1
-            if group_n > self.ng:
-                break
-            # Time 2 Data for Prediction            : 1 Week
-        group_n = 1
-        for i in range(1, len(days))[::self.wd]:
-            predict_groups[f"group_{group_n}"]['t2_data'] = \
-                days[i - 1 + prm.days_by_month[self.md]:i - 1 +
-                                                        prm.days_by_month[
-                                                            self.md] + self.wd]
-            group_n += 1
-            if group_n > self.ng:
-                break
-        # Time 1 Data for building STKDE models : 1 Month
-        for group in predict_groups:
-            predict_groups[group]['t1_data'] = \
-                df[df['date'].apply(lambda x:
-                                    predict_groups[group]['t1_data'][0]
-                                    <= x.date() <=
-                                    predict_groups[group]['t1_data'][-1])]
-        # Time 2 Data for Prediction            : 1 Week
-        for group in predict_groups:
-            predict_groups[group]['t2_data'] = \
-                df[df['date'].apply(lambda x:
-                                    predict_groups[group]['t2_data'][0]
-                                    <= x.date() <=
-                                    predict_groups[group]['t2_data'][-1])]
-        return df, X, y, predict_groups
 
     @af.timer
-    def train_model(self, bw=None):
+    def fit(self, df, X, y, predict_groups):
         """
         Entrena el modelo y genera un KDE
 
@@ -153,13 +99,15 @@ class STKDE:
             Si es un arreglo, este debe contener los bandwidths dados
             por el usuario
         """
+        self.data, self.X, self.y, self.pg = df, X, y, predict_groups
+
         print("\nBuilding KDE...")
 
         self.kde = MyKDEMultivariate(
             [np.array(self.X[['x']]),
              np.array(self.X[['y']]),
              np.array(self.X[['y_day']])],
-            'ccc', bw=bw)
+            'ccc', bw=self.bw)
 
         self.bw = self.kde.bw
 
