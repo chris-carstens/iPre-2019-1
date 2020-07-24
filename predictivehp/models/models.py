@@ -1,5 +1,4 @@
 from calendar import month_name
-from datetime import date, timedelta
 from functools import reduce
 from time import time
 
@@ -21,9 +20,7 @@ from statsmodels.nonparametric.kernel_density \
     import KDEMultivariate, EstimatorSettings
 
 import predictivehp.models.parameters as prm
-from predictivehp.aux_functions import \
-    timer, checked_points, filter_cells, il_neighbors, n_i, lineplot, \
-    to_df_col
+import predictivehp.aux_functions as af
 from predictivehp.processing.data_processing import *
 
 # from paraview.simple import *
@@ -48,7 +45,7 @@ class MyKDEMultivariate(KDEMultivariate):
 
         # simulated and checked points
         s_points = np.transpose(means + norm)
-        c_points = checked_points(s_points)
+        c_points = af.checked_points(s_points)
 
         # print(f"\n{size - c_points.shape[1]} invalid points found")
 
@@ -87,7 +84,7 @@ class STKDE:
         self.df = df
         print('-' * 30)
         print('\t\tSTKDE')
-        print(print_mes(self.X_months, self.X_months + 1, self.wd))
+        print(af.print_mes(self.X_months, self.X_months + 1, self.wd))
 
         self.data, self.X, self.y, self.pg = self.preparing_data()
 
@@ -146,7 +143,7 @@ class STKDE:
                                     predict_groups[group]['t2_data'][-1])]
         return df, X, y, predict_groups
 
-    @timer
+    @af.timer
     def train_model(self, bw=None):
         """
         Entrena el modelo y genera un KDE
@@ -167,7 +164,7 @@ class STKDE:
 
         self.bw = self.kde.bw
 
-    @timer
+    @af.timer
     def data_barplot(self, pdf: bool = False):
         """
         Bar Plot
@@ -211,7 +208,7 @@ class STKDE:
 
         plt.show()
 
-    @timer
+    @af.timer
     def spatial_pattern(self,
                         pdf: bool = False):
         """
@@ -297,7 +294,7 @@ class STKDE:
             plt.savefig("output/spatial_pattern.pdf", format='pdf')
         plt.show()
 
-    @timer
+    @af.timer
     def contour_plot(self,
                      bins: int,
                      ti: int,
@@ -350,7 +347,7 @@ class STKDE:
             plt.savefig("output/dallas_contourplot.pdf", format='pdf')
         plt.show()
 
-    @timer
+    @af.timer
     def heatmap(self,
                 bins=100,
                 ti=100,
@@ -364,6 +361,7 @@ class STKDE:
         print("\nPlotting Heatmap...")
 
         dallas = gpd.read_file('predictivehp/data/streets.shp')
+
 
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
@@ -379,17 +377,19 @@ class STKDE:
                np.array(self.y[['y']]).min():
                np.array(self.y[['y']]).max():bins * 1j
                ]
-
         z = self.kde.pdf(np.vstack([x.flatten(),
                                     y.flatten(),
                                     ti * np.ones(x.size)]))
-        # z = np.ma.masked_array(z, z < .1e-11)
+
+        #Normalizar
+        z = z/z.max()
 
         heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
                                  shading='gouraud',
                                  alpha=.2,
                                  cmap='jet',
-                                 zorder=2)
+                                 zorder=2,
+                                 )
 
         plt.title(f"Dallas Incidents - Heatmap\n"
                   f"n = {self.data.shape[0]}   Year = {self.year}",
@@ -406,7 +406,7 @@ class STKDE:
             plt.savefig("output/dallas_heatmap.pdf", format='pdf')
         plt.show()
 
-    @timer
+    @af.timer
     def generate_grid(self,
                       bins: int = 100):
         """
@@ -441,7 +441,7 @@ class STKDE:
                   pointData={"density": d,
                              "y_day": t})
 
-    @timer
+    @af.timer
     def plot_4d(self,
                 jpg: bool = False,
                 interactive: bool = False):
@@ -871,7 +871,7 @@ class STKDE:
                       ]
 
             # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
-            f_nodos = stkde.pdf(checked_points(
+            f_nodos = stkde.pdf(af.checked_points(
                 np.array([x.flatten(), y.flatten(), t.flatten()])))
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
         return f_delitos_by_group, f_nodos_by_group
@@ -929,8 +929,7 @@ class STKDE:
 
 class RForestRegressor:
     def __init__(self, i_df=None, shps=None,
-                 xc_size=100, yc_size=100, n_layers=7,
-                 n_weeks=4, f_date=date(2017, 10, 31),
+                 xc_size=100, yc_size=100, layers_n=7,
                  # nx=None, ny=None,
                  read_data=False, read_df=False, name='RForestRegressor'):
         """
@@ -939,7 +938,7 @@ class RForestRegressor:
             datos extraídos en primera instancia desde la Socrata API
         :param int xc_size: Ancho de las celdas en metros
         :param int yc_size: Largo de las celdas en metros
-        :param int n_layers: Nro. de capas
+        :param int layers_n: Nro. de capas
         :param bool read_data: True si se desea
         :param bool read_df: True para leer el df con la
             información de las celdas
@@ -948,13 +947,9 @@ class RForestRegressor:
         self.name = name
         self.shps = shps
         self.xc_size, self.yc_size = xc_size, yc_size
-        self.n_weeks = n_weeks
-        self.f_date = f_date
-        self.weeks = []
-        self.n_layers = n_layers
+        self.layers_n = layers_n
         self.nx, self.ny, self.hx, self.hy = None, None, None, None
 
-        self.rfr = RandomForestRegressor(n_jobs=8)
         self.ap, self.hr, self.pai = None, None, None
 
         # m_dict = {month_name[i]: None for i in range(1, 13)}
@@ -975,13 +970,13 @@ class RForestRegressor:
             self.data = i_df
             self.generate_df()
 
-            self.fit()
+            self.ml_algorithm_2()
             self.assign_cells()
 
             self.to_pickle('data.pkl')
             self.to_pickle('df.pkl')
 
-    @timer
+    @af.timer
     def generate_df(self):
         """
         La malla se genera de la esquina inf-izquierda a la esquina sup-derecha,
@@ -1018,19 +1013,11 @@ class RForestRegressor:
 
         # Creación del esqueleto del dataframe
         print("\tCreating dataframe columns...")
-        # months = [month_name[i] for i in range(1, 13)]
-        # columns = pd.MultiIndex.from_product(
-        #     [[f"Incidents_{i}" for i in range(self.layers_n + 1)], months]
-        # )
-        layers = [f"Incidents_{i}" for i in range(self.n_layers)]
-        c_date = self.f_date
-        for _ in range(0, self.n_weeks):
-            c_date -= timedelta(days=6)
-            self.weeks.append(c_date)
-        self.weeks.reverse()
-        self.weeks.append(self.f_date + timedelta(days=1))
-        X_cols = pd.MultiIndex.from_product([self.weeks, layers])
-        self.df = pd.DataFrame(columns=X_cols)
+        months = [month_name[i] for i in range(1, 13)]
+        columns = pd.MultiIndex.from_product(
+            [[f"Incidents_{i}" for i in range(self.layers_n + 1)], months]
+        )
+        self.df = pd.DataFrame(columns=columns)
 
         # Creación de los parámetros para el cálculo de los índices
         print("\tFilling df...")
@@ -1049,32 +1036,9 @@ class RForestRegressor:
         self.data['Cell'] = None
 
         # Nro. incidentes en la i-ésima capa de la celda (i, j)
-        # for month in [month_name[i] for i in range(1, 13)]:
-        #     print(f"\t\t{month}... ", end=' ')
-        #     fil_incidents = self.data[self.data.month1 == month]
-        #     D = np.zeros((self.nx, self.ny), dtype=int)
-        #
-        #     for _, row in fil_incidents.iterrows():
-        #         xi, yi = row.geometry.x, row.geometry.y
-        #         nx_i = n_i(xi, x.min(), self.hx)
-        #         ny_i = n_i(yi, y.min(), self.hy)
-        #         D[nx_i, ny_i] += 1
-        #
-        #     # Actualización del pandas dataframe
-        #     for i in range(self.n_layers + 1):
-        #         self.df.loc[:, (f"Incidents_{i}", month)] = \
-        #             to_df_col(D) if i == 0 else \
-        #                 to_df_col(il_neighbors(matrix=D, i=i))
-        #
-        #     print('finished!')
-
-        for week in self.weeks:
-            print(f"\t\t{week}... ", end=' ')
-            w_idate = week
-            w_fdate = week + timedelta(days=6)
-            fil_incidents = self.data[
-                (w_idate <= self.data.date) & (self.data.date <= w_fdate)
-                ]
+        for month in [month_name[i] for i in range(1, 13)]:
+            print(f"\t\t{month}... ", end=' ')
+            fil_incidents = self.data[self.data.month1 == month]
             D = np.zeros((self.nx, self.ny), dtype=int)
 
             for _, row in fil_incidents.iterrows():
@@ -1084,13 +1048,16 @@ class RForestRegressor:
                 D[nx_i, ny_i] += 1
 
             # Actualización del pandas dataframe
-            for i in range(self.n_layers + 1):
-                self.df.loc[:, (f"Incidents_{i}", week)] = \
-                    to_df_col(D) if i == 0 else to_df_col(il_neighbors(D, i))
+            for i in range(self.layers_n + 1):
+                self.df.loc[:, (f"Incidents_{i}", month)] = \
+                    to_df_col(D) if i == 0 else \
+                        to_df_col(il_neighbors(matrix=D, i=i))
+
             print('finished!')
 
         # Adición de las columnas 'geometry' e 'in_dallas' al df
         print("\tPreparing df for filtering...")
+
         self.df['geometry'] = [Point(i) for i in
                                zip(x[:-1, :-1].flatten(),
                                    y[:-1, :-1].flatten())]
@@ -1100,7 +1067,10 @@ class RForestRegressor:
         self.df = filter_cells(df=self.df, shp=self.shps['councils'])
         self.df.drop(columns=[('in_dallas', '')], inplace=True)
 
-    @timer
+        # Garbage recollection
+        # del self.incidents
+
+    @af.timer
     def to_pickle(self, file_name):
         """
         Genera un pickle de self.df o self.data dependiendo el nombre
@@ -1118,7 +1088,7 @@ class RForestRegressor:
                 self.generate_df()
             self.data.to_pickle(f"predictivehp/data/{file_name}")
 
-    @timer
+    @af.timer
     def assign_cells(self, month='October'):
         """
         Asigna el número de celda asociado a cada incidente en self.data
@@ -1149,7 +1119,7 @@ class RForestRegressor:
 
             self.data.loc[idx, 'Cell'] = cell_idx
 
-    @timer
+    @af.timer
     def ml_algorithm(self, f_importance=False, pickle=False):
         """
         Produce la predicción de acuerdo a los datos entregados, utilizando
@@ -1295,8 +1265,8 @@ class RForestRegressor:
         #
         # print(c_matrix_y)
 
-    @timer
-    def fit(self):
+    @af.timer
+    def ml_algorithm_2(self, statistics=False):
         """
         Algoritmo implementado con un Random Forest Regressor (rfr)
 
@@ -1304,64 +1274,52 @@ class RForestRegressor:
         """
         print("\nInitializing...")
         print("\n\tPreparing input...")
-        # Weeks before 25-10-2017
-        # X = self.df.loc[
-        #     :,
-        #     [('Incidents_0', month_name[i]) for i in range(1, 10)] +
-        #     [('Incidents_1', month_name[i]) for i in range(1, 10)] +
-        #     [('Incidents_2', month_name[i]) for i in range(1, 10)] +
-        #     [('Incidents_3', month_name[i]) for i in range(1, 10)] +
-        #     [('Incidents_4', month_name[i]) for i in range(1, 10)] +
-        #     [('Incidents_5', month_name[i]) for i in range(1, 10)] +
-        #     [('Incidents_6', month_name[i]) for i in range(1, 10)] +
-        #     [('Incidents_7', month_name[i]) for i in range(1, 10)]
-        #     ]
-        X_train = self.df.loc[
+        # Jan-Sep
+        X = self.df.loc[
             :,
-            reduce(lambda a, b: a + b, [[(f"Incident_{i}", week)]
-                                        for week in self.weeks
-                                        for i in range(8)]
-                   )
+            [('Incidents_0', month_name[i]) for i in range(1, 10)] +
+            [('Incidents_1', month_name[i]) for i in range(1, 10)] +
+            [('Incidents_2', month_name[i]) for i in range(1, 10)] +
+            [('Incidents_3', month_name[i]) for i in range(1, 10)] +
+            [('Incidents_4', month_name[i]) for i in range(1, 10)] +
+            [('Incidents_5', month_name[i]) for i in range(1, 10)] +
+            [('Incidents_6', month_name[i]) for i in range(1, 10)] +
+            [('Incidents_7', month_name[i]) for i in range(1, 10)]
             ]
-
-        # 25-10-2017 week
-        y_train = self.df.loc[
+        # Oct
+        y = self.df.loc[
             :,
-            reduce(lambda a, b: a + b, [[(f"Incident_{i}", self.f_date)]
-                                        for i in range(8)]
-                   )
+            [('Incidents_0', 'October'), ('Incidents_1', 'October'),
+             ('Incidents_2', 'October'), ('Incidents_3', 'October'),
+             ('Incidents_4', 'October'), ('Incidents_5', 'October'),
+             ('Incidents_6', 'October'), ('Incidents_7', 'October')]
             ]
-        y_train[('Dangerous', '')] = y_train.T.any().astype(int)
-        y_train = y_train[('Dangerous', '')]
+        y[('Dangerous', '')] = y.T.any().astype(int)
+        y = y[('Dangerous', '')]
 
-        # Fit
+        # Algoritmo
         print("\tRunning algorithms...")
-        self.rfr.fit(X_train, y_train.to_numpy().ravel())
 
-        # Para determinar celdas con TP/FN
-        self.df[('Dangerous_Oct', '')] = y_train
-
-
-    @timer
-    def predict(self, X, y, statistics=False):
         rfr = RandomForestRegressor(n_jobs=8)
         rfr.fit(X, y.to_numpy().ravel())
-        y_pred = rfr.predict(X)
+        y_pred_rfr = rfr.predict(X)
 
-        # Para determinar celdas con TP/FN
-        self.df[('Dangerous_pred_Oct', '')] = y_pred
+        # Sirven para determinar celdas con TP/FN
+        self.df[('Dangerous_Oct_rfr', '')] = y
+        self.df[('Dangerous_pred_Oct_rfr', '')] = y_pred_rfr
 
         # Estadísticas
+
         if statistics:
-            rfr_score = self.rfr.score(X_train, y_train)
-            rfr_precision = precision_score(y_train, y_pred)
-            rfr_recall = recall_score(y_train, y_pred)
+            rfr_score = rfr.score(X, y)
+            rfr_precision = precision_score(y, y_pred_rfr)
+            rfr_recall = recall_score(y, y_pred_rfr)
             print(
                 f"""
-                rfr score       {rfr_score:1.3f}
-                rfr precision   {rfr_precision:1.3f}
-                rfr recall      {rfr_recall:1.3f}
-                """
+                rfr score           {rfr_score:1.3f}
+                rfr precision       {rfr_precision:1.3f}
+                rfr recall          {rfr_recall:1.3f}
+                    """
             )
 
     def calculate_hr(self, plot=False, c=0.9):
@@ -1564,7 +1522,7 @@ class RForestRegressor:
         )
         plt.show()
 
-    @timer
+    @af.timer
     def plot_incidents(self, i_type="real", month="October"):
         """
         Plotea los incidentes almacenados en self.data en el mes dado.
@@ -1709,7 +1667,7 @@ class RForestRegressor:
         plt.show()
         plt.close()
 
-    @timer
+    @af.timer
     def plot_hotspots(self):
         """
         Utiliza el método estático asociado para plotear los hotspots
@@ -1949,7 +1907,7 @@ class RForestRegressor:
         plt.show()
         plt.close()
 
-    @timer
+    @af.timer
     def plot_joined_cells(self):
         """
 
@@ -2045,7 +2003,7 @@ class ProMap:
 
         print('-' * 100)
         print('\t\t', self.name)
-        print(print_mes(self.month, self.month + 1, self.ventana_dias))
+        print(af.print_mes(self.month, self.month + 1, self.ventana_dias))
 
         self.generar_df()
 
@@ -2124,32 +2082,32 @@ class ProMap:
             f'\tNº de datos para testear el modelo: {len(self.Y)}')
 
         if not self.radio:
-            ancho_x = radio_pintar(self.hx, self.bw_x)
-            ancho_y = radio_pintar(self.hy, self.bw_y)
+            ancho_x = af.radio_pintar(self.hx, self.bw_x)
+            ancho_y = af.radio_pintar(self.hy, self.bw_y)
         else:
-            ancho_x = radio_pintar(self.hx, self.radio)
-            ancho_y = radio_pintar(self.hy, self.radio)
+            ancho_x = af.radio_pintar(self.hx, self.radio)
+            ancho_y = af.radio_pintar(self.hy, self.radio)
 
         for k in range(len(self.X)):
             x, y, t = self.X['x_point'][k], self.X['y_point'][k], \
                       self.X['y_day'][k]
-            x_in_matrix, y_in_matrix = find_position(self.xx, self.yy, x, y,
+            x_in_matrix, y_in_matrix = af.find_position(self.xx, self.yy, x, y,
                                                      self.hx, self.hy)
-            x_left, x_right = limites_x(ancho_x, x_in_matrix, self.xx)
-            y_abajo, y_up = limites_y(ancho_y, y_in_matrix, self.yy)
+            x_left, x_right = af.limites_x(ancho_x, x_in_matrix, self.xx)
+            y_abajo, y_up = af.limites_y(ancho_y, y_in_matrix, self.yy)
 
             for i in range(x_left, x_right + 1):
                 for j in range(y_abajo, y_up):
                     elem_x = self.xx[i][0]
                     elem_y = self.yy[0][j]
-                    time_weight = 1 / n_semanas(self.total_dias_training, t)
+                    time_weight = 1 / af.n_semanas(self.total_dias_training, t)
 
-                    if linear_distance(elem_x, x) > self.bw_x or \
-                            linear_distance(elem_y, y) > self.bw_y:
+                    if af.linear_distance(elem_x, x) > self.bw_x or \
+                            af.linear_distance(elem_y, y) > self.bw_y:
                         cell_weight = 0
 
                     else:
-                        cell_weight = 1 / cells_distance(x, y, elem_x,
+                        cell_weight = 1 / af.cells_distance(x, y, elem_x,
                                                          elem_y,
                                                          self.hx,
                                                          self.hy)
@@ -2160,7 +2118,7 @@ class ProMap:
         self.matriz_con_densidades = self.matriz_con_densidades / self.matriz_con_densidades.max()
 
         print('\nGuardando datos...')
-        np.save('predictivehp/data/matriz_de_densidades.npy',
+        np.save('predictivehp/data/density_matrix.npy',
                 self.matriz_con_densidades)
 
     # borrar
@@ -2179,7 +2137,7 @@ class ProMap:
             x, y, t = row['x_point'], row['y_point'], row['y_day']
 
             if t >= (self.total_dias_training - self.bw_t):
-                x_pos, y_pos = find_position(self.xx, self.yy, x, y, self.hx,
+                x_pos, y_pos = af.find_position(self.xx, self.yy, x, y, self.hx,
                                              self.hy)
                 self.training_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
@@ -2198,7 +2156,7 @@ class ProMap:
             x, y, t = row['x_point'], row['y_point'], row['y_day']
 
             if t <= (self.total_dias_training + ventana_dias):
-                x_pos, y_pos = find_position(self.xx, self.yy, x, y, self.hx,
+                x_pos, y_pos = af.find_position(self.xx, self.yy, x, y, self.hx,
                                              self.hy)
                 self.testing_matrix[x_pos][y_pos] += 1
                 delitos_agregados += 1
@@ -2246,7 +2204,7 @@ class ProMap:
 
         self.hr = [i / n_delitos_testing for i in hits_n]
 
-        n_celdas = calcular_celdas(self.hx, self.hy, self.km2)
+        n_celdas = af.calcular_celdas(self.hx, self.hy, self.km2)
 
         self.ap = [1 if j > 1 else j for j in [i / n_celdas for
                                                i in area_hits]]
@@ -2285,7 +2243,7 @@ class ProMap:
         plt.imshow(np.flipud(matriz.T),
                    extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                    cmap='jet',
-                   vmin=0, vmax=0.7
+                   #vmin=0, vmax=1
                    )
 
         dallas.plot(ax=ax,
