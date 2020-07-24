@@ -92,13 +92,12 @@ class STKDE:
     @af.timer
     def fit(self, df, X, y, predict_groups):
         """
-        Entrena el modelo y genera un KDE
 
-        Parameters
-        ----------
-        bw : list, tuple, np.ndarray
-            Si es un arreglo, este debe contener los bandwidths dados
-            por el usuario
+        :param pd.DataFrame df: Initial Dataframe.
+        :param pd.DataFrame  X: Training data.
+        :param pd.DataFrame  Y: Testing data.
+        :param list  predict_groups: List with data separate in groups
+                                    and with corresponding windows.
         """
         self.data, self.X, self.y, self.pg = df, X, y, predict_groups
 
