@@ -59,9 +59,8 @@ class MyKDEMultivariate(KDEMultivariate):
 
 class STKDE:
     def __init__(self,
-                 n: int = 1000,
                  year: str = "2017",
-                 bw=None, df=None, sample_number=3600, training_months=10,
+                 bw=None, sample_number=3600, training_months=10,
                  number_of_groups=1,
                  window_days=7, month_division=10, name="STKDE"):
         """
@@ -76,10 +75,9 @@ class STKDE:
 
         self.hr, self.ap, self.pai = None, None, None
         self.hr_by_group, self.ap_by_group, self.pai_by_group = None, None, None
-
+        self.f_delitos_by_group, self.f_nodos_by_group = None, None
         # training data 3000
         # testing data  600
-        self.df = df
         print('-' * 30)
         print('\t\tSTKDE')
         print(af.print_mes(self.X_months, self.X_months + 1, self.wd))
@@ -756,6 +754,8 @@ class STKDE:
             print("finished!")
 
     def predict(self):
+        if self.f_delitos_by_group:
+            return self.f_delitos_by_group, self.f_nodos_by_group
         f_nodos_by_group, f_delitos_by_group = {}, {}
         for i in range(1, self.ng + 1):
             x, y, t = \
@@ -819,57 +819,41 @@ class STKDE:
             f_nodos = stkde.pdf(af.checked_points(
                 np.array([x.flatten(), y.flatten(), t.flatten()])))
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
-        return f_delitos_by_group, f_nodos_by_group
+        self.f_delitos_by_group, self.f_nodos_by_group = f_delitos_by_group, f_nodos_by_group
+        return self.f_delitos_by_group, self.f_nodos_by_group
 
-    def calculate_hr(self, c):
-        f_delitos_by_group, f_nodos_by_group = self.predict()
+    def calculate_hr(self, c=None):
+        if not self.f_delitos_by_group:
+            self.predict()
         hr_by_group, ap_by_group = [], []
-        for i in range(1, self.ng + 1):
-            f_delitos, f_nodos = f_delitos_by_group[i], f_nodos_by_group[i]
+        for g in range(1, self.ng + 1):
+            f_delitos, f_nodos = self.f_delitos_by_group[g], self.f_nodos_by_group[g]
             c = np.linspace(0, f_nodos.max(), 100)
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]
             area_percentaje = [i / len(f_nodos) for i in area_h]
-            if i == 1:
+            if g == 1:
                 # caso base para el grupo 1 (o cuando se utiliza solo un grupo), sirve para función plotter
                 self.hr, self.ap = HR, area_percentaje
             hr_by_group.append(HR), ap_by_group.append(area_percentaje)
         self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
         return self.hr_by_group, self.ap_by_group
 
-    def calculate_pai(self, c):
+    def calculate_pai(self, c=None):
         pai_by_group = []
         if self.hr_by_group:
             for g in range(1, self.ng + 1):
-                PAI = [float(self.hr_by_group[g - 1][i]) / float(
-                    self.ap_by_group[g - 1][i]) for i in
+                PAI = [float(self.hr_by_group[g - 1][i]) / float(self.ap_by_group[g - 1][i]) if
+                        self.ap_by_group[g - 1][i] else 0 for i in
                        range(len(self.hr_by_group[g - 1]))]
                 pai_by_group.append(PAI)
                 if g == 1:
                     self.pai = PAI
+            return self.pai_by_group, self.hr_by_group, self.ap_by_group
         else:
-            f_delitos_by_group, f_nodos_by_group = self.predict()
-            hr_by_group, ap_by_group = [], []
-            for i in range(1, self.ng + 1):
-                f_delitos, f_nodos = f_delitos_by_group[i], f_nodos_by_group[i]
-                c = np.linspace(0, f_nodos.max(), 100)
-                hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
-                area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
-                HR = [i / len(f_delitos) for i in hits]
-                area_percentaje = [i / len(f_nodos) for i in area_h]
-                PAI = [
-                    float(HR[i]) / float(area_percentaje[i]) if float(
-                        HR[i]) else 0
-                    for i in
-                    range(len(HR))]
-                if i == 1:
-                    self.ap, self.hr, self.pai = area_percentaje, HR, PAI
-                pai_by_group.append(PAI), ap_by_group.append(
-                    area_percentaje), hr_by_group.append(HR)
-                self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
-        self.pai_by_group = pai_by_group
-        return self.pai_by_group, self.hr_by_group, self.ap_by_group
+            self.calculate_hr()
+            return self.calculate_pai()
 
 
 class RForestRegressor:

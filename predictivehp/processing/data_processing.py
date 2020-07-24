@@ -127,7 +127,7 @@ class PreProcessing:
         if df is not None:
             self.df = df
         else:
-            self.df = get_data(year, n, s_shp, c_shp, cl_shp)
+            self.df = get_data(year, n, s_shp, c_shp, cl_shp)[0]
 
     def preparing_data(self):
         if self.model.name == "STKDE":

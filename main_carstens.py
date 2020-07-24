@@ -20,10 +20,8 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 #   extraer x_min, y_min, x_max, y_max de la db cuando el user no
 #   entrega shapefiles
 
-
-
 # %% STKDE
-stkde = STKDE(df=df, bw=bw2, sample_number=3600)
+stkde = STKDE(bw=bw2, sample_number=3600)
 
 #stkde.heatmap()
 
@@ -51,7 +49,7 @@ pltr = Plotter(models=[
  #    pm
   ])
 
-#pltr.hr()
+pltr.hr()
 pltr.pai()
 
 #pltr.heatmap()
