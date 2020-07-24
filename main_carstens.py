@@ -1,7 +1,7 @@
 # %%
 from predictivehp.models.models import STKDE, RForestRegressor, ProMap
 from predictivehp.models.parameters import *
-from predictivehp.processing.data_processing import get_data
+from predictivehp.processing.data_processing import get_data, PreProcessing
 from predictivehp.visualization.plotter import Plotter
 
 # %% Data
@@ -20,10 +20,12 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 #   extraer x_min, y_min, x_max, y_max de la db cuando el user no
 #   entrega shapefiles
 
+
+
 # %% STKDE
 stkde = STKDE(df=df, bw=bw2)
 
-stkde.heatmap()
+#stkde.heatmap()
 
 # %% Random Forest Regressor
 #rfr = RForestRegressor(i_df=df, shps=shps,
@@ -38,15 +40,19 @@ stkde.heatmap()
 #pm = ProMap(i_df=df, bw=bw, read_files=False)
 #pm.heatmap(c=0)
 
+
+pp = PreProcessing(model=stkde, df=df)
+stkde.fit(*pp.prepare_stkde())
+
 # %% Plotter
-#pltr = Plotter(models=[
-#     stkde,
+pltr = Plotter(models=[
+     stkde,
  ##    rfr,
  #    pm
- # ])
+  ])
 
 #pltr.hr()
-#pltr.pai()
+pltr.pai()
 
 #pltr.heatmap()
 
