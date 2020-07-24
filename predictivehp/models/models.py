@@ -1928,7 +1928,7 @@ class ProMap:
         self.data = i_df
         self.n = n_datos
         self.month = month
-        self.X, self.Y = None, None
+        self.X, self.y = None, None
         self.shps = shps
 
         # MAP
@@ -1944,7 +1944,7 @@ class ProMap:
         # MODEL
         self.name = name
         self.ventana_dias = ventana_dias
-        self.matriz_con_densidades = np.zeros((self.bins_x, self.bins_y))
+        self.prediction = np.zeros((self.bins_x, self.bins_y))
         self.training_matrix = np.zeros((self.bins_x, self.bins_y))
         self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
         self.hr, self.pai, self.ap = None, None, None
@@ -1953,81 +1953,59 @@ class ProMap:
         print('\t\t', self.name)
         print(af.print_mes(self.month, self.month + 1, self.ventana_dias))
 
-        self.generar_df()
+        self.create_grid()
 
         if read_density:
-            self.matriz_con_densidades = np.load(
-                'predictivehp/data/density_matrix.npy')
-        else:
-            self.predict()
+            self.prediction = np.load(
+                'predictivehp/data/prediction.npy')
+
         print('-' * 100)
 
-    def generar_df(self):
+    def create_grid(self):
 
         """
-        Genera un dataframe en base a los x{min, max} y{min, max}.
-        Recordar que cada nodo del dataframe representa el centro de cada
+        Genera una malla en base a los x{min, max} y{min, max}.
+        Recordar que cada nodo de la malla representa el centro de cada
         celda en la malla del mapa.
 
+        :return: None
+
         """
 
-        if len(self.data) >= self.n:
-            print(f'\nEligiendo {self.n} datos...')
-            self.data = self.data.sample(n=self.n,
-                                         replace=False,
-                                         random_state=250499)
-            self.data.sort_values(by=['date'], inplace=True)
-            self.data.reset_index(drop=True, inplace=True)
-
-        print("\nGenerando dataframe...\n")
-
-        geometry = [Point(xy) for xy in zip(
-            np.array(self.data[['x']]),
-            np.array(self.data[['y']]))
-                    ]
-
-        geo_data = gpd.GeoDataFrame(self.data,  # gdf de incidentes
-                                    crs=2276,
-                                    geometry=geometry)
-
-        geo_data.to_crs(epsg=3857, inplace=True)
-
-        self.data['x_point'] = geo_data['geometry'].x
-        self.data['y_point'] = geo_data['geometry'].y
-
-        # División en training y testing data
-
-        self.X = self.data[self.data["date"].apply(lambda x: x.month) <= \
-                           self.month]
-        self.Y = self.data[self.data["date"].apply(lambda x: x.month) > \
-                           self.month]
-
         print(f'\thx: {self.hx} mts, hy: {self.hy} mts')
-        print(
-            f'\tbw.x: {self.bw_x} mts, bw.y: {self.bw_y} mts, bw.t: {self.bw_t} dias')
+        print(f'\tbw.x: {self.bw_x} mts, bw.y: {self.bw_y} '
+              f'mts, bw.t: {self.bw_t} dias')
 
         self.xx, self.yy = np.mgrid[
                            self.x_min + self.hx / 2:self.x_max - self.hx / 2:self.bins_x * 1j,
                            self.y_min + self.hy / 2:self.y_max - self.hy / 2:self.bins_y * 1j
                            ]
 
-        self.total_dias_training = self.X['y_day'].max()
-
-    def predict(self):
+    def predict(self, X, y):
 
         """""
         Calcula los scores de la malla en base a los delitos del self.data
-        :return np.mgrid
+        
+        :param X: pandas.dataframe
+        :return None
+        
+        Nota: 
+        X hace referencia a todos los datos de entrenamiento (x, y, delito)
+        y hace referencia a todos los datos de testeo (x, y, delito)
 
         """""
+
+        self.X = X
+        self.y = y
+        self.dias_train = self.X['y_day'].max()
 
         print('\nEstimando densidades...')
         print(
             f'\n\tNº de datos para entrenar el modelo: {len(self.X)}')
         print(
-            f'\tNº de días usados para entrenar el modelo: {self.total_dias_training}')
+            f'\tNº de días usados para entrenar el modelo: {self.dias_train}')
         print(
-            f'\tNº de datos para testear el modelo: {len(self.Y)}')
+            f'\tNº de datos para testear el modelo: {len(self.y)}')
 
         if not self.radio:
             ancho_x = af.radio_pintar(self.hx, self.bw_x)
@@ -2048,7 +2026,7 @@ class ProMap:
                 for j in range(y_abajo, y_up):
                     elem_x = self.xx[i][0]
                     elem_y = self.yy[0][j]
-                    time_weight = 1 / af.n_semanas(self.total_dias_training, t)
+                    time_weight = 1 / af.n_semanas(self.dias_train, t)
 
                     if af.linear_distance(elem_x, x) > self.bw_x or \
                             af.linear_distance(elem_y, y) > self.bw_y:
@@ -2060,60 +2038,57 @@ class ProMap:
                                                             self.hx,
                                                             self.hy)
 
-                    self.matriz_con_densidades[i][
-                        j] += time_weight * cell_weight
+                    self.prediction[i][j] += time_weight * cell_weight
 
-        self.matriz_con_densidades = self.matriz_con_densidades / self.matriz_con_densidades.max()
+        self.prediction = self.prediction / self.prediction.max()
 
         print('\nGuardando datos...')
-        np.save('predictivehp/data/density_matrix.npy',
-                self.matriz_con_densidades)
+        np.save('predictivehp/data/prediction.npy', self.prediction)
 
-    # borrar
     def load_train_matrix(self):
 
         """
         Ubica los delitos en la matriz de training
-
-        :param None
-        :return None
+        :return: None
         """
-
-        delitos_agregados = 0
 
         for index, row in self.X.iterrows():
             x, y, t = row['x_point'], row['y_point'], row['y_day']
 
-            if t >= (self.total_dias_training - self.bw_t):
-                x_pos, y_pos = af.find_position(self.xx, self.yy, x, y,
-                                                self.hx,
+            if t >= (self.dias_train - self.bw_t):
+                x_pos, y_pos = af.find_position(self.xx, self.yy, x, y, self.hx,
                                                 self.hy)
                 self.training_matrix[x_pos][y_pos] += 1
-                delitos_agregados += 1
 
     def load_test_matrix(self, ventana_dias):
 
         """
         Ubica los delitos en la matriz de testeo
-
-        :param None
+        :param ventana_dias: int
         :return: None
         """
-        delitos_agregados = 0
 
-        for index, row in self.Y.iterrows():
+        for index, row in self.y.iterrows():
             x, y, t = row['x_point'], row['y_point'], row['y_day']
 
-            if t <= (self.total_dias_training + ventana_dias):
-                x_pos, y_pos = af.find_position(self.xx, self.yy, x, y,
-                                                self.hx,
+            if t <= (self.dias_train + ventana_dias):
+                x_pos, y_pos = af.find_position(self.xx, self.yy, x, y, self.hx,
                                                 self.hy)
                 self.testing_matrix[x_pos][y_pos] += 1
-                delitos_agregados += 1
+
             else:
                 break
 
     def calculate_hr(self, c):
+
+        """
+        Calcula el hr (n/N)
+        :param c: np.linespace(1, n, 100)
+        :return: None
+        """
+
+        self.load_train_matrix()
+        self.load_test_matrix(self.ventana_dias)
 
         # 1. Solo considera las celdas que son mayor a un K
         #     Esto me entrega una matriz con True/False (Matriz A)
@@ -2122,44 +2097,45 @@ class ProMap:
         # 3. Al multiplicar A * B obtengo una matriz C donde todos los False en
         # A son 0 en B. Todos los True en A mantienen su valor en B
         # 4. Contar cuantos delitos quedaron luego de haber pasado este proceso.
-        #
-        # Se espera que los valores de la lista vayan disminuyendo a medida que el valor de K aumenta
 
-        self.load_train_matrix()
-        self.load_test_matrix(self.ventana_dias)
+        # Se espera que los valores de la lista vayan disminuyendo a medida que el valor de K aumenta
 
         hits_n = []
 
         for i in range(c.size):
             hits_n.append(
                 np.sum(
-                    (self.matriz_con_densidades >= c[
+                    (self.prediction >= c[
                         i]) * self.testing_matrix))
 
-        # """
         # 1. Solo considera las celdas que son mayor a un K
         #     Esto me entrega una matriz con True/False (Matriz A)
         # 2. Contar cuantos celdas quedaron luego de haber pasado este proceso.
-        #
+
         # Se espera que los valores de la lista vayan disminuyendo a medida que el valor de K aumenta
-        # """
 
         area_hits = []
 
         for i in range(c.size):
             area_hits.append(
-                np.count_nonzero(self.matriz_con_densidades >= c[i]))
+                np.count_nonzero(self.prediction >= c[i]))
 
         n_delitos_testing = np.sum(self.testing_matrix)
 
         self.hr = [i / n_delitos_testing for i in hits_n]
 
-        n_celdas = af.calcular_celdas(self.hx, self.hy, self.km2)
+        cells_in_map = af.calcular_celdas(self.hx, self.hy, self.km2)
 
-        self.ap = [1 if j > 1 else j for j in [i / n_celdas for
+        self.ap = [1 if j > 1 else j for j in [i / cells_in_map for
                                                i in area_hits]]
 
     def calculate_pai(self, c):
+
+        """
+        Calcula el Pai (n/N)/(a/A)
+        :param c: np.linespace(1, n, 100)
+        :return: None
+        """
 
         if not self.hr:
             self.calculate_hr(c)
@@ -2175,12 +2151,13 @@ class ProMap:
         """
         Mostrar un heatmap de una matriz de riesgo.
 
-        :param matriz: np.mgrid
+        :param c: float
+        :param nombre_grafico: str
         :return None
         """
 
-        matriz = np.where(self.matriz_con_densidades >= c,
-                          self.matriz_con_densidades, 0)
+        matriz = np.where(self.prediction >= c,
+                          self.prediction, 0)
 
         dallas = gpd.read_file('predictivehp/data/streets.shp')
         dallas.crs = 2276
@@ -2206,9 +2183,10 @@ class ProMap:
     def plot_incident(self, matriz, nombre_grafico):
 
         """
-        Mostrar un heatmap de una matriz de riesgo.
+        Plotea los incidentes de una matriz
 
         :param matriz: np.mgrid
+        :param nombre_grafico: str
         :return None
         """
 
