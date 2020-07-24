@@ -62,7 +62,7 @@ class STKDE:
                  year: str = "2017",
                  bw=None, sample_number=3600, training_months=10,
                  number_of_groups=1,
-                 window_days=7, month_division=10, name="STKDE"):
+                 window_days=7, month_division=10, name="STKDE", shps=None):
         """
         n: Número de registros que se piden a la database.
         year: Año de los registros pedidos
@@ -70,6 +70,7 @@ class STKDE:
         usar los métodos contour_plot o heatmap.
         """
         self.name, self.sn, self.year, self.bw = name, sample_number, year, bw
+        self.shps = shps
         self.X_months = training_months
         self.ng, self.wd, self.md = number_of_groups, window_days, month_division
 
@@ -303,12 +304,12 @@ class STKDE:
         """
         print("\nPlotting Heatmap...")
 
-        dallas = gpd.read_file('predictivehp/data/streets.shp')
+        dallas_streets = self.shps['streets']
 
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
 
-        dallas.plot(ax=ax,
+        dallas_streets.plot(ax=ax,
                     alpha=.4,  # Ancho de las calles
                     color="gray",
                     zorder=1)
