@@ -122,7 +122,7 @@ class PreProcessing:
     def __init__(self, model, df=None, year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
 
         self.model = model
-        if self.df:
+        if self.df is not None:
             self.df = df
         else:
             self.df = get_data(year, n, s_shp, c_shp, cl_shp)
