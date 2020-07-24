@@ -1,7 +1,7 @@
 # %%
 from predictivehp.models.models import STKDE, RForestRegressor, ProMap
 from predictivehp.models.parameters import *
-from predictivehp.processing.data_processing import get_data
+from predictivehp.processing.data_processing import get_data, PreProcessing
 from predictivehp.visualization.plotter import Plotter
 
 # %% Data
@@ -16,8 +16,9 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
     get_data(year=2017, n=150000,
              s_shp=s_shp_p, c_shp=c_shp_p, cl_shp=cl_shp_p)
 
+
 # %% STKDE
-stkde = STKDE(df=df, bw=bw)
+#stkde = STKDE(df=df, bw=bw)
 
 # %% Random Forest Regressor
 # rfr = RForestRegressor(i_df=df, shps=shps,
@@ -26,17 +27,20 @@ stkde = STKDE(df=df, bw=bw)
 
 # %%
 pm = ProMap(i_df=df, bw=bw, shps=shps)
+pm.predict(*PreProcessing(pm).preparing_data())
+
+
 
 # Plotter
 pltr = Plotter(models=[
-    stkde,
+    #stkde,
     pm
     #rfr,
 ])
 
-# pltr.hr()
-# pltr.pai()
-pltr.heatmap()
+pltr.hr()
+pltr.pai()
+#pltr.heatmap()
 
 if __name__ == '__main__':
     pass

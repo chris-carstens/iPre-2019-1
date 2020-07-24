@@ -13,6 +13,9 @@ import datetime
 import geopandas as gpd
 import pandas as pd
 from sodapy import Socrata
+import numpy as np
+
+from shapely.geometry import Point
 
 import predictivehp.credentials as cre
 import predictivehp.models.parameters as prm
@@ -122,7 +125,7 @@ class PreProcessing:
     def __init__(self, model, df=None, year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
 
         self.model = model
-        if self.df:
+        if df is not None:
             self.df = df
         else:
             self.df = get_data(year, n, s_shp, c_shp, cl_shp)
@@ -185,7 +188,43 @@ class PreProcessing:
         return df, X, y, predict_groups
 
     def prepare_promap(self):
-        pass
+
+        if len(self.model.data) >= self.model.n:
+            print(f'\nEligiendo {self.model.n} datos...')
+            self.model.data = self.model.data.sample(n=self.model.n,
+                                         replace=False,
+                                         random_state=250499)
+            self.model.data.sort_values(by=['date'], inplace=True)
+            self.model.data.reset_index(drop=True, inplace=True)
+
+        print("\nGenerando dataframe...\n")
+
+        geometry = [Point(xy) for xy in zip(
+            np.array(self.model.data[['x']]),
+            np.array(self.model.data[['y']]))
+                    ]
+
+        geo_data = gpd.GeoDataFrame(self.model.data,  # gdf de incidentes
+                                    crs=2276,
+                                    geometry=geometry)
+
+        geo_data.to_crs(epsg=3857, inplace=True)
+
+        self.model.data['x_point'] = geo_data['geometry'].x
+        self.model.data['y_point'] = geo_data['geometry'].y
+
+        # División en training y testing data
+
+        X = self.model.data[self.model.data["date"].apply(lambda x:
+                                                              x.month) <= \
+                           self.model.month]
+        y = self.model.data[self.model.data["date"].apply(lambda x:
+                                                               x.month) > \
+                           self.model.month]
+
+        return X, y
+
+
 
     def prepare_rfr(self):
         pass
