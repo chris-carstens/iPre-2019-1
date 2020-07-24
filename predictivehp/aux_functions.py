@@ -66,7 +66,7 @@ def lineplot(x, y, x_label=None, y_label=None, title=None, legend=None):
     # sns.palplot(sns.dark_palette("red", 100))
 
     sns.set(
-        palette=sns.color_palette("Reds", 5)[::-1],
+        palette=sns.color_palette()[::-1],
         rc=rc
     )
 
