@@ -304,12 +304,12 @@ class STKDE:
         """
         print("\nPlotting Heatmap...")
 
-        dallas_streets = self.shps['streets']
+        dallas = gpd.read_file('predictivehp/data/streets.shp')
 
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
 
-        dallas_streets.plot(ax=ax,
+        dallas.plot(ax=ax,
                     alpha=.4,  # Ancho de las calles
                     color="gray",
                     zorder=1)

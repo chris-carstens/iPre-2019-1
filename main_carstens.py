@@ -35,22 +35,23 @@ stkde = STKDE(bw=bw_stkde, shps=shps)
 # rfr.to_pickle('df.pkl')
 
 # %#%
-pm = ProMap(bw=bw, shps=shps)
+#pm = ProMap(bw=bw, shps=shps)
 #pm.heatmap(c=0)
 
 stkde.fit(*PreProcessing(model=stkde, df=df).prepare_stkde())
 
 # %% Plotter
-pm.predict(*PreProcessing(model=pm, df=df).prepare_promap())
+#pm.predict(*PreProcessing(model=pm, df=df).prepare_promap())
 
-pltr = Plotter(models=[
-     stkde,
+#pltr = Plotter(models=[
+ #    stkde,
  ##    rfr,
-     pm
-  ])
+  #   pm
+  #])
 
-pltr.hr()
-pltr.pai()
+#pltr.hr()
+#pltr.pai()
+stkde.heatmap()
 
 #pltr.heatmap()
 
