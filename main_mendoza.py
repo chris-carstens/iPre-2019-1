@@ -26,18 +26,19 @@ X_test, y_test = pp.prepare_rfr('test')
 
 rfr.fit(X_train, y_train)
 rfr.predict(X_test)
-rfr.to_pickle('data.pkl')
+
+rfr.to_pickle("data.pkl")
 rfr.to_pickle('X.pkl')
 
 # %%
 # Plotter
-# pltr = Plotter(models=[
-#     rfr,
-# ])
+pltr = Plotter(models=[
+    rfr,
+])
 
-# pltr.hr()
-# pltr.pai()
-# pltr.heatmap()
+pltr.hr()
+pltr.pai()
+pltr.heatmap()
 
 if __name__ == '__main__':
     pass

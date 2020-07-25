@@ -12,11 +12,10 @@ import datetime
 from functools import reduce
 
 import geopandas as gpd
-import pandas as pd
-from sodapy import Socrata
 import numpy as np
-
+import pandas as pd
 from shapely.geometry import Point
+from sodapy import Socrata
 
 import predictivehp.credentials as cre
 import predictivehp.models.parameters as prm
@@ -130,7 +129,7 @@ class PreProcessing:
             self.df = get_data(year, n, s_shp, c_shp, cl_shp)[0]
 
     def preparing_data(self):
-        if  "STKDE" in self.model.name:
+        if "STKDE" in self.model.name:
             return self.prepare_stkde()
         elif "Promap" in self.model.name:
             return self.prepare_promap()
@@ -165,8 +164,8 @@ class PreProcessing:
         for i in range(1, len(days))[::self.model.wd]:
             predict_groups[f"group_{group_n}"]['t2_data'] = \
                 days[i - 1 + prm.days_by_month[self.model.md]:i - 1 +
-                                                        prm.days_by_month[
-                                                            self.model.md] + self.model.wd]
+                                                              prm.days_by_month[
+                                                                  self.model.md] + self.model.wd]
             group_n += 1
             if group_n > self.model.ng:
                 break
@@ -191,8 +190,8 @@ class PreProcessing:
         if len(self.df) >= self.model.n:
             print(f'\nEligiendo {self.model.n} datos...')
             self.df = self.df.sample(n=self.model.n,
-                                         replace=False,
-                                         random_state=250499)
+                                     replace=False,
+                                     random_state=250499)
             self.df.sort_values(by=['date'], inplace=True)
             self.df.reset_index(drop=True, inplace=True)
 
@@ -215,55 +214,86 @@ class PreProcessing:
         # División en training y testing data
 
         X = self.df[self.df["date"].apply(lambda x:
-                                                              x.month) <= \
-                           self.model.month]
+                                          x.month) <= \
+                    self.model.month]
         y = self.df[self.df["date"].apply(lambda x:
-                                                               x.month) > \
-                           self.model.month]
+                                          x.month) > \
+                    self.model.month]
 
         return X, y
 
-    def prepare_rfr(self, mode='train'):
+    def prepare_rfr(self, mode='train', label='default', weights=None):
         """Prepara el set de datos correspondiente para entrenar RFR y
         predecir para un set dado
 
         Parameters
         ----------
         mode : str
-            Tipo de X, y a retornar. Elegir entre {'train', 'test'}
-
+            Tipo de X, y a retornar. Elegir entre
+            {'train', 'test'}
+        label : str
+            Establece la forma en la que se generará la label:
+            {'default', 'weighted'}
+        weights : np.ndarray
+            Vector de pesos dados por el usuario para ponderar las
+            capas dentro de self.X. Notemos que este funciona en caso
+            que label = 'weighted'.
         Returns
         -------
         (pd.DataFrame, pd.DataFrame)
-
         """
-        print("\n\tPreparing input for RFR...")
+        # y en 'label_weights' es una sola columna que corresponde a la
+        # suma ponderada de las columnas (considerar division por número
+        # de celdas en las capas [o distancia])
+        # [('Incidents_i', self.model.weeks[-2])] for i in range(8)
         if mode == 'train':
+            print("\nPreparing Training Data for RFR...")
             # First three weeks of October
             X = self.model.X.loc[
-                      :,
-                      reduce(lambda a, b: a + b,
-                             [(f'Incidents_{i}', week)
-                              for i in range(self.model.n_layers)
-                              for week in self.model.weeks[:-2]]
-                             )
-                      ]
+                :,
+                reduce(lambda a, b: a + b,
+                       [[(f'Incidents_{i}', week)]
+                        for i in range(self.model.n_layers)
+                        for week in self.model.weeks[:-2]]
+                       )
+                ]
             # Last week of October
-            y = self.model.X.loc[:, [('Incidents_0', self.model.weeks[-2])]]
-            y[('Dangerous', '')] = y.T.any().astype(int)
-            y = y[('Dangerous', '')]
+            # y = self.model.X.loc[:, [('Incidents_0', self.model.weeks[-2])]]
+            y = self.model.X.loc[
+                :, [(f'Incidents_{i}', self.model.weeks[-2])
+                    for i in range(self.model.n_layers)]
+                ]
+            if label == 'default':
+                # Cualquier valor != 0 en la fila produce que la celda sea
+                # 'Dangerous' = 1
+                y[('Dangerous', '')] = y.T.any().astype(int)
+            else:
+                w = weights if weights else \
+                    np.array([1 / (l + 1) for l in range(self.model.n_layers)])
+                y[('Dangerous', '')] = y.dot(w)  # Ponderación con los pesos
+            y = y[('Dangerous', '')]  # Hace el .drop() del resto de las cols
+
         else:
+            print("Preparing Testing Data for RFR...")
             # Nos movemos una semana adelante
             X = self.model.X.loc[
-                      :,
-                      reduce(lambda a, b: a + b,
-                             [(f'Incidents_{i}', week)
-                              for i in range(self.model.n_layers)
-                              for week in self.model.weeks[1:-1]]
-                             )
-                      ]
-            y = self.model.X.loc[:, [('Incidents_0', self.model.weeks[-1])]]
-            y[('Dangerous', '')] = y.T.any().astype(int)
+                :,
+                reduce(lambda a, b: a + b,
+                       [[(f'Incidents_{i}', week)]
+                        for i in range(self.model.n_layers)
+                        for week in self.model.weeks[1:-1]]
+                       )
+                ]
+            y = self.model.X.loc[
+                :, [(f'Incidents_{i}', self.model.weeks[-1])
+                    for i in range(self.model.n_layers)]
+                ]
+            if label == 'default':
+                y[('Dangerous', '')] = y.T.any().astype(int)
+            else:
+                w = weights if weights else \
+                    np.array([1 / (l + 1) for l in range(self.model.n_layers)])
+                y[('Dangerous', '')] = y.dot(w)
             y = y[('Dangerous', '')]
         return X, y
 

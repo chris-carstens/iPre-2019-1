@@ -6,12 +6,10 @@ import geopandas as gpd
 import matplotlib.image as mpimg
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib.lines import Line2D
 from pyevtk.hl import gridToVTK
-from shapely.geometry import Point
 from sklearn.ensemble \
     import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics \
@@ -84,7 +82,6 @@ class STKDE:
         print(af.print_mes(self.X_months, self.X_months + 1, self.wd))
 
         print('-' * 30)
-
 
     @af.timer
     def fit(self, df, X, y, predict_groups):
@@ -310,9 +307,9 @@ class STKDE:
         ax.set_facecolor('xkcd:black')
 
         dallas.plot(ax=ax,
-                    alpha=.4,  # Ancho de las calles
-                    color="gray",
-                    zorder=1)
+                            alpha=.4,  # Ancho de las calles
+                            color="gray",
+                            zorder=1)
 
         x, y = np.mgrid[
                np.array(self.y[['x']]).min():
@@ -828,7 +825,8 @@ class STKDE:
             self.predict()
         hr_by_group, ap_by_group = [], []
         for g in range(1, self.ng + 1):
-            f_delitos, f_nodos = self.f_delitos_by_group[g], self.f_nodos_by_group[g]
+            f_delitos, f_nodos = self.f_delitos_by_group[g], \
+                                 self.f_nodos_by_group[g]
             c = np.linspace(0, f_nodos.max(), 100)
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
@@ -846,13 +844,15 @@ class STKDE:
         if not self.hr_by_group:
             self.calculate_hr()
         for g in range(1, self.ng + 1):
-            PAI = [float(self.hr_by_group[g - 1][i]) / float(self.ap_by_group[g - 1][i]) if
-                    self.ap_by_group[g - 1][i] else 0 for i in
+            PAI = [float(self.hr_by_group[g - 1][i]) / float(
+                self.ap_by_group[g - 1][i]) if
+                   self.ap_by_group[g - 1][i] else 0 for i in
                    range(len(self.hr_by_group[g - 1]))]
             pai_by_group.append(PAI)
             if g == 1:
                 self.pai = PAI
         return self.pai_by_group, self.hr_by_group, self.ap_by_group
+
 
 class RForestRegressor:
     def __init__(self, i_df=None, shps=None,
@@ -884,11 +884,6 @@ class RForestRegressor:
         self.rfr = RandomForestRegressor(n_jobs=8)
         self.ap, self.hr, self.pai = None, None, None
 
-        # m_dict = {month_name[i]: None for i in range(1, 13)}
-        # self.incidents = {'Incidents': m_dict}
-        # for i in range(1, n_capas + 1):
-        #     self.incidents.update({f"NC Incidents_{i}": m_dict})
-
         if read_df and read_data:
             st = time()
             print("\nReading df pickle...", end=" ")
@@ -902,9 +897,6 @@ class RForestRegressor:
             self.data = i_df
             self.generate_df()
             self.assign_cells()
-
-            self.to_pickle('data.pkl')
-            self.to_pickle('X.pkl')
 
     @af.timer
     def generate_df(self):
@@ -973,7 +965,7 @@ class RForestRegressor:
         for week in self.weeks:
             print(f"\t\t{week}... ", end=' ')
             wi_date = week
-            wf_date = week + timedelta(days=1)
+            wf_date = week + timedelta(days=6)
             fil_incidents = self.data[
                 (wi_date <= self.data.date) & (self.data.date <= wf_date)
                 ]
@@ -994,11 +986,10 @@ class RForestRegressor:
 
         # Adición de las columnas 'geometry' e 'in_dallas' al df
         print("\tPreparing df for filtering...")
-
-        self.X['geometry'] = [Point(i) for i in
-                              zip(x[:-1, :-1].flatten(),
-                                  y[:-1, :-1].flatten())]
-        self.X['in_dallas'] = 0
+        self.X[('geometry', '')] = [Point(i) for i in
+                                    zip(x[:-1, :-1].flatten(),
+                                        y[:-1, :-1].flatten())]
+        self.X[('in_dallas', '')] = 0
 
         # Filtrado de celdas (llenado de la columna 'in_dallas')
         self.X = af.filter_cells(df=self.X, shp=self.shps['councils'])
@@ -1015,7 +1006,7 @@ class RForestRegressor:
         """
 
         print("\nPickling dataframe...", end=" ")
-        if file_name == "df.pkl":
+        if file_name == "X.pkl":
             self.X.to_pickle(f"predictivehp/data/{file_name}")
         if file_name == "data.pkl":
             if self.data is None:
@@ -1174,34 +1165,6 @@ class RForestRegressor:
 
         y_pred_rfc = rfc.predict(y_ft)
 
-        rfc_score = rfc.score(y_ft, y_lbl.to_numpy().ravel())
-        rfc_precision = precision_score(y_lbl, y_pred_rfc)
-        rfc_recall = recall_score(y_lbl, y_pred_rfc)
-
-        print(
-            f"""
-    rfc score           {rfc_score:1.3f}
-    rfc precision       {rfc_precision:1.3f}
-    rfc recall          {rfc_recall:1.3f}
-            """
-        )
-
-        # Confusion Matrix
-
-        # print("\tComputando matrices de confusión...", end="\n\n")
-        #
-        # c_matrix_x = confusion_matrix(
-        #         x_lbl[('Dangerous', '')], x_predict[:, 0]
-        # )
-        #
-        # print(c_matrix_x, end="\n\n")
-        #
-        # c_matrix_y = confusion_matrix(
-        #         y_lbl[('Dangerous', '')], y_predict[:, 0]
-        # )
-        #
-        # print(c_matrix_y)
-
     @af.timer
     def fit(self, X, y):
         """
@@ -1221,8 +1184,9 @@ class RForestRegressor:
         self.rfr.fit(X, y.to_numpy().ravel())
 
         # Sirven para determinar celdas con TP/FN
-        self.X[('Dangerous_Oct', '')] = y
+        self.X[('Dangerous', '')] = y
 
+    @af.timer
     def predict(self, X):
         """
 
@@ -1237,7 +1201,7 @@ class RForestRegressor:
         """
         print("\tMaking predictions...")
         y_pred = self.rfr.predict(X)
-        self.X[('Dangerous_pred_Oct', '')] = y_pred
+        self.X[('Dangerous_pred', '')] = y_pred
 
         return y_pred
         # if statistics:
@@ -1267,12 +1231,15 @@ class RForestRegressor:
             # incidents = pd.DataFrame(self.data)
             # incidents_oct = incidents[incidents.month1 == 'October']  # 332
 
-            data_oct = pd.DataFrame(self.data[self.data.month1 == 'October'])
-            data_oct.drop(columns='geometry', inplace=True)
+            data_nov = pd.DataFrame(self.data[
+                                        (date(2017, 11, 1) <= self.data.date) &
+                                        (self.data.date <= date(2017, 11, 7))
+                                        ])  # 62 Incidentes
+            data_nov.drop(columns='geometry', inplace=True)
             # print(data_oct['Cell'])
             # print(self.df.shape)
 
-            ans = data_oct.join(other=self.X, on='Cell', how='left')
+            ans = data_nov.join(other=self.X, on='Cell', how='left')
 
             # ans = ans[ans[('geometry', '')].notna()]
             # print(f"Data Oct: {data_oct.shape}")
@@ -1280,17 +1247,17 @@ class RForestRegressor:
             # print(ans[('Dangerous_pred_Oct_rfr', '')])
 
             # incidentsh = ans[ans[('Dangerous_pred_Oct', '')] == 1]
-            incidentsh = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= c[0]]
+            incidentsh = ans[ans[('Dangerous_pred', '')] >= c[0]]
             # print(incidentsh.shape)
 
-            hr = incidentsh.shape[0] / data_oct.shape[0]
+            hr = incidentsh.shape[0] / data_nov.shape[0]
             # print(hr)
             return hr
         else:
             A = self.X.shape[0]
 
-            def a(x, c):
-                return x[x[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
+            def a(X, c):
+                return X[X[('Dangerous_pred', '')] >= c].shape[0]
 
             c_arr = c
             hr_l = []
@@ -1300,7 +1267,6 @@ class RForestRegressor:
                 ap_l.append(a(self.X, c) / A)
             self.hr = np.array(hr_l)
             self.ap = np.array(ap_l)
-        plt.savefig(f"frheatmap.pdf", format='pdf')
 
     def calculate_pai(self, c=0.9):
         """
@@ -1319,7 +1285,7 @@ class RForestRegressor:
         # a = self.df[self.df[('Dangerous_pred_Oct', '')] == 1].shape[0]
         # a = self.df[self.df[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
         def a(x, c):
-            return x[x[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
+            return x[x[('Dangerous_pred', '')] >= c].shape[0]
 
         A = self.X.shape[0]  # Celdas en Dallas
         if c.size == 1:
@@ -1339,8 +1305,10 @@ class RForestRegressor:
             for c in c_arr:
                 hr = self.calculate_hr(c=np.array([c]))
                 ap = a(self.X, c) / A
-                hr_l.append(hr)
-                ap_l.append(ap)
+                hr_l.append(hr), ap_l.append(ap)
+                if ap == 0:
+                    pai_l.append(0)
+                    continue
                 pai_l.append(hr / ap)
             self.hr = np.array(hr_l)
             self.ap = np.array(ap_l)
@@ -1355,9 +1323,9 @@ class RForestRegressor:
         :return:
         """
         # Datos Oct luego de aplicar el rfr
-        ans = self.X[[('geometry', ''), ('Dangerous_pred_Oct_rfr', '')]]
+        ans = self.X[[('geometry', ''), ('Dangerous_pred', '')]]
         ans = gpd.GeoDataFrame(ans)
-        ans = ans[ans[('Dangerous_pred_Oct_rfr', '')] >= c]
+        ans = ans[ans[('Dangerous_pred', '')] >= c]
         d_streets = self.shps['streets']
 
         print("\tRendering Plot...")
@@ -1367,7 +1335,7 @@ class RForestRegressor:
                        color="dimgrey",
                        label="Streets")
         ans.plot(ax=ax,
-                 column=('Dangerous_pred_Oct_rfr', ''),
+                 column=('Dangerous_pred', ''),
                  cmap='jet')
 
         # Background
@@ -2037,7 +2005,8 @@ class ProMap:
             x, y, t = row['x_point'], row['y_point'], row['y_day']
 
             if t >= (self.dias_train - self.bw_t):
-                x_pos, y_pos = af.find_position(self.xx, self.yy, x, y, self.hx,
+                x_pos, y_pos = af.find_position(self.xx, self.yy, x, y,
+                                                self.hx,
                                                 self.hy)
                 self.training_matrix[x_pos][y_pos] += 1
 
@@ -2053,7 +2022,8 @@ class ProMap:
             x, y, t = row['x_point'], row['y_point'], row['y_day']
 
             if t <= (self.dias_train + ventana_dias):
-                x_pos, y_pos = af.find_position(self.xx, self.yy, x, y, self.hx,
+                x_pos, y_pos = af.find_position(self.xx, self.yy, x, y,
+                                                self.hx,
                                                 self.hy)
                 self.testing_matrix[x_pos][y_pos] += 1
 
