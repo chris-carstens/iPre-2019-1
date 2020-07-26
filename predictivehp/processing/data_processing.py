@@ -118,10 +118,8 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
 
 
 class PreProcessing:
-
     def __init__(self, model, df=None, year=2017, n=150000, s_shp='', c_shp='',
                  cl_shp=''):
-
         self.model = model
         if df is not None:
             self.df = df
@@ -229,8 +227,7 @@ class PreProcessing:
         Parameters
         ----------
         mode : str
-            Tipo de X, y a retornar. Elegir entre
-            {'train', 'test'}
+            Tipo de X, y a retornar. Elegir entre {'train', 'test'}
         label : str
             Establece la forma en la que se generará la label:
             {'default', 'weighted'}
@@ -268,7 +265,7 @@ class PreProcessing:
                 # 'Dangerous' = 1
                 y[('Dangerous', '')] = y.T.any().astype(int)
             else:
-                w = weights if weights else \
+                w = weights or \
                     np.array([1 / (l + 1) for l in range(self.model.n_layers)])
                 y[('Dangerous', '')] = y.dot(w)  # Ponderación con los pesos
             y = y[('Dangerous', '')]  # Hace el .drop() del resto de las cols
@@ -291,7 +288,7 @@ class PreProcessing:
             if label == 'default':
                 y[('Dangerous', '')] = y.T.any().astype(int)
             else:
-                w = weights if weights else \
+                w = weights or \
                     np.array([1 / (l + 1) for l in range(self.model.n_layers)])
                 y[('Dangerous', '')] = y.dot(w)
             y = y[('Dangerous', '')]

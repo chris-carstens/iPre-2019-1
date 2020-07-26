@@ -7,7 +7,8 @@ from predictivehp.visualization.plotter import Plotter
 # %% Data
 
 b_path = 'predictivehp/data/'
-s_shp_p = b_path + 'streets.shp'
+# s_shp_p = b_path + 'streets.shp'
+s_shp_p = f'{b_path}streets.shp'
 c_shp_p = b_path + 'councils.shp'
 cl_shp_p = b_path + 'citylimit.shp'
 
@@ -21,8 +22,8 @@ rfr = RForestRegressor(i_df=df, shps=shps,
                        xc_size=100, yc_size=100, n_layers=7,
                        read_data=False, read_df=False)
 pp = PreProcessing(rfr, df)
-X_train, y_train = pp.prepare_rfr('train')
-X_test, y_test = pp.prepare_rfr('test')
+X_train, y_train = pp.prepare_rfr('train', 'weighted')
+X_test, y_test = pp.prepare_rfr('test', 'weighted')
 
 rfr.fit(X_train, y_train)
 rfr.predict(X_test)
@@ -39,6 +40,9 @@ pltr = Plotter(models=[
 pltr.hr()
 pltr.pai()
 pltr.heatmap()
+
+# TODO
+#    - ¿Que sucede con la normalización de la label 'y'?
 
 if __name__ == '__main__':
     pass

@@ -252,6 +252,17 @@ def filter_cells(df, shp):
 # ProMap
 
 def n_semanas(total_dias, dia):
+    """
+
+    Parameters
+    ----------
+    total_dias
+    dia
+
+    Returns
+    -------
+
+    """
     total_semanas = total_dias // 7 + 1
     semanas_transcurridas = dia // 7 + 1
     delta = total_semanas - semanas_transcurridas
