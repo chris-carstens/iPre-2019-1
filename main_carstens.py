@@ -12,16 +12,14 @@ c_shp_p = 'predictivehp/data/councils.shp'
 cl_shp_p = 'predictivehp/data/citylimit.shp'
 
 shps = {}
-df, shps['streets'], shps['councils'], shps['c_limits'] = \
-    get_data(year=2017, n=150000,
-             s_shp=s_shp_p, c_shp=c_shp_p, cl_shp=cl_shp_p)
+
 
 # TODO
 #   extraer x_min, y_min, x_max, y_max de la db cuando el user no
 #   entrega shapefiles
 
 # %% STKDE
-stkde = STKDE(bw=bw_stkde, shps=shps)
+stkde = STKDE(bw=bw_stkde)
 
 # %% Random Forest Regressor
 #rfr = RForestRegressor(i_df=df, shps=shps,
@@ -36,7 +34,7 @@ stkde = STKDE(bw=bw_stkde, shps=shps)
 #pm = ProMap(bw=bw, shps=shps)
 #pm.heatmap(c=0)
 
-stkde.fit(*PreProcessing(model=stkde, df=df).prepare_stkde())
+stkde.fit(*PreProcessing(model=stkde).prepare_stkde())
 stkde.heatmap()
 
 # %% Plotter
