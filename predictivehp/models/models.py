@@ -62,10 +62,18 @@ class STKDE:
                  number_of_groups=1,
                  window_days=7, month_division=10, name="STKDE", shps=None):
         """
-        n: Número de registros que se piden a la database.
-        year: Año de los registros pedidos
-        t_model: Entrenamiento del modelo, True en caso de que se quieran
-        usar los métodos contour_plot o heatmap.
+
+        Parameters
+        ----------
+        year
+        bw
+        sample_number
+        training_months
+        number_of_groups
+        window_days
+        month_division
+        name
+        shps
         """
         self.name, self.sn, self.year, self.bw = name, sample_number, year, bw
         self.shps = shps
@@ -294,10 +302,16 @@ class STKDE:
                 ti=100,
                 pdf=False):
         """
-        Plots the heatmap associated to a given t_i
-        bins:
-        ti:
-        pdf:
+
+        Parameters
+        ----------
+        bins : int
+        ti : int
+        pdf : bool
+
+        Returns
+        -------
+
         """
         print("\nPlotting Heatmap...")
 
@@ -306,8 +320,7 @@ class STKDE:
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
 
-        dallas.plot(ax=ax,
-                            alpha=.4,  # Ancho de las calles
+        dallas.plot(ax=ax, alpha=.4,  # Ancho de las calles
                             color="gray",
                             zorder=1)
 
@@ -752,6 +765,13 @@ class STKDE:
             print("finished!")
 
     def predict(self):
+        """
+
+        Returns
+        -------
+        f_delitos_by_group : dict
+        f_nodos_by_group : dict
+        """
         if self.f_delitos_by_group:
             return self.f_delitos_by_group, self.f_nodos_by_group
         f_nodos_by_group, f_delitos_by_group = {}, {}
@@ -803,7 +823,6 @@ class STKDE:
             m = np.repeat(max(t_training), x.size)
             f_delitos = stkde.pdf(af.checked_points(
                 np.array([x.flatten(), y.flatten(), m.flatten()])))
-
             x, y, t = np.mgrid[
                       np.array(x_training).min():
                       np.array(x_training).max():100 * 1j,
@@ -816,18 +835,40 @@ class STKDE:
             # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
             f_nodos = stkde.pdf(af.checked_points(
                 np.array([x.flatten(), y.flatten(), t.flatten()])))
+
+
+            print("Resultado pdf: ", f_delitos)
+            #Normalizar:
+            f_delitos = f_delitos / f_nodos.max()
+            f_nodos = f_nodos / f_nodos.max()
+            print("Resultado pdf: ", f_delitos)
+
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
         self.f_delitos_by_group, self.f_nodos_by_group = f_delitos_by_group, f_nodos_by_group
         return self.f_delitos_by_group, self.f_nodos_by_group
 
     def calculate_hr(self, c=None):
+        """
+
+        Parameters
+        ----------
+        c : np.linspace
+            Threshold de confianza para
+            filtrar hotspots
+
+        Returns
+        -------
+        hr_by_group: list
+        ap_by_group: list
+
+        """
         if not self.f_delitos_by_group:
             self.predict()
         hr_by_group, ap_by_group = [], []
         for g in range(1, self.ng + 1):
             f_delitos, f_nodos = self.f_delitos_by_group[g], \
                                  self.f_nodos_by_group[g]
-            c = np.linspace(0, f_nodos.max(), 100)
+            #c = np.linspace(0, f_nodos.max(), 100)
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]
@@ -840,9 +881,24 @@ class STKDE:
         return self.hr_by_group, self.ap_by_group
 
     def calculate_pai(self, c=None):
+        """
+
+        Parameters
+        ----------
+        c : np.linspace
+            Threshold de confianza para
+            filtrar hotspots
+
+        Returns
+        -------
+        pai_by_group : list
+        hr_by_group: list
+        ap_by_group: list
+
+        """
         pai_by_group = []
         if not self.hr_by_group:
-            self.calculate_hr()
+            self.calculate_hr(c)
         for g in range(1, self.ng + 1):
             PAI = [float(self.hr_by_group[g - 1][i]) / float(
                 self.ap_by_group[g - 1][i]) if
