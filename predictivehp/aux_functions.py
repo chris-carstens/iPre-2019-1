@@ -23,14 +23,11 @@ from shapely.geometry import Point
 # General
 
 def timer(fn):
-    def inner_1(*args, **kwargs):
+    def inner(*args, **kwargs):
         st = time()
-
         fn(*args, **kwargs)
-
         print(f"\nFinished! ({time() - st:3.1f} sec)")
-
-    return inner_1
+    return inner
 
 
 # Plots
