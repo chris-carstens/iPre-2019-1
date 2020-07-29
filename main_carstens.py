@@ -46,8 +46,8 @@ pltr = Plotter(models=[
   #   pm
   ])
 
-pltr.hr()
-#pltr.pai()
+#pltr.hr()
+pltr.pai()
 #stkde.heatmap()
 
 #pltr.heatmap()
