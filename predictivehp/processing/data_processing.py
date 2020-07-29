@@ -188,8 +188,8 @@ class PreProcessing:
         if len(df) >= self.model.n:
             print(f'\nEligiendo {self.model.n} datos...')
             df = df.sample(n=self.model.n,
-                           replace=False,
-                           random_state=250499)
+                                     replace=False,
+                                     random_state=250499)
             df.sort_values(by=['date'], inplace=True)
             df.reset_index(drop=True, inplace=True)
 
@@ -211,12 +211,8 @@ class PreProcessing:
 
         # División en training y testing data
 
-        X = df[df["date"].apply(lambda x:
-                                x.month) <= \
-               self.model.month]
-        y = df[df["date"].apply(lambda x:
-                                x.month) > \
-               self.model.month]
+        X = df[df["date"] <= self.model.start_prediction]
+        y = df[df["date"] > self.model.start_prediction]
 
         return X, y
 
