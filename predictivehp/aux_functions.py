@@ -376,7 +376,6 @@ def checked_points_pm(points):
     dallas_shp = gpd.read_file('predictivehp/data/councils.shp')
     dallas_shp.crs = 2276
     dallas_shp.to_crs(epsg=3857, inplace=True)
-    print(dallas_shp)
 
     df_points = pd.DataFrame( {'x': points[0, :], 'y': points[1, :]})
 
@@ -386,7 +385,6 @@ def checked_points_pm(points):
 
     geo_inc = gpd.GeoDataFrame({'geometry': inc_points}, crs=3857)
 
-    print(geo_inc)
 
     geo_inc.crs = dallas_shp.crs
 
@@ -394,6 +392,9 @@ def checked_points_pm(points):
                                 dallas_shp,
                                 how='inner',
                                 op='intersects').reset_index()
+
+    print('print 1')
+    print(len(valid_inc))
 
     valid_inc_2 = valid_inc[['geometry']]
 
@@ -410,5 +411,4 @@ def checked_points_pm(points):
 
 
 if __name__ == '__main__':
-    km = calcular_celdas(100, 100, 1_000)
-    print(km)
+    pass
