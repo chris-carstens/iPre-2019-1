@@ -18,8 +18,9 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 
 
 # %% STKDE
-stkde = STKDE(bw=bw_stkde, shps=shps)
-stkde.fit(*PreProcessing(stkde).preparing_data())
+# stkde = STKDE(bw=bw_stkde, shps=shps)
+# stkde.fit(*PreProcessing(stkde).preparing_data())
+#stkde.predict()
 
 
 # %% Random Forest Regressor
@@ -28,19 +29,20 @@ stkde.fit(*PreProcessing(stkde).preparing_data())
 #                        read_data=True, read_df=True)
 
 # %%
-pm = ProMap(bw=bw, shps=shps)
-pm.predict(*PreProcessing(pm).preparing_data())
+pm = ProMap(bw=bw, shps=shps, read_density=False)
+
+pm.predict(*PreProcessing(pm, df=df).preparing_data())
 
 
 
 # Plotter
 pltr = Plotter(models=[
-    stkde,
+
     pm
-    #rfr,
+
 ])
 
-pltr.hr()
+# pltr.hr()
 pltr.pai()
 #pltr.heatmap()
 

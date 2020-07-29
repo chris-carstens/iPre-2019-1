@@ -367,5 +367,51 @@ def print_mes(m_train, m_predict, dias):
            f'Predicción de: {dias} días para {meses[m_predict]} '
 
 
+def checked_points_pm(points):
+    """
+    Chequea si la lista de puntos está dentro de Dallas.
+
+    :param list points:
+    :param str shp: Path del shapefile asociado
+    :return np.ndarray :
+    """
+    # 'predictivehp/data/councils.shp'
+    dallas_shp = gpd.read_file('predictivehp/data/councils.shp')
+    dallas_shp.crs = 2276
+    dallas_shp.to_crs(epsg=3857, inplace=True)
+    print(dallas_shp)
+
+    df_points = pd.DataFrame( {'x': points[0, :], 'y': points[1, :]})
+
+    inc_points = df_points[['x', 'y']].apply(lambda row:
+                                             Point(row['x'], row['y']),
+                                             axis=1)
+
+    geo_inc = gpd.GeoDataFrame({'geometry': inc_points}, crs=3857)
+
+    print(geo_inc)
+
+    geo_inc.crs = dallas_shp.crs
+
+    valid_inc = gpd.tools.sjoin(geo_inc,
+                                dallas_shp,
+                                how='inner',
+                                op='intersects').reset_index()
+
+    valid_inc_2 = valid_inc[['geometry']]
+
+    x = valid_inc_2['geometry'].apply(lambda row: row.x)
+    y = valid_inc_2['geometry'].apply(lambda row: row.y)
+
+    v_points = np.array([x, y])
+
+    print('puntos:',len(v_points[0]), len(v_points[1]))
+
+    return v_points
+
+
+
+
 if __name__ == '__main__':
-    pass
+    km = calcular_celdas(100, 100, 1_000)
+    print(km)

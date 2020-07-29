@@ -185,36 +185,38 @@ class PreProcessing:
 
     def prepare_promap(self):
 
-        if len(self.df) >= self.model.n:
+        df = self.df
+
+        if len(df) >= self.model.n:
             print(f'\nEligiendo {self.model.n} datos...')
-            self.df = self.df.sample(n=self.model.n,
+            df = df.sample(n=self.model.n,
                                      replace=False,
                                      random_state=250499)
-            self.df.sort_values(by=['date'], inplace=True)
-            self.df.reset_index(drop=True, inplace=True)
+            df.sort_values(by=['date'], inplace=True)
+            df.reset_index(drop=True, inplace=True)
 
-        print("\nGenerando dataframe...\n")
+        print("\nGenerando dataframe...")
 
         geometry = [Point(xy) for xy in zip(
-            np.array(self.df[['x']]),
-            np.array(self.df[['y']]))
+            np.array(df[['x']]),
+            np.array(df[['y']]))
                     ]
 
-        geo_data = gpd.GeoDataFrame(self.df,  # gdf de incidentes
+        geo_data = gpd.GeoDataFrame(df,  # gdf de incidentes
                                     crs=2276,
                                     geometry=geometry)
 
         geo_data.to_crs(epsg=3857, inplace=True)
 
-        self.df['x_point'] = geo_data['geometry'].x
-        self.df['y_point'] = geo_data['geometry'].y
+        df['x_point'] = geo_data['geometry'].x
+        df['y_point'] = geo_data['geometry'].y
 
         # División en training y testing data
 
-        X = self.df[self.df["date"].apply(lambda x:
+        X = df[df["date"].apply(lambda x:
                                           x.month) <= \
                     self.model.month]
-        y = self.df[self.df["date"].apply(lambda x:
+        y = df[df["date"].apply(lambda x:
                                           x.month) > \
                     self.model.month]
 
