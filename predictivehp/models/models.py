@@ -1922,9 +1922,12 @@ class ProMap:
         print(f'\tbw.x: {self.bw_x} mts, bw.y: {self.bw_y} '
               f'mts, bw.t: {self.bw_t} dias')
 
+        delta_x = self.hx/2
+        delta_y = self.hy/2
+
         self.xx, self.yy = np.mgrid[
-                           self.x_min + self.hx / 2:self.x_max - self.hx / 2:self.bins_x * 1j,
-                           self.y_min + self.hy / 2:self.y_max - self.hy / 2:self.bins_y * 1j
+                           self.x_min + delta_x:self.x_max - delta_x:self.bins_x * 1j,
+                           self.y_min + delta_y:self.y_max - delta_y:self.bins_y * 1j
                            ]
 
         # a = np.array([self.xx.flatten(), self.yy.flatten()])

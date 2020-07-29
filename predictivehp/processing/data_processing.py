@@ -25,17 +25,8 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.width', 1000)
 
 
-def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
-    """
-    Obtiene los datos de la Socrata API
+def shps_proccesing(s_shp='', c_shp='', cl_shp=''):
 
-    :param int year: Año de la db (e.g. 2017)
-    :param int n: Número máximo de muestras a extraer de la db
-    :param str s_shp: path al archivo streets.shp
-    :param str c_shp: path al archivo councils.shp
-    :param str cl_shp: path al archivo citylimits.shp
-    :return:
-    """
     streets, councils, c_limits = [None, ] * 3
 
     if s_shp:
@@ -50,6 +41,12 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
         c_limits = gpd.read_file(filename=cl_shp) if cl_shp else None
         c_limits.crs = 2276
         c_limits.to_crs(epsg=3857, inplace=True)
+
+    return streets, councils, c_limits
+
+
+
+def get_data(year=2017, n=150000):
 
     print("\nRequesting data...")
     with Socrata(cre.socrata_domain,
@@ -114,17 +111,17 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
         df.sort_values(by=['date'], inplace=True)
         df.reset_index(drop=True, inplace=True)
 
-        return df, streets, councils, c_limits
+        return df
 
 
 class PreProcessing:
-    def __init__(self, model, df=None, year=2017, n=150000, s_shp='', c_shp='',
-                 cl_shp=''):
+    def __init__(self, model, df=None, year=2017, n=150000):
         self.model = model
         if df is not None:
             self.df = df
         else:
-            self.df = get_data(year, n, s_shp, c_shp, cl_shp)[0]
+
+            self.df = get_data(year=year, n=n)
 
     def preparing_data(self):
         if "STKDE" in self.model.name:
@@ -298,4 +295,4 @@ class PreProcessing:
 
 
 if __name__ == '__main__':
-    df, _, _, _ = get_data()
+    df = get_data()
