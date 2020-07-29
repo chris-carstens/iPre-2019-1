@@ -49,7 +49,7 @@ def shps_proccesing(s_shp='', c_shp='', cl_shp=''):
 
 
 def get_data(year=2017, n=150000):
-    print("\nRequesting data...")
+    # print("\nRequesting data...")
     with Socrata(cre.socrata_domain,
                  cre.API_KEY_S,
                  username=cre.USERNAME_S,
@@ -81,10 +81,10 @@ def get_data(year=2017, n=150000):
                              query=query,
                              content_type='json')
         df = pd.DataFrame.from_records(results)
-        print("\n"
-              f"\tn = {n} incidents requested  Year = {year}"
-              "\n"
-              f"\t{df.shape[0]} incidents successfully retrieved!")
+        # print("\n"
+        #       f"\tn = {n} incidents requested  Year = {year}"
+        #       "\n"
+        #       f"\t{df.shape[0]} incidents successfully retrieved!")
 
         # DB Cleaning & Formatting
         for col in ['x_coordinate', 'y_cordinate']:
