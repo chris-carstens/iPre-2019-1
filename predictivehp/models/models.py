@@ -84,6 +84,9 @@ class STKDE:
     def set_parameters(self, bw):
         self.bw = bw
 
+    def print_parameters(self):
+        print('STKDE bandwith\'s: ', self.bw)
+
     @af.timer
     def fit(self, df, X, y, predict_groups):
         """
@@ -2145,7 +2148,7 @@ class Model:
         if use_stkde:
             pass
         if use_promap:
-            pass
+            self.stkde = STKDE()
         if use_rfr:
             self.rfr = RForestRegressor(
                 i_df=data, shps=shps,
