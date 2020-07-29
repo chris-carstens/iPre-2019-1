@@ -12,6 +12,8 @@ c_shp_p = b_path + 'councils.shp'
 cl_shp_p = b_path + 'citylimit.shp'
 
 
+
+
 # %% STKDE
 # stkde = STKDE(bw=bw_stkde, shps=shps)
 # stkde.fit(*PreProcessing(stkde).preparing_data())

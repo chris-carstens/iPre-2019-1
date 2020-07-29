@@ -29,6 +29,8 @@ def shps_proccesing(s_shp='', c_shp='', cl_shp=''):
 
     streets, councils, c_limits = [None, ] * 3
 
+    shps = {}
+
     if s_shp:
         streets = gpd.read_file(filename=s_shp)
         streets.crs = 2276
@@ -42,7 +44,9 @@ def shps_proccesing(s_shp='', c_shp='', cl_shp=''):
         c_limits.crs = 2276
         c_limits.to_crs(epsg=3857, inplace=True)
 
-    return streets, councils, c_limits
+    shps['streets'], shps['councils'], shps['c_limits'] = streets, councils, c_limits
+
+    return shps
 
 
 
