@@ -112,7 +112,7 @@ def checked_points(points):
 
     v_points = np.array([x, y, t])
 
-    return v_points, x, y, t
+    return v_points
 
 
 # ML

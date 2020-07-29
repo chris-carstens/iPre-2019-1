@@ -827,12 +827,9 @@ class STKDE:
             f_nodos = stkde.pdf(af.checked_points(
                 np.array([x.flatten(), y.flatten(), t.flatten()])))
 
-
-            print("Resultado pdf: ", f_delitos)
             #Normalizar:
             f_delitos = f_delitos / f_nodos.max()
             f_nodos = f_nodos / f_nodos.max()
-            print("Resultado pdf: ", f_delitos)
 
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
         self.f_delitos_by_group, self.f_nodos_by_group = f_delitos_by_group, f_nodos_by_group
