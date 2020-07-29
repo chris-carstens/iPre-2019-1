@@ -292,10 +292,16 @@ class STKDE:
                 ti=100,
                 pdf=False):
         """
-        Plots the heatmap associated to a given t_i
-        bins:
-        ti:
-        pdf:
+
+        Parameters
+        ----------
+        bins : int
+        ti : int
+        pdf : bool
+
+        Returns
+        -------
+
         """
         print("\nPlotting Heatmap...")
 
@@ -750,6 +756,13 @@ class STKDE:
             print("finished!")
 
     def predict(self):
+        """
+
+        Returns
+        -------
+        f_delitos_by_group : dict
+        f_nodos_by_group : dict
+        """
         if self.f_delitos_by_group:
             return self.f_delitos_by_group, self.f_nodos_by_group
         f_nodos_by_group, f_delitos_by_group = {}, {}
@@ -801,7 +814,6 @@ class STKDE:
             m = np.repeat(max(t_training), x.size)
             f_delitos = stkde.pdf(af.checked_points(
                 np.array([x.flatten(), y.flatten(), m.flatten()])))
-
             x, y, t = np.mgrid[
                       np.array(x_training).min():
                       np.array(x_training).max():100 * 1j,
@@ -814,18 +826,40 @@ class STKDE:
             # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
             f_nodos = stkde.pdf(af.checked_points(
                 np.array([x.flatten(), y.flatten(), t.flatten()])))
+
+
+            print("Resultado pdf: ", f_delitos)
+            #Normalizar:
+            f_delitos = f_delitos / f_nodos.max()
+            f_nodos = f_nodos / f_nodos.max()
+            print("Resultado pdf: ", f_delitos)
+
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
         self.f_delitos_by_group, self.f_nodos_by_group = f_delitos_by_group, f_nodos_by_group
         return self.f_delitos_by_group, self.f_nodos_by_group
 
     def calculate_hr(self, c=None):
+        """
+
+        Parameters
+        ----------
+        c : np.linspace
+            Threshold de confianza para
+            filtrar hotspots
+
+        Returns
+        -------
+        hr_by_group: list
+        ap_by_group: list
+
+        """
         if not self.f_delitos_by_group:
             self.predict()
         hr_by_group, ap_by_group = [], []
         for g in range(1, self.ng + 1):
             f_delitos, f_nodos = self.f_delitos_by_group[g], \
                                  self.f_nodos_by_group[g]
-            c = np.linspace(0, f_nodos.max(), 100)
+            #c = np.linspace(0, f_nodos.max(), 100)
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]
@@ -838,9 +872,24 @@ class STKDE:
         return self.hr_by_group, self.ap_by_group
 
     def calculate_pai(self, c=None):
+        """
+
+        Parameters
+        ----------
+        c : np.linspace
+            Threshold de confianza para
+            filtrar hotspots
+
+        Returns
+        -------
+        pai_by_group : list
+        hr_by_group: list
+        ap_by_group: list
+
+        """
         pai_by_group = []
         if not self.hr_by_group:
-            self.calculate_hr()
+            self.calculate_hr(c)
         for g in range(1, self.ng + 1):
             PAI = [float(self.hr_by_group[g - 1][i]) / float(
                 self.ap_by_group[g - 1][i]) if
@@ -1758,6 +1807,8 @@ class ProMap:
         self.month = month
         self.X, self.y = None, None
         self.shps = shps
+        self.readed = False
+        self.fitted = False
 
         # MAP
         self.hx, self.hy, self.km2 = hx, hy, km2
@@ -1786,6 +1837,7 @@ class ProMap:
         if read_density:
             self.prediction = np.load(
                 'predictivehp/data/prediction.npy')
+            self.readed = True
 
         print('-' * 100)
 
@@ -1812,10 +1864,15 @@ class ProMap:
                            self.y_min + delta_y:self.y_max - delta_y:self.bins_y * 1j
                            ]
 
-        # a = np.array([self.xx.flatten(), self.yy.flatten()])
-        # print(af.checked_points_pm(a))
+    def fit(self):
 
-    def predict(self, X, y):
+        print('Fitting...')
+
+        points = np.array([self.xx.flatten(), self.yy.flatten()])
+        self.cells_in_map = af.checked_points_pm(points)  # 141337
+        self.fitted = True
+
+    def predict(self,X, y):
 
         """""
         Calcula los scores de la malla en base a los delitos del self.data
@@ -1828,56 +1885,56 @@ class ProMap:
         y hace referencia a todos los datos de testeo (x, y, delito)
 
         """""
-
         self.X = X
         self.y = y
         self.dias_train = self.X['y_day'].max()
 
-        print('\nEstimando densidades...')
-        print(
-            f'\n\tNº de datos para entrenar el modelo: {len(self.X)}')
-        print(
-            f'\tNº de días usados para entrenar el modelo: {self.dias_train}')
-        print(
-            f'\tNº de datos para testear el modelo: {len(self.y)}')
+        if not self.readed:
+            print('\nEstimando densidades...')
+            print(
+                f'\n\tNº de datos para entrenar el modelo: {len(self.X)}')
+            print(
+                f'\tNº de días usados para entrenar el modelo: {self.dias_train}')
+            print(
+                f'\tNº de datos para testear el modelo: {len(self.y)}')
 
-        if not self.radio:
-            ancho_x = af.radio_pintar(self.hx, self.bw_x)
-            ancho_y = af.radio_pintar(self.hy, self.bw_y)
-        else:
-            ancho_x = af.radio_pintar(self.hx, self.radio)
-            ancho_y = af.radio_pintar(self.hy, self.radio)
+            if not self.radio:
+                ancho_x = af.radio_pintar(self.hx, self.bw_x)
+                ancho_y = af.radio_pintar(self.hy, self.bw_y)
+            else:
+                ancho_x = af.radio_pintar(self.hx, self.radio)
+                ancho_y = af.radio_pintar(self.hy, self.radio)
 
-        for k in range(len(self.X)):
-            x, y, t = self.X['x_point'][k], self.X['y_point'][k], \
-                      self.X['y_day'][k]
-            x_in_matrix, y_in_matrix = af.find_position(self.xx, self.yy, x, y,
-                                                        self.hx, self.hy)
-            x_left, x_right = af.limites_x(ancho_x, x_in_matrix, self.xx)
-            y_abajo, y_up = af.limites_y(ancho_y, y_in_matrix, self.yy)
+            for k in range(len(self.X)):
+                x, y, t = self.X['x_point'][k], self.X['y_point'][k], \
+                          self.X['y_day'][k]
+                x_in_matrix, y_in_matrix = af.find_position(self.xx, self.yy, x, y,
+                                                            self.hx, self.hy)
+                x_left, x_right = af.limites_x(ancho_x, x_in_matrix, self.xx)
+                y_abajo, y_up = af.limites_y(ancho_y, y_in_matrix, self.yy)
 
-            for i in range(x_left, x_right + 1):
-                for j in range(y_abajo, y_up):
-                    elem_x = self.xx[i][0]
-                    elem_y = self.yy[0][j]
-                    time_weight = 1 / af.n_semanas(self.dias_train, t)
+                for i in range(x_left, x_right + 1):
+                    for j in range(y_abajo, y_up):
+                        elem_x = self.xx[i][0]
+                        elem_y = self.yy[0][j]
+                        time_weight = 1 / af.n_semanas(self.dias_train, t)
 
-                    if af.linear_distance(elem_x, x) > self.bw_x or \
-                            af.linear_distance(elem_y, y) > self.bw_y:
-                        cell_weight = 0
+                        if af.linear_distance(elem_x, x) > self.bw_x or \
+                                af.linear_distance(elem_y, y) > self.bw_y:
+                            cell_weight = 0
 
-                    else:
-                        cell_weight = 1 / af.cells_distance(x, y, elem_x,
-                                                            elem_y,
-                                                            self.hx,
-                                                            self.hy)
+                        else:
+                            cell_weight = 1 / af.cells_distance(x, y, elem_x,
+                                                                elem_y,
+                                                                self.hx,
+                                                                self.hy)
 
-                    self.prediction[i][j] += time_weight * cell_weight
+                        self.prediction[i][j] += time_weight * cell_weight
 
-        self.prediction = self.prediction / self.prediction.max()
+            self.prediction = self.prediction / self.prediction.max()
 
-        print('\nGuardando datos...')
-        np.save('predictivehp/data/prediction.npy', self.prediction)
+            print('\nGuardando datos...')
+            np.save('predictivehp/data/prediction.npy', self.prediction)
 
     def load_train_matrix(self):
 
@@ -1960,10 +2017,10 @@ class ProMap:
 
         self.hr = [i / n_delitos_testing for i in hits_n]
 
-        # cells_in_map = af.calcular_celdas(self.hx, self.hy, self.km2)
-        cells_in_map = 141337
+        if not self.fitted:
+            self.fit()
 
-        self.ap = [1 if j > 1 else j for j in [i / cells_in_map for
+        self.ap = [1 if j > 1 else j for j in [i / self.cells_in_map for
                                                i in area_hits]]
 
     def calculate_pai(self, c):
