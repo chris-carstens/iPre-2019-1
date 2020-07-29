@@ -25,18 +25,11 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.width', 1000)
 
 
-def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
-    """
-    Obtiene los datos de la Socrata API
+def shps_proccesing(s_shp='', c_shp='', cl_shp=''):
 
-    :param int year: Año de la db (e.g. 2017)
-    :param int n: Número máximo de muestras a extraer de la db
-    :param str s_shp: path al archivo streets.shp
-    :param str c_shp: path al archivo councils.shp
-    :param str cl_shp: path al archivo citylimits.shp
-    :return:
-    """
     streets, councils, c_limits = [None, ] * 3
+
+    shps = {}
 
     if s_shp:
         streets = gpd.read_file(filename=s_shp)
@@ -50,6 +43,14 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
         c_limits = gpd.read_file(filename=cl_shp) if cl_shp else None
         c_limits.crs = 2276
         c_limits.to_crs(epsg=3857, inplace=True)
+
+    shps['streets'], shps['councils'], shps['c_limits'] = streets, councils, c_limits
+
+    return shps
+
+
+
+def get_data(year=2017, n=150000):
 
     print("\nRequesting data...")
     with Socrata(cre.socrata_domain,
@@ -114,17 +115,17 @@ def get_data(year=2017, n=150000, s_shp='', c_shp='', cl_shp=''):
         df.sort_values(by=['date'], inplace=True)
         df.reset_index(drop=True, inplace=True)
 
-        return df, streets, councils, c_limits
+        return df
 
 
 class PreProcessing:
-    def __init__(self, model, df=None, year=2017, n=150000, s_shp='', c_shp='',
-                 cl_shp=''):
+    def __init__(self, model, df=None, year=2017, n=150000):
         self.model = model
         if df is not None:
             self.df = df
         else:
-            self.df = get_data(year, n, s_shp, c_shp, cl_shp)[0]
+
+            self.df = get_data(year=year, n=n)
 
     def preparing_data(self):
         if "STKDE" in self.model.name:
@@ -185,36 +186,38 @@ class PreProcessing:
 
     def prepare_promap(self):
 
-        if len(self.df) >= self.model.n:
+        df = self.df
+
+        if len(df) >= self.model.n:
             print(f'\nEligiendo {self.model.n} datos...')
-            self.df = self.df.sample(n=self.model.n,
+            df = df.sample(n=self.model.n,
                                      replace=False,
                                      random_state=250499)
-            self.df.sort_values(by=['date'], inplace=True)
-            self.df.reset_index(drop=True, inplace=True)
+            df.sort_values(by=['date'], inplace=True)
+            df.reset_index(drop=True, inplace=True)
 
-        print("\nGenerando dataframe...\n")
+        print("\nGenerando dataframe...")
 
         geometry = [Point(xy) for xy in zip(
-            np.array(self.df[['x']]),
-            np.array(self.df[['y']]))
+            np.array(df[['x']]),
+            np.array(df[['y']]))
                     ]
 
-        geo_data = gpd.GeoDataFrame(self.df,  # gdf de incidentes
+        geo_data = gpd.GeoDataFrame(df,  # gdf de incidentes
                                     crs=2276,
                                     geometry=geometry)
 
         geo_data.to_crs(epsg=3857, inplace=True)
 
-        self.df['x_point'] = geo_data['geometry'].x
-        self.df['y_point'] = geo_data['geometry'].y
+        df['x_point'] = geo_data['geometry'].x
+        df['y_point'] = geo_data['geometry'].y
 
         # División en training y testing data
 
-        X = self.df[self.df["date"].apply(lambda x:
+        X = df[df["date"].apply(lambda x:
                                           x.month) <= \
                     self.model.month]
-        y = self.df[self.df["date"].apply(lambda x:
+        y = df[df["date"].apply(lambda x:
                                           x.month) > \
                     self.model.month]
 
@@ -296,4 +299,4 @@ class PreProcessing:
 
 
 if __name__ == '__main__':
-    df, _, _, _ = get_data()
+    df = get_data()

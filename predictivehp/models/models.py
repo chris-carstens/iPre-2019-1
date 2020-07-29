@@ -62,18 +62,10 @@ class STKDE:
                  number_of_groups=1,
                  window_days=7, month_division=10, name="STKDE", shps=None):
         """
-
-        Parameters
-        ----------
-        year
-        bw
-        sample_number
-        training_months
-        number_of_groups
-        window_days
-        month_division
-        name
-        shps
+        n: Número de registros que se piden a la database.
+        year: Año de los registros pedidos
+        t_model: Entrenamiento del modelo, True en caso de que se quieran
+        usar los métodos contour_plot o heatmap.
         """
         self.name, self.sn, self.year, self.bw = name, sample_number, year, bw
         self.shps = shps
@@ -320,9 +312,10 @@ class STKDE:
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
 
-        dallas.plot(ax=ax, alpha=.4,  # Ancho de las calles
-                            color="gray",
-                            zorder=1)
+        dallas.plot(ax=ax,
+                    alpha=.4,  # Ancho de las calles
+                    color="gray",
+                    zorder=1)
 
         x, y = np.mgrid[
                np.array(self.y[['x']]).min():
@@ -922,7 +915,7 @@ class RForestRegressor:
             datos extraídos en primera instancia desde la Socrata API
         :param int xc_size: Ancho de las celdas en metros
         :param int yc_size: Largo de las celdas en metros
-        :param int layers_n: Nro. de capas
+        :param int n_layers: Nro. de capas
         :param bool read_data: True si se desea
         :param bool read_df: True para leer el df con la
             información de las celdas
@@ -977,16 +970,13 @@ class RForestRegressor:
 
         :return: Pandas Dataframe con la información
         """
-
         print("\nGenerating dataframe...\n")
 
         # Creación de la malla
         print("\tCreating mgrid...")
         x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
-
         x_bins = abs(x_max - x_min) / self.xc_size
         y_bins = abs(y_max - y_min) / self.yc_size
-
         x, y = np.mgrid[x_min: x_max: x_bins * 1j, y_min: y_max: y_bins * 1j, ]
 
         # Creación del esqueleto del dataframe
@@ -1035,9 +1025,9 @@ class RForestRegressor:
 
             # Actualización del pandas dataframe
             for i in range(self.n_layers + 1):
-                self.X.loc[:, (f"Incidents_{i}", week)] = \
-                    af.to_df_col(D) if i == 0 else \
-                        af.to_df_col(af.il_neighbors(D, i))
+                self.X.loc[:, (f"Incidents_{i}", str(week))] = \
+                    af.to_df_col(D) if i == 0 \
+                        else af.to_df_col(af.il_neighbors(D, i))
             print('finished!')
 
         # Adición de las columnas 'geometry' e 'in_dallas' al df
@@ -1257,7 +1247,7 @@ class RForestRegressor:
         """
         print("\tMaking predictions...")
         y_pred = self.rfr.predict(X)
-        self.X[('Dangerous_pred', '')] = y_pred
+        self.X[('Dangerous_pred', '')] = y_pred / y_pred.max()
 
         return y_pred
         # if statistics:
@@ -1981,10 +1971,16 @@ class ProMap:
         print(f'\tbw.x: {self.bw_x} mts, bw.y: {self.bw_y} '
               f'mts, bw.t: {self.bw_t} dias')
 
+        delta_x = self.hx/2
+        delta_y = self.hy/2
+
         self.xx, self.yy = np.mgrid[
-                           self.x_min + self.hx / 2:self.x_max - self.hx / 2:self.bins_x * 1j,
-                           self.y_min + self.hy / 2:self.y_max - self.hy / 2:self.bins_y * 1j
+                           self.x_min + delta_x:self.x_max - delta_x:self.bins_x * 1j,
+                           self.y_min + delta_y:self.y_max - delta_y:self.bins_y * 1j
                            ]
+
+        # a = np.array([self.xx.flatten(), self.yy.flatten()])
+        # print(af.checked_points_pm(a))
 
     def predict(self, X, y):
 
@@ -2131,7 +2127,8 @@ class ProMap:
 
         self.hr = [i / n_delitos_testing for i in hits_n]
 
-        cells_in_map = af.calcular_celdas(self.hx, self.hy, self.km2)
+        # cells_in_map = af.calcular_celdas(self.hx, self.hy, self.km2)
+        cells_in_map = 141337
 
         self.ap = [1 if j > 1 else j for j in [i / cells_in_map for
                                                i in area_hits]]

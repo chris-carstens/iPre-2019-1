@@ -20,8 +20,13 @@ class Plotter:
     def add_model(self, model):
         """
 
-        :param model:
-        :return:
+        Parameters
+        ----------
+        model
+
+        Returns
+        -------
+
         """
 
         self.models.append(model)
@@ -29,23 +34,31 @@ class Plotter:
     def del_model(self, model):
         """
 
-        :param model:
-        :return:
+        Parameters
+        ----------
+        model
+
+        Returns
+        -------
+
         """
         pass
 
     def predict(self):
         """
 
+        Returns
+        -------
 
-        :return:
         """
         pass
 
     def heatmap(self):
         """
 
-        :return:
+        Returns
+        -------
+
         """
         for m in self.models:
             m.heatmap()
@@ -53,7 +66,9 @@ class Plotter:
     def hr(self):
         """
 
-        :return:
+        Returns
+        -------
+
         """
         print("\nPlotting Hit Rates:", end="")
         for m in self.models:
