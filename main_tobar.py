@@ -15,22 +15,16 @@ cl_shp_p = b_path + 'citylimit.shp'
 shps = shps_proccesing(s_shp_p, c_shp_p, cl_shp_p)
 
 
-pm = ProMap(bw=bw, shps=shps, read_density=False)
+pm = ProMap(bw=bw, shps=shps, read_density=True)
 pp = PreProcessing(pm)
 pm.predict(*pp.preparing_data())
-
-
-
-pm.predict(*PreProcessing(pm, df=df).preparing_data())
 
 #################
 
 
 # Plotter
 pltr = Plotter(models=[
-
     pm
-
 ])
 
 pltr.hr()

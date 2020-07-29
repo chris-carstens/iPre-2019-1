@@ -1925,6 +1925,8 @@ class ProMap:
         self.month = month
         self.X, self.y = None, None
         self.shps = shps
+        self.readed = False
+        self.fitted = False
 
         # MAP
         self.hx, self.hy, self.km2 = hx, hy, km2
@@ -1953,6 +1955,7 @@ class ProMap:
         if read_density:
             self.prediction = np.load(
                 'predictivehp/data/prediction.npy')
+            self.readed = True
 
         print('-' * 100)
 
@@ -1979,7 +1982,15 @@ class ProMap:
                            self.y_min + delta_y:self.y_max - delta_y:self.bins_y * 1j
                            ]
 
-    def predict(self, X, y):
+    def fit(self):
+
+        print('Fitting...')
+
+        points = np.array([self.xx.flatten(), self.yy.flatten()])
+        self.cells_in_map = af.checked_points_pm(points)  # 141337
+        self.fitted = True
+
+    def predict(self,X, y):
 
         """""
         Calcula los scores de la malla en base a los delitos del self.data
@@ -1992,56 +2003,56 @@ class ProMap:
         y hace referencia a todos los datos de testeo (x, y, delito)
 
         """""
-
         self.X = X
         self.y = y
         self.dias_train = self.X['y_day'].max()
 
-        print('\nEstimando densidades...')
-        print(
-            f'\n\tNº de datos para entrenar el modelo: {len(self.X)}')
-        print(
-            f'\tNº de días usados para entrenar el modelo: {self.dias_train}')
-        print(
-            f'\tNº de datos para testear el modelo: {len(self.y)}')
+        if not self.readed:
+            print('\nEstimando densidades...')
+            print(
+                f'\n\tNº de datos para entrenar el modelo: {len(self.X)}')
+            print(
+                f'\tNº de días usados para entrenar el modelo: {self.dias_train}')
+            print(
+                f'\tNº de datos para testear el modelo: {len(self.y)}')
 
-        if not self.radio:
-            ancho_x = af.radio_pintar(self.hx, self.bw_x)
-            ancho_y = af.radio_pintar(self.hy, self.bw_y)
-        else:
-            ancho_x = af.radio_pintar(self.hx, self.radio)
-            ancho_y = af.radio_pintar(self.hy, self.radio)
+            if not self.radio:
+                ancho_x = af.radio_pintar(self.hx, self.bw_x)
+                ancho_y = af.radio_pintar(self.hy, self.bw_y)
+            else:
+                ancho_x = af.radio_pintar(self.hx, self.radio)
+                ancho_y = af.radio_pintar(self.hy, self.radio)
 
-        for k in range(len(self.X)):
-            x, y, t = self.X['x_point'][k], self.X['y_point'][k], \
-                      self.X['y_day'][k]
-            x_in_matrix, y_in_matrix = af.find_position(self.xx, self.yy, x, y,
-                                                        self.hx, self.hy)
-            x_left, x_right = af.limites_x(ancho_x, x_in_matrix, self.xx)
-            y_abajo, y_up = af.limites_y(ancho_y, y_in_matrix, self.yy)
+            for k in range(len(self.X)):
+                x, y, t = self.X['x_point'][k], self.X['y_point'][k], \
+                          self.X['y_day'][k]
+                x_in_matrix, y_in_matrix = af.find_position(self.xx, self.yy, x, y,
+                                                            self.hx, self.hy)
+                x_left, x_right = af.limites_x(ancho_x, x_in_matrix, self.xx)
+                y_abajo, y_up = af.limites_y(ancho_y, y_in_matrix, self.yy)
 
-            for i in range(x_left, x_right + 1):
-                for j in range(y_abajo, y_up):
-                    elem_x = self.xx[i][0]
-                    elem_y = self.yy[0][j]
-                    time_weight = 1 / af.n_semanas(self.dias_train, t)
+                for i in range(x_left, x_right + 1):
+                    for j in range(y_abajo, y_up):
+                        elem_x = self.xx[i][0]
+                        elem_y = self.yy[0][j]
+                        time_weight = 1 / af.n_semanas(self.dias_train, t)
 
-                    if af.linear_distance(elem_x, x) > self.bw_x or \
-                            af.linear_distance(elem_y, y) > self.bw_y:
-                        cell_weight = 0
+                        if af.linear_distance(elem_x, x) > self.bw_x or \
+                                af.linear_distance(elem_y, y) > self.bw_y:
+                            cell_weight = 0
 
-                    else:
-                        cell_weight = 1 / af.cells_distance(x, y, elem_x,
-                                                            elem_y,
-                                                            self.hx,
-                                                            self.hy)
+                        else:
+                            cell_weight = 1 / af.cells_distance(x, y, elem_x,
+                                                                elem_y,
+                                                                self.hx,
+                                                                self.hy)
 
-                    self.prediction[i][j] += time_weight * cell_weight
+                        self.prediction[i][j] += time_weight * cell_weight
 
-        self.prediction = self.prediction / self.prediction.max()
+            self.prediction = self.prediction / self.prediction.max()
 
-        print('\nGuardando datos...')
-        np.save('predictivehp/data/prediction.npy', self.prediction)
+            print('\nGuardando datos...')
+            np.save('predictivehp/data/prediction.npy', self.prediction)
 
     def load_train_matrix(self):
 
@@ -2124,10 +2135,10 @@ class ProMap:
 
         self.hr = [i / n_delitos_testing for i in hits_n]
 
-        points = np.array([self.xx.flatten(), self.yy.flatten()])
-        cells_in_map = af.checked_points_pm(points) #141337
+        if not self.fitted:
+            self.fit()
 
-        self.ap = [1 if j > 1 else j for j in [i / cells_in_map for
+        self.ap = [1 if j > 1 else j for j in [i / self.cells_in_map for
                                                i in area_hits]]
 
     def calculate_pai(self, c):
