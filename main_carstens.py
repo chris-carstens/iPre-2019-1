@@ -35,18 +35,18 @@ stkde = STKDE(bw=bw_stkde)
 #pm.heatmap(c=0)
 
 stkde.fit(*PreProcessing(model=stkde).prepare_stkde())
-stkde.heatmap()
+#stkde.heatmap()
 
 # %% Plotter
 #pm.predict(*PreProcessing(model=pm, df=df).prepare_promap())
 
-#pltr = Plotter(models=[
- #    stkde,
+pltr = Plotter(models=[
+     stkde,
  #    rfr,
   #   pm
-  #])
+  ])
 
-#pltr.hr()
+pltr.hr()
 #pltr.pai()
 #stkde.heatmap()
 

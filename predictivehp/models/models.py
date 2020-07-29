@@ -57,7 +57,7 @@ class STKDE:
     def __init__(self,
                  year: str = "2017",
                  bw=None, sample_number=3600, training_months=10,
-                 number_of_groups=1,
+                 number_of_groups=1, start_prediction=date(2017, 11, 1),
                  window_days=7, month_division=10, name="STKDE", shps=None):
         """
         n: Número de registros que se piden a la database.
@@ -67,7 +67,7 @@ class STKDE:
         """
         self.name, self.sn, self.year, self.bw = name, sample_number, year, bw
         self.shps = shps
-        self.X_months = training_months
+        self.X_months = start_prediction.month
         self.ng, self.wd, self.md = number_of_groups, window_days, month_division
 
         self.hr, self.ap, self.pai = None, None, None
@@ -80,6 +80,9 @@ class STKDE:
         print(af.print_mes(self.X_months, self.X_months + 1, self.wd))
 
         print('-' * 30)
+
+    def set_parameters(self, bw):
+        self.bw = bw
 
     @af.timer
     def fit(self, df, X, y, predict_groups):
@@ -827,9 +830,11 @@ class STKDE:
             f_nodos = stkde.pdf(af.checked_points(
                 np.array([x.flatten(), y.flatten(), t.flatten()])))
 
-            #Normalizar:
+            print("Resultado pdf: ", f_delitos)
+            # Normalizar:
             f_delitos = f_delitos / f_nodos.max()
             f_nodos = f_nodos / f_nodos.max()
+            print("Resultado pdf: ", f_delitos)
 
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
         self.f_delitos_by_group, self.f_nodos_by_group = f_delitos_by_group, f_nodos_by_group
@@ -856,7 +861,7 @@ class STKDE:
         for g in range(1, self.ng + 1):
             f_delitos, f_nodos = self.f_delitos_by_group[g], \
                                  self.f_nodos_by_group[g]
-            #c = np.linspace(0, f_nodos.max(), 100)
+            # c = np.linspace(0, f_nodos.max(), 100)
             hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
             area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
             HR = [i / len(f_delitos) for i in hits]
@@ -901,7 +906,7 @@ class STKDE:
 class RForestRegressor:
     def __init__(self, i_df=None, shps=None,
                  xc_size=100, yc_size=100, n_layers=7,
-                 n_weeks=4, f_date=date(2017, 10, 31),
+                 t_history=4, f_date=date(2017, 10, 31),
                  # nx=None, ny=None,
                  read_data=False, read_df=False, name='RForestRegressor'):
         """
@@ -921,7 +926,7 @@ class RForestRegressor:
         self.xc_size, self.yc_size = xc_size, yc_size
         self.n_layers = n_layers
         self.nx, self.ny, self.hx, self.hy = None, None, None, None
-        self.n_weeks = n_weeks
+        self.t_history = t_history
         self.f_date = f_date
         self.weeks = []
 
@@ -930,7 +935,7 @@ class RForestRegressor:
 
         i_date = self.f_date + timedelta(days=1)  # For prediction
         c_date = self.f_date
-        for _ in range(self.n_weeks):
+        for _ in range(self.t_history):
             c_date -= timedelta(days=7)
             self.weeks.append(c_date + timedelta(days=1))
         self.weeks.reverse()
@@ -949,6 +954,30 @@ class RForestRegressor:
             self.data = i_df
             self.generate_df()
             self.assign_cells()
+
+    def set_parameters(self, t_history, nx, ny, n_layers, label_weights):
+        """
+        Setea los hiperparámetros del modelo
+
+        Parameters
+        ----------
+        t_history : int
+          Número de semanas hacia atrás a partir del 31-10-2017 que
+          serán usadas para entrenar el modelo
+        nx : int
+        ny : int
+        n_layers : int
+        label_weights : np.ndarray
+
+        Returns
+        -------
+
+        """
+        self.t_history = t_history
+        self.nx = nx
+        self.ny = ny
+        self.n_layers = n_layers
+        self.label_weights = label_weights
 
     @af.timer
     def generate_df(self):
@@ -1874,7 +1903,7 @@ class ProMap:
         self.cells_in_map = af.checked_points_pm(points)  # 141337
         self.fitted = True
 
-    def predict(self,X, y):
+    def predict(self, X, y):
 
         """""
         Calcula los scores de la malla en base a los delitos del self.data
@@ -1910,7 +1939,8 @@ class ProMap:
             for k in range(len(self.X)):
                 x, y, t = self.X['x_point'][k], self.X['y_point'][k], \
                           self.X['y_day'][k]
-                x_in_matrix, y_in_matrix = af.find_position(self.xx, self.yy, x, y,
+                x_in_matrix, y_in_matrix = af.find_position(self.xx, self.yy,
+                                                            x, y,
                                                             self.hx, self.hy)
                 x_left, x_right = af.limites_x(ancho_x, x_in_matrix, self.xx)
                 y_abajo, y_up = af.limites_y(ancho_y, y_in_matrix, self.yy)
@@ -2114,15 +2144,18 @@ class Model:
         self.promap = None
         self.rfr = None
 
-    def create_model(self, data=None, start_prediction=date(2017, 11, 1),
-                     length_prediction=7,
+    def create_model(self, data=None, shps=None,
+                     start_prediction=date(2017, 11, 1), length_prediction=7,
                      use_stkde=True, use_promap=True, use_rfr=True):
         if use_stkde:
             pass
         if use_promap:
             pass
         if use_rfr:
-            self.rfr = RForestRegressor()
+            self.rfr = RForestRegressor(
+                i_df=data, shps=shps,
+                f_date=start_prediction - timedelta(days=1)
+            )
 
 
 if __name__ == '__main__':
