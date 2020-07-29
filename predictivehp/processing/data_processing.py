@@ -25,7 +25,7 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.width', 1000)
 
 
-def shps_proccesing(s_shp='', c_shp='', cl_shp=''):
+def shps_processing(s_shp='', c_shp='', cl_shp=''):
     streets, councils, c_limits = [None, ] * 3
 
     shps = {}

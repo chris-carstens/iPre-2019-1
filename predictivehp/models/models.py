@@ -952,7 +952,8 @@ class RForestRegressor:
             self.generate_df()
             self.assign_cells()
 
-    def set_parameters(self, t_history, nx, ny, n_layers, label_weights):
+    def set_parameters(self, t_history, xc_size, yc_size, n_layers,
+                       label_weights):
         """
         Setea los hiperparámetros del modelo
 
@@ -961,18 +962,21 @@ class RForestRegressor:
         t_history : int
           Número de semanas hacia atrás a partir del 31-10-2017 que
           serán usadas para entrenar el modelo
-        nx : int
-        ny : int
+        xc_size : int
+          Tamaño en x de la celda en la malla (metros)
+        yc_size : int
+          Tamaño en y de la celda en la malla (metros)
         n_layers : int
+          Número de capas vecinas para contabilizar incidentes
         label_weights : np.ndarray
-
+          Vector de pesos según el cual se calcula la label 'Dangerous_pred'
         Returns
         -------
 
         """
         self.t_history = t_history
-        self.nx = nx
-        self.ny = ny
+        self.xc_size = xc_size
+        self.yc_size = yc_size
         self.n_layers = n_layers
         self.label_weights = label_weights
 
@@ -2136,18 +2140,51 @@ class Model:
         self.promap = None
         self.rfr = None
 
-    def create_model(self, data=None, shps=None,
-                     start_prediction=date(2017, 11, 1), length_prediction=7,
-                     use_stkde=True, use_promap=True, use_rfr=True):
-        if use_stkde:
-            pass
-        if use_promap:
-            pass
-        if use_rfr:
-            self.rfr = RForestRegressor(
-                i_df=data, shps=shps,
-                f_date=start_prediction - timedelta(days=1)
-            )
+    def print_parameters(self):
+        pass
+
+    def fit(self):
+        pass
+
+    def predict(self):
+        pass
+
+    def plot_heatmap(self, c=0.5, incidences=True):
+        pass
+
+    def validate(self, score=[0.5, 0.9]):
+        pass
+
+    def detected_incidences(self):
+        pass
+
+    def hotspot_area(self):
+        pass
+
+    def plot_hr(self):
+        pass
+
+    def plot_pai(self):
+        pass
+
+    def store(self, file_name='model.data'):
+        pass
+
+
+def create_model(data=None, shps=None,
+                 start_prediction=date(2017, 11, 1), length_prediction=7,
+                 use_stkde=True, use_promap=True, use_rfr=True):
+    m = Model()
+    if use_stkde:
+        pass
+    if use_promap:
+        pass
+    if use_rfr:
+        m.rfr = RForestRegressor(
+            i_df=data, shps=shps,
+            f_date=start_prediction - timedelta(days=1)
+        )
+    return m
 
 
 if __name__ == '__main__':
