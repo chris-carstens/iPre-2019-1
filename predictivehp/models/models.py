@@ -57,7 +57,7 @@ class STKDE:
     def __init__(self,
                  year: str = "2017",
                  bw=None, sample_number=3600, training_months=10,
-                 number_of_groups=1,
+                 number_of_groups=1, start_prediction=date(2017, 11, 1),
                  window_days=7, month_division=10, name="STKDE", shps=None):
         """
         n: Número de registros que se piden a la database.
@@ -67,7 +67,7 @@ class STKDE:
         """
         self.name, self.sn, self.year, self.bw = name, sample_number, year, bw
         self.shps = shps
-        self.X_months = training_months
+        self.X_months = start_prediction.month
         self.ng, self.wd, self.md = number_of_groups, window_days, month_division
 
         self.hr, self.ap, self.pai = None, None, None
@@ -80,6 +80,9 @@ class STKDE:
         print(af.print_mes(self.X_months, self.X_months + 1, self.wd))
 
         print('-' * 30)
+
+    def set_parameters(self, bw):
+        self.bw = bw
 
     @af.timer
     def fit(self, df, X, y, predict_groups):
