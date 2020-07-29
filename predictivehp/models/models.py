@@ -11,9 +11,7 @@ import seaborn as sns
 from matplotlib.lines import Line2D
 from pyevtk.hl import gridToVTK
 from sklearn.ensemble \
-    import RandomForestClassifier, RandomForestRegressor
-from sklearn.metrics \
-    import precision_score, recall_score
+    import RandomForestRegressor
 from statsmodels.nonparametric.kernel_density \
     import KDEMultivariate, EstimatorSettings
 
@@ -884,6 +882,14 @@ class RForestRegressor:
         self.rfr = RandomForestRegressor(n_jobs=8)
         self.ap, self.hr, self.pai = None, None, None
 
+        i_date = self.f_date + timedelta(days=1)  # For prediction
+        c_date = self.f_date
+        for _ in range(self.n_weeks):
+            c_date -= timedelta(days=7)
+            self.weeks.append(c_date + timedelta(days=1))
+        self.weeks.reverse()
+        self.weeks.append(i_date)
+
         if read_df and read_data:
             st = time()
             print("\nReading df pickle...", end=" ")
@@ -932,13 +938,7 @@ class RForestRegressor:
 
         # Creación del esqueleto del dataframe
         print("\tCreating dataframe columns...")
-        i_date = self.f_date + timedelta(days=1)  # For prediction
-        c_date = self.f_date
-        for _ in range(self.n_weeks):
-            c_date -= timedelta(days=7)
-            self.weeks.append(c_date + timedelta(days=1))
-        self.weeks.reverse()
-        self.weeks.append(i_date)
+
         X_cols = pd.MultiIndex.from_product(
             [[f"Incidents_{i}" for i in range(self.n_layers + 1)], self.weeks]
         )
@@ -1043,124 +1043,6 @@ class RForestRegressor:
             cell_idx = ny_i + ny * nx_i
 
             self.data.loc[idx, 'Cell'] = cell_idx
-
-    @af.timer
-    def ml_algorithm(self, f_importance=False, pickle=False):
-        """
-        Produce la predicción de acuerdo a los datos entregados, utilizando
-        un approach de machine learning con clasificador RandomForest (rfc) y
-        entrega el output asociado.
-
-        :param f_importance: True para imprimir estadísticas
-            asociadas a los features utilizados para entrenar el classifier
-        :param pickle: True si se quiere generar un pickle de las estadísticas
-            asociadas al entrenamiento del classifier
-        """
-
-        print("\nInitializing...")
-
-        # Preparación del input para el algoritmo
-        print("\n\tPreparing input...")
-
-        # Jan-Sep
-        x_ft = self.X.loc[
-               :,
-               [('Incidents_0', month_name[i]) for i in range(1, 10)] +
-               [('Incidents_1', month_name[i]) for i in range(1, 10)] +
-               [('Incidents_2', month_name[i]) for i in range(1, 10)] +
-               [('Incidents_3', month_name[i]) for i in range(1, 10)] +
-               [('Incidents_4', month_name[i]) for i in range(1, 10)] +
-               [('Incidents_5', month_name[i]) for i in range(1, 10)] +
-               [('Incidents_6', month_name[i]) for i in range(1, 10)] +
-               [('Incidents_7', month_name[i]) for i in range(1, 10)]
-               ]
-        # Oct
-        x_lbl = self.X.loc[
-                :,
-                [('Incidents_0', 'October'), ('Incidents_1', 'October'),
-                 ('Incidents_2', 'October'), ('Incidents_3', 'October'),
-                 ('Incidents_4', 'October'), ('Incidents_5', 'October'),
-                 ('Incidents_6', 'October'), ('Incidents_7', 'October')]
-                ]
-        x_lbl[('Dangerous', '')] = x_lbl.T.any().astype(int)
-        x_lbl = x_lbl[('Dangerous', '')]
-
-        # Algoritmo
-        print("\tRunning algorithms...")
-
-        rfc = RandomForestClassifier(n_jobs=8)
-        rfc.fit(x_ft, x_lbl.to_numpy().ravel())
-        x_pred_rfc = rfc.predict(x_ft)
-
-        if f_importance:
-            cols = pd.Index(['features', 'r_importance'])
-            rfc_fi_df = pd.DataFrame(columns=cols)
-            rfc_fi_df['features'] = x_ft.columns.to_numpy()
-            rfc_fi_df['r_importance'] = rfc.feature_importances_
-
-            if pickle:
-                rfc_fi_df.to_pickle('rfc.pkl')
-
-        print("\n\tx\n")
-
-        # Sirven para determinar celdas con TP/FN
-        self.X[('Dangerous_Oct', '')] = x_lbl
-        self.X[('Dangerous_pred_Oct', '')] = x_pred_rfc
-
-        # Comparación para determinar si las celdas predichas son TP/FN
-        self.X[('TP', '')] = 0
-        self.X[('FN', '')] = 0
-        self.X[('TP', '')] = np.where(
-            (self.X[('Dangerous_Oct', '')] == self.X[
-                ('Dangerous_pred_Oct', '')]) &
-            (self.X[('Dangerous_Oct', '')] == 1),
-            1,
-            0
-        )
-        self.X[('FN', '')] = np.where(
-            (self.X[('Dangerous_Oct', '')] != self.X[
-                ('Dangerous_pred_Oct', '')]) &
-            (self.X[('Dangerous_pred_Oct', '')] == 0),
-            1,
-            0
-        )
-
-        rfc_score = rfc.score(x_ft, x_lbl)
-        rfc_precision = precision_score(x_lbl, x_pred_rfc)
-        rfc_recall = recall_score(x_lbl, x_pred_rfc)
-        print(
-            f"""
-    rfc score           {rfc_score:1.3f}
-    rfc precision       {rfc_precision:1.3f}
-    rfc recall          {rfc_recall:1.3f}
-        """
-        )
-
-        print("\n\ty\n")
-
-        y_ft = self.X.loc[
-               :,
-               [('Incidents_0', month_name[i]) for i in range(2, 11)] +
-               [('Incidents_1', month_name[i]) for i in range(2, 11)] +
-               [('Incidents_2', month_name[i]) for i in range(2, 11)] +
-               [('Incidents_3', month_name[i]) for i in range(2, 11)] +
-               [('Incidents_4', month_name[i]) for i in range(2, 11)] +
-               [('Incidents_5', month_name[i]) for i in range(2, 11)] +
-               [('Incidents_6', month_name[i]) for i in range(2, 11)] +
-               [('Incidents_7', month_name[i]) for i in range(2, 11)]
-               ]
-        y_lbl = self.X.loc[
-                :,
-                [('Incidents_0', 'November'), ('Incidents_1', 'November'),
-                 ('Incidents_2', 'November'), ('Incidents_3', 'November'),
-                 ('Incidents_4', 'November'), ('Incidents_5', 'November'),
-                 ('Incidents_6', 'November'), ('Incidents_7', 'November')]
-                ]
-
-        y_lbl[('Dangerous', '')] = y_lbl.T.any().astype(int)
-        y_lbl = y_lbl[('Dangerous', '')]
-
-        y_pred_rfc = rfc.predict(y_ft)
 
     @af.timer
     def fit(self, X, y):
@@ -1922,8 +1804,8 @@ class ProMap:
         print(f'\tbw.x: {self.bw_x} mts, bw.y: {self.bw_y} '
               f'mts, bw.t: {self.bw_t} dias')
 
-        delta_x = self.hx/2
-        delta_y = self.hy/2
+        delta_x = self.hx / 2
+        delta_y = self.hy / 2
 
         self.xx, self.yy = np.mgrid[
                            self.x_min + delta_x:self.x_max - delta_x:self.bins_x * 1j,
@@ -2165,6 +2047,23 @@ class ProMap:
 
         plt.colorbar()
         plt.show()
+
+
+class Model:
+    def __init__(self):
+        self.stkde = None
+        self.promap = None
+        self.rfr = None
+
+    def create_model(self, data=None, start_prediction=date(2017, 11, 1),
+                     length_prediction=7,
+                     use_stkde=True, use_promap=True, use_rfr=True):
+        if use_stkde:
+            pass
+        if use_promap:
+            pass
+        if use_rfr:
+            self.rfr = RForestRegressor()
 
 
 if __name__ == '__main__':

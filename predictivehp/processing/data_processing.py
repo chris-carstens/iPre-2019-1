@@ -26,7 +26,6 @@ pd.set_option('display.width', 1000)
 
 
 def shps_proccesing(s_shp='', c_shp='', cl_shp=''):
-
     streets, councils, c_limits = [None, ] * 3
 
     shps = {}
@@ -49,9 +48,7 @@ def shps_proccesing(s_shp='', c_shp='', cl_shp=''):
     return shps
 
 
-
 def get_data(year=2017, n=150000):
-
     print("\nRequesting data...")
     with Socrata(cre.socrata_domain,
                  cre.API_KEY_S,
@@ -191,8 +188,8 @@ class PreProcessing:
         if len(df) >= self.model.n:
             print(f'\nEligiendo {self.model.n} datos...')
             df = df.sample(n=self.model.n,
-                                     replace=False,
-                                     random_state=250499)
+                           replace=False,
+                           random_state=250499)
             df.sort_values(by=['date'], inplace=True)
             df.reset_index(drop=True, inplace=True)
 
@@ -215,11 +212,11 @@ class PreProcessing:
         # División en training y testing data
 
         X = df[df["date"].apply(lambda x:
-                                          x.month) <= \
-                    self.model.month]
+                                x.month) <= \
+               self.model.month]
         y = df[df["date"].apply(lambda x:
-                                          x.month) > \
-                    self.model.month]
+                                x.month) > \
+               self.model.month]
 
         return X, y
 
