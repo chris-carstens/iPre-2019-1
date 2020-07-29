@@ -57,7 +57,7 @@ class STKDE:
     def __init__(self,
                  year: str = "2017",
                  bw=None, sample_number=3600, training_months=10,
-                 number_of_groups=1,
+                 number_of_groups=1, start_prediction=date(2017, 11, 1),
                  window_days=7, month_division=10, name="STKDE", shps=None):
         """
         n: Número de registros que se piden a la database.
@@ -67,7 +67,7 @@ class STKDE:
         """
         self.name, self.sn, self.year, self.bw = name, sample_number, year, bw
         self.shps = shps
-        self.X_months = training_months
+        self.X_months = start_prediction.month
         self.ng, self.wd, self.md = number_of_groups, window_days, month_division
 
         self.hr, self.ap, self.pai = None, None, None
@@ -80,6 +80,12 @@ class STKDE:
         print(af.print_mes(self.X_months, self.X_months + 1, self.wd))
 
         print('-' * 30)
+
+    def set_parameters(self, bw):
+        self.bw = bw
+
+    def print_parameters(self):
+        print('STKDE bandwith\'s: ', self.bw)
 
     @af.timer
     def fit(self, df, X, y, predict_groups):
@@ -952,8 +958,7 @@ class RForestRegressor:
             self.generate_df()
             self.assign_cells()
 
-    def set_parameters(self, t_history, xc_size, yc_size, n_layers,
-                       label_weights):
+    def set_parameters(self, t_history, nx, ny, n_layers, label_weights):
         """
         Setea los hiperparámetros del modelo
 
@@ -962,21 +967,18 @@ class RForestRegressor:
         t_history : int
           Número de semanas hacia atrás a partir del 31-10-2017 que
           serán usadas para entrenar el modelo
-        xc_size : int
-          Tamaño en x de la celda en la malla (metros)
-        yc_size : int
-          Tamaño en y de la celda en la malla (metros)
+        nx : int
+        ny : int
         n_layers : int
-          Número de capas vecinas para contabilizar incidentes
         label_weights : np.ndarray
-          Vector de pesos según el cual se calcula la label 'Dangerous_pred'
+
         Returns
         -------
 
         """
         self.t_history = t_history
-        self.xc_size = xc_size
-        self.yc_size = yc_size
+        self.nx = nx
+        self.ny = ny
         self.n_layers = n_layers
         self.label_weights = label_weights
 
@@ -1826,12 +1828,12 @@ class ProMap:
     def __init__(self, bw, n_datos=3600, read_density=False,
                  hx=100, hy=100,
                  radio=None, ventana_dias=7, tiempo_entrenamiento=None,
-                 month=10,
+                 start_prediction=date(2017, 11, 1),
                  km2=1_000, name='Promap', shps=None):
 
         # DATA
         self.n = n_datos
-        self.month = month
+        self.start_prediction = start_prediction
         self.X, self.y = None, None
         self.shps = shps
         self.readed = False
@@ -1857,7 +1859,7 @@ class ProMap:
 
         print('-' * 100)
         print('\t\t', self.name)
-        print(af.print_mes(self.month, self.month + 1, self.ventana_dias))
+
 
         self.create_grid()
 
@@ -1867,6 +1869,11 @@ class ProMap:
             self.readed = True
 
         print('-' * 100)
+
+    def set_parameters(self, bandwidth, hx = 100, hy = 100):
+        self.bw_x, self.bw_y, self.bw_t = bandwidth
+        self.hx, self.hy = hx, hy
+
 
     def create_grid(self):
 
@@ -2176,7 +2183,7 @@ def create_model(data=None, shps=None,
                  use_stkde=True, use_promap=True, use_rfr=True):
     m = Model()
     if use_stkde:
-        pass
+        m.stkde = STKDE()
     if use_promap:
         pass
     if use_rfr:
