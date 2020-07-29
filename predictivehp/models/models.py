@@ -2145,18 +2145,51 @@ class Model:
         self.promap = None
         self.rfr = None
 
-    def create_model(self, data=None, shps=None,
-                     start_prediction=date(2017, 11, 1), length_prediction=7,
-                     use_stkde=True, use_promap=True, use_rfr=True):
-        if use_stkde:
-            pass
-        if use_promap:
-            self.stkde = STKDE()
-        if use_rfr:
-            self.rfr = RForestRegressor(
-                i_df=data, shps=shps,
-                f_date=start_prediction - timedelta(days=1)
-            )
+    def print_parameters(self):
+        pass
+
+    def fit(self):
+        pass
+
+    def predict(self):
+        pass
+
+    def plot_heatmap(self, c=0.5, incidences=True):
+        pass
+
+    def validate(self, score=[0.5, 0.9]):
+        pass
+
+    def detected_incidences(self):
+        pass
+
+    def hotspot_area(self):
+        pass
+
+    def plot_hr(self):
+        pass
+
+    def plot_pai(self):
+        pass
+
+    def store(self, file_name='model.data'):
+        pass
+
+
+def create_model(data=None, shps=None,
+                 start_prediction=date(2017, 11, 1), length_prediction=7,
+                 use_stkde=True, use_promap=True, use_rfr=True):
+    m = Model()
+    if use_stkde:
+        m.stkde = STKDE()
+    if use_promap:
+        pass
+    if use_rfr:
+        m.rfr = RForestRegressor(
+            i_df=data, shps=shps,
+            f_date=start_prediction - timedelta(days=1)
+        )
+    return m
 
 
 if __name__ == '__main__':
