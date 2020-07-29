@@ -365,13 +365,7 @@ def print_mes(m_train, m_predict, dias):
 
 
 def checked_points_pm(points):
-    """
-    Chequea si la lista de puntos está dentro de Dallas.
 
-    :param list points:
-    :param str shp: Path del shapefile asociado
-    :return np.ndarray :
-    """
     # 'predictivehp/data/councils.shp'
     dallas_shp = gpd.read_file('predictivehp/data/councils.shp')
     dallas_shp.crs = 2276
@@ -393,22 +387,7 @@ def checked_points_pm(points):
                                 how='inner',
                                 op='intersects').reset_index()
 
-    print('print 1')
-    print(len(valid_inc))
-
-    valid_inc_2 = valid_inc[['geometry']]
-
-    x = valid_inc_2['geometry'].apply(lambda row: row.x)
-    y = valid_inc_2['geometry'].apply(lambda row: row.y)
-
-    v_points = np.array([x, y])
-
-    print('puntos:',len(v_points[0]), len(v_points[1]))
-
-    return v_points
-
-
-
+    return len(valid_inc)
 
 if __name__ == '__main__':
     pass

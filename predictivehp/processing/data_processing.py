@@ -49,7 +49,6 @@ def shps_proccesing(s_shp='', c_shp='', cl_shp=''):
     return shps
 
 
-
 def get_data(year=2017, n=150000):
 
     print("\nRequesting data...")

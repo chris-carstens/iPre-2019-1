@@ -1930,9 +1930,6 @@ class ProMap:
                            self.y_min + delta_y:self.y_max - delta_y:self.bins_y * 1j
                            ]
 
-        # a = np.array([self.xx.flatten(), self.yy.flatten()])
-        # print(af.checked_points_pm(a))
-
     def predict(self, X, y):
 
         """""
@@ -2078,8 +2075,8 @@ class ProMap:
 
         self.hr = [i / n_delitos_testing for i in hits_n]
 
-        # cells_in_map = af.calcular_celdas(self.hx, self.hy, self.km2)
-        cells_in_map = 141337
+        points = np.array([self.xx.flatten(), self.yy.flatten()])
+        cells_in_map = af.checked_points_pm(points) #141337
 
         self.ap = [1 if j > 1 else j for j in [i / cells_in_map for
                                                i in area_hits]]
