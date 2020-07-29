@@ -1828,12 +1828,12 @@ class ProMap:
     def __init__(self, bw, n_datos=3600, read_density=False,
                  hx=100, hy=100,
                  radio=None, ventana_dias=7, tiempo_entrenamiento=None,
-                 month=10,
+                 start_prediction=date(2017, 11, 1),
                  km2=1_000, name='Promap', shps=None):
 
         # DATA
         self.n = n_datos
-        self.month = month
+        self.start_prediction = start_prediction
         self.X, self.y = None, None
         self.shps = shps
         self.readed = False
@@ -1859,7 +1859,7 @@ class ProMap:
 
         print('-' * 100)
         print('\t\t', self.name)
-        print(af.print_mes(self.month, self.month + 1, self.ventana_dias))
+
 
         self.create_grid()
 
@@ -1869,6 +1869,11 @@ class ProMap:
             self.readed = True
 
         print('-' * 100)
+
+    def set_parameters(self, bandwidth, hx = 100, hy = 100):
+        self.bw_x, self.bw_y, self.bw_t = bandwidth
+        self.hx, self.hy = hx, hy
+
 
     def create_grid(self):
 
