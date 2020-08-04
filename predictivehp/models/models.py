@@ -54,6 +54,7 @@ class MyKDEMultivariate(KDEMultivariate):
 
 
 class STKDE:
+
     def __init__(self,
                  year: str = "2017",
                  bw=None, sample_number=3600, training_months=10,
@@ -67,7 +68,8 @@ class STKDE:
         """
         self.name, self.sn, self.year, self.bw = name, sample_number, year, bw
         self.shps = shps
-        self.X_months = start_prediction.month
+        self.X_months = training_months
+        self.start_prediction = start_prediction
         self.ng, self.wd, self.md = number_of_groups, window_days, month_division
 
         self.hr, self.ap, self.pai = None, None, None

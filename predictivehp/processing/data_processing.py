@@ -138,10 +138,10 @@ class PreProcessing:
         df.reset_index(drop=True, inplace=True)
 
         # División en training data (X) y testing data (y)
-        X = df[df["date"].apply(lambda x: x.month) <= self.model.md]
+        X = df[df["date"] <= self.model.start_prediction]
         X = X[X["date"].apply(
             lambda x: x.month) >= self.model.md - self.model.X_months]
-        y = df[df["date"].apply(lambda x: x.month) > self.model.X_months]
+        y = df[df["date"] > self.model.start_prediction]
         predict_groups = {
             f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None}
             for i in range(1, self.model.ng + 1)}
