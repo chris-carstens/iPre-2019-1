@@ -990,6 +990,9 @@ class RForestRegressor:
             self.generate_df()
             self.assign_cells()
 
+            self.to_pickle("data.pkl")
+            self.to_pickle('X.pkl')
+
     def set_parameters(self, t_history,
                        xc_size, yc_size, n_layers, label_weights):
         """
@@ -1105,11 +1108,12 @@ class RForestRegressor:
 
     @af.timer
     def to_pickle(self, file_name):
-        """
+        f"""
         Genera un pickle de self.df o self.data dependiendo el nombre
         dado (data.pkl o df.pkl)
 
         :param str file_name: Nombre del pickle a generar
+        predictivehp/data/file_name
         :return: pickle de self.df o self.data
         """
 
@@ -2226,7 +2230,6 @@ def create_model(data=None, shps=None,
             i_df=data, shps=shps,
             start_prediction=start_prediction - timedelta(days=1)
         )
-
     return m
 
 
