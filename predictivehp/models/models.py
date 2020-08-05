@@ -129,7 +129,21 @@ class STKDE:
         print(f'bandwith t: {self.bw[2]} days\n')
 
     def score(self, x , y, t):
-        print("STKDE pdf score: ", self.kde.pdf(np.array([x, y, t]))
+        """
+
+        Parameters
+        ----------
+        x : float
+        y : float
+        t : float
+
+        Returns
+        -------
+        score_pdf : float
+        """
+        score_pdf = self.kde.pdf(np.array([x, y, t])
+        print("STKDE pdf score: ", score_pdf)
+        return score_pdf
 
 
     @af.timer
