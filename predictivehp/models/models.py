@@ -1943,7 +1943,13 @@ class ProMap:
         self.create_grid()
 
     def print_parameters(self):
-        print()
+        print('ProMap Hyperparameters')
+        print(f'bandwith x: {self.bw_x} mts')
+        print(f'bandwith y: {self.bw_y} mts')
+        print(f'bandwith t: {self.bw_t} days')
+        print(f'hx: {self.hx}')
+        print(f'hy: {self.hy}')
+
 
     def create_grid(self):
 
