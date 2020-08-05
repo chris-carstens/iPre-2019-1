@@ -1909,7 +1909,7 @@ class ProMap:
         # MODEL
         self.name = name
         self.ventana_dias = ventana_dias
-        self.prediction = np.zeros((self.bins_x, self.bins_y))
+        self.score = np.zeros((self.bins_x, self.bins_y))
         self.training_matrix = np.zeros((self.bins_x, self.bins_y))
         self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
         self.hr, self.pai, self.ap = None, None, None
@@ -1921,14 +1921,14 @@ class ProMap:
         self.create_grid()
 
         if read_density:
-            self.prediction = np.load(
+            self.score = np.load(
                 'predictivehp/data/prediction.npy')
             self.readed = True
 
         print('-' * 100)
 
-    def set_parameters(self, bandwidth, hx = 100, hy = 100):
-        self.bw_x, self.bw_y, self.bw_t = bandwidth
+    def set_parameters(self, bw, hx = 100, hy = 100):
+        self.bw_x, self.bw_y, self.bw_t = bw
         self.hx, self.hy = hx, hy
 
     def print_parameters(self):
@@ -2023,12 +2023,12 @@ class ProMap:
                                                                 self.hx,
                                                                 self.hy)
 
-                        self.prediction[i][j] += time_weight * cell_weight
+                        self.score[i][j] += time_weight * cell_weight
 
-            self.prediction = self.prediction / self.prediction.max()
+            self.score = self.score / self.score.max()
 
             print('\nGuardando datos...')
-            np.save('predictivehp/data/prediction.npy', self.prediction)
+            np.save('predictivehp/data/prediction.npy', self.score)
 
     def load_train_matrix(self):
 
@@ -2092,7 +2092,7 @@ class ProMap:
         for i in range(c.size):
             hits_n.append(
                 np.sum(
-                    (self.prediction >= c[
+                    (self.score >= c[
                         i]) * self.testing_matrix))
 
         # 1. Solo considera las celdas que son mayor a un K
@@ -2105,7 +2105,7 @@ class ProMap:
 
         for i in range(c.size):
             area_hits.append(
-                np.count_nonzero(self.prediction >= c[i]))
+                np.count_nonzero(self.score >= c[i]))
 
         n_delitos_testing = np.sum(self.testing_matrix)
 
@@ -2144,8 +2144,8 @@ class ProMap:
         :return None
         """
 
-        matriz = np.where(self.prediction >= c,
-                          self.prediction, 0)
+        matriz = np.where(self.score >= c,
+                          self.score, 0)
 
         dallas = gpd.read_file('predictivehp/data/streets.shp')
         dallas.crs = 2276
@@ -2260,7 +2260,7 @@ def create_model(data=None, shps=None,
     if use_stkde:
         m.stkde = STKDE()
     if use_promap:
-        m.pm = ProMap(shps=shps, start_prediction=start_prediction)
+        m.promap = ProMap(shps=shps, start_prediction=start_prediction)
     if use_rfr:
         m.rfr = RForestRegressor(
             i_df=data, shps=shps,
