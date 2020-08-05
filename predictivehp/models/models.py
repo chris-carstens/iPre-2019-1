@@ -1949,6 +1949,7 @@ class ProMap:
         print(f'bandwith t: {self.bw_t} days')
         print(f'hx: {self.hx} mts')
         print(f'hy: {self.hy} mts')
+        print()
 
 
     def create_grid(self):
