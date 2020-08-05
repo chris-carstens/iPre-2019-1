@@ -90,11 +90,11 @@ class STKDE:
         self.f_delitos_by_group, self.f_nodos_by_group = None, None
         # training data 3000
         # testing data  600
-        print('-' * 30)
-        print('\t\tSTKDE')
-        print(af.print_mes(self.X_months, self.X_months + 1, self.wd))
+        #print('-' * 30)
+        #print('\t\tSTKDE')
+        #print(af.print_mes(self.X_months, self.X_months + 1, self.wd))
 
-        print('-' * 30)
+        #print('-' * 30)
 
     def set_parameters(self, bw):
         """
