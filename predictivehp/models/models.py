@@ -128,6 +128,10 @@ class STKDE:
         print(f'bandwith y: {self.bw[1]} ft.')
         print(f'bandwith t: {self.bw[2]} days\n')
 
+    def score(self, x , y, t):
+        print("STKDE pdf score: ", self.kde.pdf(np.array([x, y, t]))
+
+
     @af.timer
     def fit(self, df, X, y, predict_groups):
         """
