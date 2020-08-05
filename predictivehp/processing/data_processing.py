@@ -28,6 +28,9 @@ pd.set_option('display.width', 1000)
 class PreProcessing:
     def __init__(self, models=None, df=None, year=2017, n=150000):
         self.models = models
+        self.stkde = None
+        self.promap = None
+        self.rfr = None
         if models:
             self.define_models()
         if df is not None:
@@ -130,20 +133,20 @@ class PreProcessing:
         for model in self.models:
             if "STKDE" in model.name:
                 self.stkde = model
-            elif "Promap" in model.namr:
+            elif "Promap" in model.name:
                 self.promap = model
             else:
                 self.rfr = model
 
-    def preparing_data(self, model):
+    def preparing_data(self, model, **kwargs):
         if model not in [m.name for m in self.models]:
             print("Model not found.")
             return None
         if "STKDE" in model:
             return self.prepare_stkde()
-        elif "Promap" in model:
+        elif "ProMap" in model:
             return self.prepare_promap()
-        return self.prepare_rfr()
+        return self.prepare_rfr(**kwargs)
 
     def prepare_stkde(self):
         df = self.df
@@ -252,7 +255,7 @@ class PreProcessing:
         # de celdas en las capas [o distancia])
         # [('Incidents_i', self.model.weeks[-2])] for i in range(8)
         if mode == 'train':
-            print("\nPreparing Training Data for RFR...")
+            # print("\nPreparing Training Data for RFR...")
             # First three weeks of October
             X = self.rfr.X.loc[
                 :,

@@ -19,6 +19,7 @@ from statsmodels.nonparametric.kernel_density \
 
 import predictivehp.aux_functions as af
 import predictivehp.models.parameters as prm
+import predictivehp.processing.data_processing as dp
 
 # from paraview.simple import *
 
@@ -91,11 +92,11 @@ class STKDE:
         self.df = None
         # training data 3000
         # testing data  600
-        #print('-' * 30)
-        #print('\t\tSTKDE')
-        #print(af.print_mes(self.X_months, self.X_months + 1, self.wd))
+        # print('-' * 30)
+        # print('\t\tSTKDE')
+        # print(af.print_mes(self.X_months, self.X_months + 1, self.wd))
 
-        #print('-' * 30)
+        # print('-' * 30)
 
     def set_parameters(self, bw):
         """
@@ -111,7 +112,7 @@ class STKDE:
         """
         self.bw = bw
 
-        #Reentrenamos el modelo con nuevo bw
+        # Reentrenamos el modelo con nuevo bw
         if self.df is not None:
             self.fit(self.df, self.X, self.y, self.predict_groups)
 
@@ -150,7 +151,7 @@ class STKDE:
 
         self.data, self.X, self.y, self.pg = df, X, y, predict_groups
 
-        print("\nBuilding KDE...")
+        # print("\nBuilding KDE...")
 
         self.kde = MyKDEMultivariate(
             [np.array(self.X[['x']]),
@@ -1002,13 +1003,13 @@ class RForestRegressor:
 
         if read_df and read_data:
             st = time()
-            print("\nReading df pickle...", end=" ")
+            # print("\nReading df pickle...", end=" ")
             self.X = pd.read_pickle('predictivehp/data/X.pkl')
-            print(f"finished! ({time() - st:3.1f} sec)")
+            # print(f"finished! ({time() - st:3.1f} sec)")
             st = time()
-            print("Reading data pickle...", end=" ")
+            # print("Reading data pickle...", end=" ")
             self.data = pd.read_pickle('predictivehp/data/data.pkl')
-            print(f"finished! ({time() - st:3.1f} sec)")
+            # print(f"finished! ({time() - st:3.1f} sec)")
         else:
             self.data = i_df
             self.generate_df()
@@ -1044,11 +1045,12 @@ class RForestRegressor:
 
     def print_parameters(self):
         print('RFR Hyperparameters')
-        print(f'{"Training History:":<20s}{self.t_history}')
-        print(f'{"xc_size:":<20s}{self.xc_size}')
-        print(f'{"yc_size:":<20s}{self.yc_size}')
+        print(f'{"Training History:":<20s}{self.t_history} weeks')
+        print(f'{"xc_size:":<20s}{self.xc_size} m')
+        print(f'{"yc_size:":<20s}{self.yc_size} m')
         print(f'{"n_layers:":<20s}{self.n_layers}')
         print(f'{"l_weights:":<20s}{self.l_weights}')
+        print()
 
     @af.timer
     def generate_df(self):
@@ -1204,7 +1206,7 @@ class RForestRegressor:
         y : pd.DataFrame
             y_train
         """
-        print("\tFitting Model...")
+        # print("\tFitting Model...")
         self.rfr.fit(X, y.to_numpy().ravel())
 
         # Sirven para determinar celdas con TP/FN
@@ -1894,13 +1896,12 @@ class RForestRegressor:
 
 
 class ProMap:
-
     def __init__(self, n_datos=3600, read_density=False,
                  hx=100, hy=100,
                  bw_x=400, bw_y=400, bw_t=7,
                  radio=None, ventana_dias=7, tiempo_entrenamiento=None,
                  start_prediction=date(2017, 11, 1),
-                 km2=1_000, name='Promap', shps=None):
+                 km2=1_000, name='ProMap', shps=None):
         # DATA
         self.n = n_datos
         self.start_prediction = start_prediction
@@ -1926,8 +1927,8 @@ class ProMap:
         self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
         self.hr, self.pai, self.ap = None, None, None
 
-        #print('-' * 100)
-        #print('\t\t', self.name)
+        # print('-' * 100)
+        # print('\t\t', self.name)
 
         self.create_grid()
 
@@ -1936,12 +1937,12 @@ class ProMap:
                 'predictivehp/data/prediction.npy')
             self.readed = True
 
-        #print('-' * 100)
+        # print('-' * 100)
 
     def set_parameters(self, bw, hx=100, hy=100):
         self.bw_x, self.bw_y, self.bw_t = bw
         self.hx, self.hy = hx, hy
-        #se debe actualizar la malla
+        # se debe actualizar la malla
         self.create_grid()
 
     def print_parameters(self):
@@ -1952,7 +1953,6 @@ class ProMap:
         print(f'hx: {self.hx} mts')
         print(f'hy: {self.hy} mts')
         print()
-
 
     def create_grid(self):
 
@@ -1975,7 +1975,7 @@ class ProMap:
 
     def fit(self):
 
-        #print('Fitting...')
+        # print('Fitting...')
 
         points = np.array([self.xx.flatten(), self.yy.flatten()])
         self.cells_in_map = af.checked_points_pm(points)  # 141337
@@ -2043,7 +2043,7 @@ class ProMap:
 
             self.score = self.score / self.score.max()
 
-            #print('\nGuardando datos...')
+            # print('\nGuardando datos...')
             np.save('predictivehp/data/prediction.npy', self.score)
 
     def load_train_matrix(self):
@@ -2218,10 +2218,13 @@ class ProMap:
 
 class Model:
     def __init__(self):
-        self.pp = None
         self.stkde = None
         self.promap = None
         self.rfr = None
+        self.pp = None
+
+    def preprocessing(self):
+        self.pp = dp.PreProcessing(models=[self.stkde, self.promap, self.rfr])
 
     def print_parameters(self):
         if self.stkde:
@@ -2233,19 +2236,22 @@ class Model:
 
     def fit(self):
         if self.stkde:
-            self.stkde.fit(*self.pp.prepare_data())
-        if self.promap:
-            self.promap.fit()
+            self.stkde.fit(*self.pp.preparing_data('STKDE'))
         if self.rfr:
-            self.rfr.fit()
+            self.rfr.fit(*self.pp.preparing_data(
+                'RForestRegressor', mode='train', label='default'
+            )
+                         )
 
     def predict(self):
         if self.stkde:
             self.stkde.predict()
         if self.promap:
-            self.promap.predict(*self.pp.prepare_data())
+            self.promap.predict(*self.pp.preparing_data('ProMap'))
         if self.rfr:
-            self.rfr.predict()
+            self.rfr.predict(*self.pp.preparing_data(
+                'RForestRegressor', mode='test', label='default')
+                             )
 
     def plot_heatmap(self, c=0.5, incidences=True):
         pass
@@ -2271,17 +2277,25 @@ class Model:
 
 def create_model(data=None, shps=None,
                  start_prediction=date(2017, 11, 1), length_prediction=7,
-                 use_stkde=True, use_promap=True, use_rfr=True):
+                 use_stkde=True, use_promap=True, use_rfr=True,
+                 read_rfr=False):
     m = Model()
     if use_stkde:
         m.stkde = STKDE()
     if use_promap:
         m.promap = ProMap(shps=shps, start_prediction=start_prediction)
     if use_rfr:
-        m.rfr = RForestRegressor(
-            i_df=data, shps=shps,
-            start_prediction=start_prediction - timedelta(days=1)
-        )
+        if read_rfr:
+            m.rfr = RForestRegressor(
+                i_df=data, shps=shps,
+                start_prediction=start_prediction - timedelta(days=1),
+                read_data=True, read_df=True
+            )
+        else:
+            m.rfr = RForestRegressor(
+                i_df=data, shps=shps,
+                start_prediction=start_prediction - timedelta(days=1)
+            )
     return m
 
 

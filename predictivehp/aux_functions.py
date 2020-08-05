@@ -26,7 +26,8 @@ def timer(fn):
     def inner(*args, **kwargs):
         st = time()
         fn(*args, **kwargs)
-        #print(f"\nFinished! ({time() - st:3.1f} sec)")
+        # print(f"\nFinished! ({time() - st:3.1f} sec)")
+
     return inner
 
 
@@ -86,6 +87,7 @@ def checked_points(points):
     """
     # 'predictivehp/data/councils.shp'
     dallas_shp = gpd.read_file('predictivehp/data/councils.shp')
+    dallas_shp.crs = {'init': 'epsg:2276'}
 
     df_points = pd.DataFrame(
         {'x': points[0, :], 'y': points[1, :], 't': points[2, :]}
@@ -365,20 +367,18 @@ def print_mes(m_train, m_predict, dias):
 
 
 def checked_points_pm(points):
-
     # 'predictivehp/data/councils.shp'
     dallas_shp = gpd.read_file('predictivehp/data/councils.shp')
     dallas_shp.crs = 2276
     dallas_shp.to_crs(epsg=3857, inplace=True)
 
-    df_points = pd.DataFrame( {'x': points[0, :], 'y': points[1, :]})
+    df_points = pd.DataFrame({'x': points[0, :], 'y': points[1, :]})
 
     inc_points = df_points[['x', 'y']].apply(lambda row:
                                              Point(row['x'], row['y']),
                                              axis=1)
 
     geo_inc = gpd.GeoDataFrame({'geometry': inc_points}, crs=3857)
-
 
     geo_inc.crs = dallas_shp.crs
 
@@ -388,6 +388,7 @@ def checked_points_pm(points):
                                 op='intersects').reset_index()
 
     return len(valid_inc)
+
 
 if __name__ == '__main__':
     pass
