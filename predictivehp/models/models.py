@@ -1822,7 +1822,7 @@ class RForestRegressor:
 
 class ProMap:
 
-    def __init__(self, bw, n_datos=3600, read_density=False,
+    def __init__(self, n_datos=3600, read_density=False,
                  hx=100, hy=100,
                  radio=None, ventana_dias=7, tiempo_entrenamiento=None,
                  start_prediction=date(2017, 11, 1),
@@ -1840,8 +1840,6 @@ class ProMap:
         self.hx, self.hy, self.km2 = hx, hy, km2
         self.x_min, self.y_min, self.x_max, self.y_max = self.shps[
             'streets'].total_bounds
-        self.bw_x, self.bw_y = bw[0], bw[1]
-        self.bw_t = bw[2] if not tiempo_entrenamiento else tiempo_entrenamiento
         self.radio = radio
         self.bins_x = int(round(abs(self.x_max - self.x_min) / self.hx))
         self.bins_y = int(round(abs(self.y_max - self.y_min) / self.hy))
@@ -2150,7 +2148,9 @@ class Model:
         if use_stkde:
             pass
         if use_promap:
-            pass
+            self.pm = ProMap(i_df = data, shps = shps,
+                             ventana_dias= length_prediction,
+                             start_prediction=start_prediction)
         if use_rfr:
             self.rfr = RForestRegressor(
                 i_df=data, shps=shps,
