@@ -32,6 +32,17 @@ settings = EstimatorSettings(efficient=True,
 
 class MyKDEMultivariate(KDEMultivariate):
     def resample(self, size: int):
+        """
+
+        Parameters
+        ----------
+        size : int
+
+        Returns
+        -------
+        np.hstack
+
+        """
         # print("\nResampling...", end=" ")
 
         n, d = self.data.shape
@@ -96,12 +107,23 @@ class STKDE:
     def fit(self, df, X, y, predict_groups):
         """
 
-        :param pd.DataFrame df: Initial Dataframe.
-        :param pd.DataFrame  X: Training data.
-        :param pd.DataFrame  Y: Testing data.
-        :param list  predict_groups: List with data separate in groups
-                                    and with corresponding windows.
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Initial Dataframe.
+        X : pd.DataFrame
+            Training data.
+        y : pd.DataFrame
+            Testing data.
+        predict_groups: list
+            List with data separate in groups
+            and with corresponding windows.
+
+        Returns
+        -------
+
         """
+
         self.data, self.X, self.y, self.pg = df, X, y, predict_groups
 
         print("\nBuilding KDE...")

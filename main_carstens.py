@@ -34,7 +34,7 @@ stkde = STKDE(bw=bw_stkde)
 #pm = ProMap(bw=bw, shps=shps)
 #pm.heatmap(c=0)
 
-stkde.fit(*PreProcessing(model=stkde).prepare_stkde())
+stkde.fit(*PreProcessing([stkde]).prepare_stkde())
 #stkde.heatmap()
 
 # %% Plotter
