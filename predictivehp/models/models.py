@@ -110,6 +110,9 @@ class STKDE:
         """
         self.bw = bw
 
+        #Reentrenamos el modelo con nuevo bw
+        self.fit(self.df, self.X, self.y, self.predict_groups)
+
     def print_parameters(self):
         """
 
@@ -117,7 +120,10 @@ class STKDE:
         -------
 
         """
-        print('STKDE bandwith\'s: ', self.bw)
+        print('STKDE Hyperparameters')
+        print(f'bandwith x: {self.bw[0]}')
+        print(f'bandwith y: {self.bw[1]}')
+        print(f'bandwith t: {self.bw[2]}')
 
     @af.timer
     def fit(self, df, X, y, predict_groups):
@@ -1933,6 +1939,8 @@ class ProMap:
     def set_parameters(self, bw, hx=100, hy=100):
         self.bw_x, self.bw_y, self.bw_t = bw
         self.hx, self.hy = hx, hy
+        #se debe actualizar la malla
+        self.create_grid()
 
     def print_parameters(self):
         print()
@@ -1947,10 +1955,6 @@ class ProMap:
         :return: None
 
         """
-
-        print(f'\thx: {self.hx} mts, hy: {self.hy} mts')
-        print(f'\tbw.x: {self.bw_x} mts, bw.y: {self.bw_y} '
-              f'mts, bw.t: {self.bw_t} dias')
 
         delta_x = self.hx / 2
         delta_y = self.hy / 2
