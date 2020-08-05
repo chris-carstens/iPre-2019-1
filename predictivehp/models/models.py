@@ -121,9 +121,9 @@ class STKDE:
 
         """
         print('STKDE Hyperparameters')
-        print(f'bandwith x: {self.bw[0]}')
-        print(f'bandwith y: {self.bw[1]}')
-        print(f'bandwith t: {self.bw[2]}')
+        print(f'bandwith x: {self.bw[0]} ft.')
+        print(f'bandwith y: {self.bw[1]} ft.')
+        print(f'bandwith t: {self.bw[2]} ft.')
 
     @af.timer
     def fit(self, df, X, y, predict_groups):
