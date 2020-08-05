@@ -1035,7 +1035,12 @@ class RForestRegressor:
         self.l_weights = label_weights
 
     def print_parameters(self):
-        print()
+        print('RFR Hyperparameters')
+        print(f'{"Training History:":<20s}{self.t_history}')
+        print(f'{"xc_size:":<20s}{self.xc_size}')
+        print(f'{"yc_size:":<20s}{self.yc_size}')
+        print(f'{"n_layers:":<20s}{self.n_layers}')
+        print(f'{"l_weights:":<20s}{self.l_weights}')
 
     @af.timer
     def generate_df(self):
