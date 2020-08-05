@@ -361,7 +361,7 @@ class STKDE:
         -------
 
         """
-        print("\nPlotting Heatmap...")
+        #print("\nPlotting Heatmap...")
 
         dallas = gpd.read_file('predictivehp/data/streets.shp')
 

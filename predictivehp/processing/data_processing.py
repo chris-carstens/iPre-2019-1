@@ -203,14 +203,14 @@ class PreProcessing:
         df = self.df
 
         if len(df) >= self.promap.n:
-            print(f'\nEligiendo {self.promap.n} datos...')
+            #print(f'\nEligiendo {self.promap.n} datos...')
             df = df.sample(n=self.promap.n,
                            replace=False,
                            random_state=250499)
             df.sort_values(by=['date'], inplace=True)
             df.reset_index(drop=True, inplace=True)
 
-        print("\nGenerando dataframe...")
+        #print("\nGenerando dataframe...")
 
         geometry = [Point(xy) for xy in zip(
             np.array(df[['x']]),
