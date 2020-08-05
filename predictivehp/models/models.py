@@ -1011,7 +1011,7 @@ class RForestRegressor:
             self.to_pickle('X.pkl')
 
     def set_parameters(self, t_history,
-                       xc_size, yc_size, n_layers, label_weights):
+                       xc_size, yc_size, n_layers, label_weights=None):
         """
         Setea los hiperparámetros del modelo
 
@@ -1162,8 +1162,8 @@ class RForestRegressor:
             ]
         x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
 
-        x_bins = abs(x_max - x_min) / self.xc_size
-        y_bins = abs(y_max - y_min) / self.yc_size
+        x_bins = abs(x_max - x_min) / self.nx
+        y_bins = abs(y_max - y_min) / self.ny
 
         x, y = np.mgrid[x_min:x_max:x_bins * 1j, y_min:y_max:y_bins * 1j, ]
 
