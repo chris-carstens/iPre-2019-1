@@ -909,7 +909,7 @@ class STKDE:
 class RForestRegressor:
     def __init__(self, i_df=None, shps=None,
                  xc_size=100, yc_size=100, n_layers=7,
-                 t_history=4, f_date=date(2017, 10, 31),
+                 t_history=4, i_date=date(2017, 11, 1),
                  # nx=None, ny=None,
                  read_data=False, read_df=False, name='RForestRegressor'):
         """
@@ -930,14 +930,15 @@ class RForestRegressor:
         self.n_layers = n_layers
         self.nx, self.ny, self.hx, self.hy = None, None, None, None
         self.t_history = t_history
-        self.f_date = f_date
+        self.start_prediction = i_date
         self.weeks = []
+        self.l_weights = None
 
         self.rfr = RandomForestRegressor(n_jobs=8)
         self.ap, self.hr, self.pai = None, None, None
 
-        i_date = self.f_date + timedelta(days=1)  # For prediction
-        c_date = self.f_date
+        i_date = self.start_prediction  # For prediction
+        c_date = self.start_prediction - timedelta(days=1)
         for _ in range(self.t_history):
             c_date -= timedelta(days=7)
             self.weeks.append(c_date + timedelta(days=1))
@@ -958,7 +959,8 @@ class RForestRegressor:
             self.generate_df()
             self.assign_cells()
 
-    def set_parameters(self, t_history, nx, ny, n_layers, label_weights):
+    def set_parameters(self, t_history,
+                       xc_size, yc_size, n_layers, label_weights):
         """
         Setea los hiperparámetros del modelo
 
@@ -967,20 +969,20 @@ class RForestRegressor:
         t_history : int
           Número de semanas hacia atrás a partir del 31-10-2017 que
           serán usadas para entrenar el modelo
-        nx : int
-        ny : int
+        xc_size : int
+          Tamaño en metros de las celdas en x de la malla
+        yc_size : int
+          Tamaño en metros de las celdas en y de la malla
         n_layers : int
+          Número de capas para considerar en el conteo de delitos de
+          celdas vecinas
         label_weights : np.ndarray
-
-        Returns
-        -------
-
         """
         self.t_history = t_history
-        self.nx = nx
-        self.ny = ny
+        self.xc_size = xc_size
+        self.yc_size = yc_size
         self.n_layers = n_layers
-        self.label_weights = label_weights
+        self.l_weights = label_weights
 
     @af.timer
     def generate_df(self):
@@ -1090,10 +1092,12 @@ class RForestRegressor:
 
     @af.timer
     def assign_cells(self, week=date(2017, 11, 1)):
-        """
-        Asigna el número de celda asociado a cada incidente en self.data
+        """Asigna el número de celda asociado a cada incidente en self.data
 
-        :return:
+        Parameters
+        ----------
+        week : date
+          Día en el cual comienza el periodo de predicción
         """
         print("\nAssigning cells...\n")
         i_date = week
@@ -1124,7 +1128,7 @@ class RForestRegressor:
 
     @af.timer
     def fit(self, X, y):
-        """
+        """Entrena el modelo
 
         Parameters
         ----------
@@ -1132,10 +1136,6 @@ class RForestRegressor:
             X_train
         y : pd.DataFrame
             y_train
-
-        Returns
-        -------
-
         """
         print("\tFitting Model...")
         self.rfr.fit(X, y.to_numpy().ravel())
@@ -1145,22 +1145,24 @@ class RForestRegressor:
 
     @af.timer
     def predict(self, X):
-        """
+        """Predice el score de peligrosidad en cada una de las celdas
+        en la malla de Dallas.
 
         Parameters
         ----------
-        X: pd.DataFrame
-            X_test for prediction
+        X : pd.DataFrame
+          X_test for prediction
 
         Returns
         -------
-
+        y : np.ndarray
+          Vector de predicción que indica el score de peligrocidad en
+          una celda de la malla de Dallas
         """
         print("\tMaking predictions...")
         y_pred = self.rfr.predict(X)
         self.X[('Dangerous_pred', '')] = y_pred / y_pred.max()
 
-        return y_pred
         # if statistics:
         #     rfr_score = self.rfr.score(X_train, X)
         #     rfr_precision = precision_score(y_test, y_pred)
@@ -1172,6 +1174,7 @@ class RForestRegressor:
         #         rfr recall          {rfr_recall:1.3f}
         #             """
         #     )
+        return y_pred
 
     def calculate_hr(self, plot=False, c=0.9):
         """
@@ -2189,7 +2192,7 @@ def create_model(data=None, shps=None,
     if use_rfr:
         m.rfr = RForestRegressor(
             i_df=data, shps=shps,
-            f_date=start_prediction - timedelta(days=1)
+            i_date=start_prediction - timedelta(days=1)
         )
     return m
 

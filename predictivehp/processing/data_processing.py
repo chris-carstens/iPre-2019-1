@@ -43,7 +43,8 @@ def shps_processing(s_shp='', c_shp='', cl_shp=''):
         c_limits.crs = 2276
         c_limits.to_crs(epsg=3857, inplace=True)
 
-    shps['streets'], shps['councils'], shps['c_limits'] = streets, councils, c_limits
+    shps['streets'], shps['councils'], shps[
+        'c_limits'] = streets, councils, c_limits
 
     return shps
 
@@ -188,8 +189,8 @@ class PreProcessing:
         if len(df) >= self.model.n:
             print(f'\nEligiendo {self.model.n} datos...')
             df = df.sample(n=self.model.n,
-                                     replace=False,
-                                     random_state=250499)
+                           replace=False,
+                           random_state=250499)
             df.sort_values(by=['date'], inplace=True)
             df.reset_index(drop=True, inplace=True)
 
@@ -216,7 +217,7 @@ class PreProcessing:
 
         return X, y
 
-    def prepare_rfr(self, mode='train', label='default', weights=None):
+    def prepare_rfr(self, mode='train', label='default'):
         """Prepara el set de datos correspondiente para entrenar RFR y
         predecir para un set dado
 
@@ -226,11 +227,9 @@ class PreProcessing:
             Tipo de X, y a retornar. Elegir entre {'train', 'test'}
         label : str
             Establece la forma en la que se generará la label:
-            {'default', 'weighted'}
-        weights : np.ndarray
-            Vector de pesos dados por el usuario para ponderar las
-            capas dentro de self.X. Notemos que este funciona en caso
-            que label = 'weighted'.
+            {'default', 'weighted'}. En el caso de 'weighted', se usa
+            el atributo .l_weights de la clase para ponderar las
+            labels asociadas
         Returns
         -------
         (pd.DataFrame, pd.DataFrame)
@@ -261,8 +260,11 @@ class PreProcessing:
                 # 'Dangerous' = 1
                 y[('Dangerous', '')] = y.T.any().astype(int)
             else:
-                w = weights or \
-                    np.array([1 / (l + 1) for l in range(self.model.n_layers)])
+                if self.model.l_weights is not None:
+                    w = self.model.l_weights
+                else:
+                    w = np.array([1 / (l + 1)
+                                  for l in range(self.model.n_layers)])
                 y[('Dangerous', '')] = y.dot(w)  # Ponderación con los pesos
             y = y[('Dangerous', '')]  # Hace el .drop() del resto de las cols
 
@@ -284,8 +286,11 @@ class PreProcessing:
             if label == 'default':
                 y[('Dangerous', '')] = y.T.any().astype(int)
             else:
-                w = weights or \
-                    np.array([1 / (l + 1) for l in range(self.model.n_layers)])
+                if self.model.l_weights:
+                    w = self.model.l_weights
+                else:
+                    w = np.array([1 / (l + 1)
+                                  for l in range(self.model.n_layers)])
                 y[('Dangerous', '')] = y.dot(w)
             y = y[('Dangerous', '')]
         return X, y
