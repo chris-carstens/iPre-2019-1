@@ -27,6 +27,16 @@ pd.set_option('display.width', 1000)
 
 class PreProcessing:
     def __init__(self, models=None, df=None, year=2017, n=150000):
+        """
+
+        Parameters
+        ----------
+        models : {None, list}
+          Lista de modelos
+        df
+        year
+        n
+        """
         self.models = models
         self.stkde = None
         self.promap = None
@@ -254,6 +264,10 @@ class PreProcessing:
         # suma ponderada de las columnas (considerar division por número
         # de celdas en las capas [o distancia])
         # [('Incidents_i', self.model.weeks[-2])] for i in range(8)
+        if self.rfr.X is None:
+            self.rfr.generate_df()
+            self.rfr.assign_cells()
+
         if mode == 'train':
             # print("\nPreparing Training Data for RFR...")
             # First three weeks of October

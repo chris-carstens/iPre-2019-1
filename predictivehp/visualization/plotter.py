@@ -11,8 +11,13 @@ class Plotter:
     def __init__(self, models=None, n=100):
         """
 
-        :param list models: Lista con los objetos de los diferentes
-            modelos. e.g. [stkde, rfr, pm]
+        Parameters
+        ----------
+        models : {None, list}
+          Lista con los modelos de los cuales se plotearán sus estadísticas
+        n : int
+          Finitud del plot a realizar. Particiona en n elementos el
+          segmento [1, 0].
         """
         self.c_arr = np.linspace(0, 1, n)
         self.models = [] if not models else models
@@ -53,7 +58,7 @@ class Plotter:
         """
         pass
 
-    def heatmap(self):
+    def heatmap(self, c=0):
         """
 
         Returns
@@ -61,7 +66,7 @@ class Plotter:
 
         """
         for m in self.models:
-            m.heatmap()
+            m.heatmap(c=0)
 
     def hr(self):
         # print("\nPlotting Hit Rates:", end="")
