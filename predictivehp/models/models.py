@@ -110,7 +110,8 @@ class STKDE:
         -------
 
         """
-        self.bw = bw
+        #pasamos a  metros
+        self.bw = bw * 0.3048
 
         # Reentrenamos el modelo con nuevo bw
         if self.df is not None:
@@ -124,9 +125,9 @@ class STKDE:
 
         """
         print('STKDE Hyperparameters')
-        print(f'bandwith x: {self.bw[0]} ft.')
-        print(f'bandwith y: {self.bw[1]} ft.')
-        print(f'bandwith t: {self.bw[2]} days\n')
+        print(f'bandwith x: {self.bw[0] / 0.3048} mts.')
+        print(f'bandwith y: {self.bw[1] / 0.3048} mts.')
+        print(f'bandwith t: {self.bw[2] / 0.3048} days\n')
 
     def score(self, x , y, t):
         """
