@@ -1922,7 +1922,7 @@ class ProMap:
         # MODEL
         self.name = name
         self.ventana_dias = ventana_dias
-        self.score = np.zeros((self.bins_x, self.bins_y))
+        self.prediction = np.zeros((self.bins_x, self.bins_y))
         self.training_matrix = np.zeros((self.bins_x, self.bins_y))
         self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
         self.hr, self.pai, self.ap = None, None, None
@@ -1933,7 +1933,7 @@ class ProMap:
         self.create_grid()
 
         if read_density:
-            self.score = np.load(
+            self.prediction = np.load(
                 'predictivehp/data/prediction.npy')
             self.readed = True
 
@@ -2039,12 +2039,12 @@ class ProMap:
                                                                 self.hx,
                                                                 self.hy)
 
-                        self.score[i][j] += time_weight * cell_weight
+                        self.prediction[i][j] += time_weight * cell_weight
 
-            self.score = self.score / self.score.max()
+            self.prediction = self.prediction / self.prediction.max()
 
             # print('\nGuardando datos...')
-            np.save('predictivehp/data/prediction.npy', self.score)
+            np.save('predictivehp/data/prediction.npy', self.prediction)
 
     def load_train_matrix(self):
 
@@ -2108,7 +2108,7 @@ class ProMap:
         for i in range(c.size):
             hits_n.append(
                 np.sum(
-                    (self.score >= c[
+                    (self.prediction >= c[
                         i]) * self.testing_matrix))
 
         # 1. Solo considera las celdas que son mayor a un K
@@ -2121,7 +2121,7 @@ class ProMap:
 
         for i in range(c.size):
             area_hits.append(
-                np.count_nonzero(self.score >= c[i]))
+                np.count_nonzero(self.prediction >= c[i]))
 
         n_delitos_testing = np.sum(self.testing_matrix)
 
@@ -2160,8 +2160,8 @@ class ProMap:
         :return None
         """
 
-        matriz = np.where(self.score >= c,
-                          self.score, 0)
+        matriz = np.where(self.prediction >= c,
+                          self.prediction, 0)
 
         dallas = gpd.read_file('predictivehp/data/streets.shp')
         dallas.crs = 2276
@@ -2214,6 +2214,9 @@ class ProMap:
 
         plt.colorbar()
         plt.show()
+
+    def score(self):
+        print(self.prediction)
 
 
 class Model:
