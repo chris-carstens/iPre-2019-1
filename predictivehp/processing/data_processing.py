@@ -25,7 +25,6 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.width', 1000)
 
 
-
 class PreProcessing:
     def __init__(self, models, df=None, year=2017, n=150000):
         self.models = models
@@ -35,7 +34,8 @@ class PreProcessing:
         else:
             self.df = self.get_data(year=year, n=n)
 
-    def get_data(self, year=2017, n=n):
+    @staticmethod
+    def get_data(year=2017, n=150000):
         # print("\nRequesting data...")
         with Socrata(cre.socrata_domain,
                      cre.API_KEY_S,
@@ -101,7 +101,8 @@ class PreProcessing:
 
             return df
 
-    def shps_processing(self, s_shp='', c_shp='', cl_shp=''):
+    @staticmethod
+    def shps_processing(s_shp='', c_shp='', cl_shp=''):
         streets, councils, c_limits = [None, ] * 3
 
         shps = {}
@@ -119,7 +120,8 @@ class PreProcessing:
             c_limits.crs = 2276
             c_limits.to_crs(epsg=3857, inplace=True)
 
-        shps['streets'], shps['councils'], shps['c_limits'] = streets, councils, c_limits
+        shps['streets'], shps['councils'], shps[
+            'c_limits'] = streets, councils, c_limits
 
         return shps
 
@@ -199,8 +201,8 @@ class PreProcessing:
         if len(df) >= self.promap.n:
             print(f'\nEligiendo {self.promap.n} datos...')
             df = df.sample(n=self.promap.n,
-                                     replace=False,
-                                     random_state=250499)
+                           replace=False,
+                           random_state=250499)
             df.sort_values(by=['date'], inplace=True)
             df.reset_index(drop=True, inplace=True)
 
