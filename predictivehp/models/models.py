@@ -1957,8 +1957,6 @@ class ProMap:
         # print('-' * 100)
         # print('\t\t', self.name)
 
-        self.create_grid()
-
         if read_density:
             self.prediction = np.load(
                 'predictivehp/data/prediction.npy')
@@ -1970,7 +1968,7 @@ class ProMap:
         self.bw_x, self.bw_y, self.bw_t = bw
         self.hx, self.hy = hx, hy
         # se debe actualizar la malla
-        self.create_grid()
+
 
     def print_parameters(self):
         print('ProMap Hyperparameters')
@@ -2024,6 +2022,7 @@ class ProMap:
         self.X = X
         self.y = y
         self.dias_train = self.X['y_day'].max()
+        self.create_grid()
 
         if not self.readed:
             # print('\nEstimando densidades...')
@@ -2243,7 +2242,7 @@ class ProMap:
         plt.show()
 
     def score(self):
-        print(self.prediction)
+        return self.prediction
 
 
 class Model:
