@@ -88,6 +88,7 @@ class STKDE:
         self.hr, self.ap, self.pai = None, None, None
         self.hr_by_group, self.ap_by_group, self.pai_by_group = None, None, None
         self.f_delitos_by_group, self.f_nodos_by_group = None, None
+        self.df = None
         # training data 3000
         # testing data  600
         #print('-' * 30)
@@ -111,7 +112,8 @@ class STKDE:
         self.bw = bw
 
         #Reentrenamos el modelo con nuevo bw
-        self.fit(self.df, self.X, self.y, self.predict_groups)
+        if self.df is not None:
+            self.fit(self.df, self.X, self.y, self.predict_groups)
 
     def print_parameters(self):
         """
@@ -123,7 +125,7 @@ class STKDE:
         print('STKDE Hyperparameters')
         print(f'bandwith x: {self.bw[0]} ft.')
         print(f'bandwith y: {self.bw[1]} ft.')
-        print(f'bandwith t: {self.bw[2]} days')
+        print(f'bandwith t: {self.bw[2]} days\n')
 
     @af.timer
     def fit(self, df, X, y, predict_groups):
