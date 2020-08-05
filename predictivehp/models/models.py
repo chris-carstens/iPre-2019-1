@@ -32,6 +32,17 @@ settings = EstimatorSettings(efficient=True,
 
 class MyKDEMultivariate(KDEMultivariate):
     def resample(self, size: int):
+        """
+
+        Parameters
+        ----------
+        size : int
+
+        Returns
+        -------
+        np.hstack
+
+        """
         # print("\nResampling...", end=" ")
 
         n, d = self.data.shape
@@ -87,21 +98,49 @@ class STKDE:
         print('-' * 30)
 
     def set_parameters(self, bw):
+        """
+
+        Parameters
+        ----------
+        bw: np.array
+            Bandwith for x,y,t
+
+        Returns
+        -------
+
+        """
         self.bw = bw
 
     def print_parameters(self):
+        """
+
+        Returns
+        -------
+
+        """
         print('STKDE bandwith\'s: ', self.bw)
 
     @af.timer
     def fit(self, df, X, y, predict_groups):
         """
 
-        :param pd.DataFrame df: Initial Dataframe.
-        :param pd.DataFrame  X: Training data.
-        :param pd.DataFrame  Y: Testing data.
-        :param list  predict_groups: List with data separate in groups
-                                    and with corresponding windows.
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Initial Dataframe.
+        X : pd.DataFrame
+            Training data.
+        y : pd.DataFrame
+            Testing data.
+        predict_groups: list
+            List with data separate in groups
+            and with corresponding windows.
+
+        Returns
+        -------
+
         """
+
         self.data, self.X, self.y, self.pg = df, X, y, predict_groups
 
         print("\nBuilding KDE...")
@@ -995,6 +1034,9 @@ class RForestRegressor:
         self.yc_size = yc_size
         self.n_layers = n_layers
         self.l_weights = label_weights
+
+    def print_parameters(self):
+        print()
 
     @af.timer
     def generate_df(self):
@@ -1890,6 +1932,8 @@ class ProMap:
         self.bw_x, self.bw_y, self.bw_t = bandwidth
         self.hx, self.hy = hx, hy
 
+    def print_parameters(self):
+        print()
 
     def create_grid(self):
 
