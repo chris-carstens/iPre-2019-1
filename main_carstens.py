@@ -1,7 +1,7 @@
 # %%
 from predictivehp.models.models import STKDE, RForestRegressor, ProMap
 from predictivehp.models.parameters import *
-from predictivehp.processing.data_processing import get_data, PreProcessing
+from predictivehp.processing.data_processing import PreProcessing
 from predictivehp.visualization.plotter import Plotter
 
 # %% Data
@@ -34,7 +34,7 @@ stkde = STKDE(bw=bw_stkde)
 #pm = ProMap(bw=bw, shps=shps)
 #pm.heatmap(c=0)
 
-stkde.fit(*PreProcessing(model=stkde).prepare_stkde())
+stkde.fit(*PreProcessing([stkde]).prepare_stkde())
 #stkde.heatmap()
 
 # %% Plotter
@@ -46,8 +46,8 @@ pltr = Plotter(models=[
   #   pm
   ])
 
-pltr.hr()
-#pltr.pai()
+#pltr.hr()
+pltr.pai()
 #stkde.heatmap()
 
 #pltr.heatmap()

@@ -16,7 +16,7 @@ layers = [f"Layer_{i}" for i in range(8)]
 n_weeks = 5
 f_date = date(2017, 10, 31)  # For training
 i_date = date(2017, 11, 1)  # For prediction
-# yy, mm, dd = f_date.year, f_date.month, f_date.day
+# yy, mm, dd = start_prediction.year, start_prediction.month, start_prediction.day
 weeks = []
 
 c_date = f_date

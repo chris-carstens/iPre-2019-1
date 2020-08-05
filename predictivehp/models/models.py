@@ -1,8 +1,10 @@
 from calendar import month_name
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from time import time
 
+import numpy as np
 import geopandas as gpd
+from shapely.geometry import Point
 import matplotlib.image as mpimg
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -15,8 +17,9 @@ from sklearn.ensemble \
 from statsmodels.nonparametric.kernel_density \
     import KDEMultivariate, EstimatorSettings
 
+import predictivehp.models.parameters as prm
 import predictivehp.aux_functions as af
-from predictivehp.processing.data_processing import *
+import predictivehp.processing.data_processing as dp
 
 # from paraview.simple import *
 
@@ -29,6 +32,17 @@ settings = EstimatorSettings(efficient=True,
 
 class MyKDEMultivariate(KDEMultivariate):
     def resample(self, size: int):
+        """
+
+        Parameters
+        ----------
+        size : int
+
+        Returns
+        -------
+        np.hstack
+
+        """
         # print("\nResampling...", end=" ")
 
         n, d = self.data.shape
@@ -54,6 +68,7 @@ class MyKDEMultivariate(KDEMultivariate):
 
 
 class STKDE:
+
     def __init__(self,
                  year: str = "2017",
                  bw=None, sample_number=3600, training_months=10,
@@ -67,7 +82,8 @@ class STKDE:
         """
         self.name, self.sn, self.year, self.bw = name, sample_number, year, bw
         self.shps = shps
-        self.X_months = start_prediction.month
+        self.X_months = training_months
+        self.start_prediction = start_prediction
         self.ng, self.wd, self.md = number_of_groups, window_days, month_division
 
         self.hr, self.ap, self.pai = None, None, None
@@ -82,18 +98,49 @@ class STKDE:
         print('-' * 30)
 
     def set_parameters(self, bw):
+        """
+
+        Parameters
+        ----------
+        bw: np.array
+            Bandwith for x,y,t
+
+        Returns
+        -------
+
+        """
         self.bw = bw
+
+    def print_parameters(self):
+        """
+
+        Returns
+        -------
+
+        """
+        print('STKDE bandwith\'s: ', self.bw)
 
     @af.timer
     def fit(self, df, X, y, predict_groups):
         """
 
-        :param pd.DataFrame df: Initial Dataframe.
-        :param pd.DataFrame  X: Training data.
-        :param pd.DataFrame  Y: Testing data.
-        :param list  predict_groups: List with data separate in groups
-                                    and with corresponding windows.
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Initial Dataframe.
+        X : pd.DataFrame
+            Training data.
+        y : pd.DataFrame
+            Testing data.
+        predict_groups: list
+            List with data separate in groups
+            and with corresponding windows.
+
+        Returns
+        -------
+
         """
+
         self.data, self.X, self.y, self.pg = df, X, y, predict_groups
 
         print("\nBuilding KDE...")
@@ -186,10 +233,10 @@ class STKDE:
 
         for district, data in dallas_districts.groupby('DISTRICT'):
             data.plot(ax=ax,
-                      color=d_colors[district],
+                      color=prm.d_colors[district],
                       linewidth=2.5,
                       edgecolor="black")
-            handles.append(mpatches.Patch(color=d_colors[district],
+            handles.append(mpatches.Patch(color=prm.d_colors[district],
                                           label=f"Dallas District {district}"))
 
         handles.sort(key=lambda x: int(x._label.split(' ')[2]))
@@ -829,12 +876,10 @@ class STKDE:
             # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
             f_nodos = stkde.pdf(af.checked_points(
                 np.array([x.flatten(), y.flatten(), t.flatten()])))
-
-            print("Resultado pdf: ", f_delitos)
-            # Normalizar:
-            f_delitos = f_delitos / f_nodos.max()
-            f_nodos = f_nodos / f_nodos.max()
-            print("Resultado pdf: ", f_delitos)
+            f_max = max([f_nodos.max(), f_delitos.max()])
+            #normalizar
+            f_delitos = f_delitos / f_max
+            f_nodos = f_nodos / f_max
 
             f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
         self.f_delitos_by_group, self.f_nodos_by_group = f_delitos_by_group, f_nodos_by_group
@@ -906,40 +951,47 @@ class STKDE:
 class RForestRegressor:
     def __init__(self, i_df=None, shps=None,
                  xc_size=100, yc_size=100, n_layers=7,
-                 t_history=4, f_date=date(2017, 10, 31),
-                 # nx=None, ny=None,
+                 t_history=4, start_prediction=date(2017, 11, 1),
                  read_data=False, read_df=False, name='RForestRegressor'):
         """
 
-        :param pd.DataFrame i_df: Initial Dataframe. Corresponde a los
+        Parameters
+        ----------
+        i_df : pd.DataFrame
+          Corresponde a los
             datos extraídos en primera instancia desde la Socrata API
-        :param int xc_size: Ancho de las celdas en metros
-        :param int yc_size: Largo de las celdas en metros
-        :param int n_layers: Nro. de capas
-        :param bool read_data: True si se desea
-        :param bool read_df: True para leer el df con la
-            información de las celdas
+        shps : gpd.GeoDataFrame
+        xc_size : int
+        yc_size : int
+        n_layers : int
+        t_history : int
+        start_prediction : date
+        read_data : bool
+          True para leer el df con los Incidentes
+        read_df : bool
+          True para leer el df con la información de las celdas
+        name : str
         """
-
         self.name = name
         self.shps = shps
         self.xc_size, self.yc_size = xc_size, yc_size
         self.n_layers = n_layers
         self.nx, self.ny, self.hx, self.hy = None, None, None, None
         self.t_history = t_history
-        self.f_date = f_date
+        self.start_prediction = start_prediction
         self.weeks = []
+        self.l_weights = None
 
         self.rfr = RandomForestRegressor(n_jobs=8)
         self.ap, self.hr, self.pai = None, None, None
 
-        i_date = self.f_date + timedelta(days=1)  # For prediction
-        c_date = self.f_date
+        start_prediction = self.start_prediction  # For prediction
+        c_date = self.start_prediction - timedelta(days=1)
         for _ in range(self.t_history):
             c_date -= timedelta(days=7)
             self.weeks.append(c_date + timedelta(days=1))
         self.weeks.reverse()
-        self.weeks.append(i_date)
+        self.weeks.append(start_prediction)
 
         if read_df and read_data:
             st = time()
@@ -955,7 +1007,11 @@ class RForestRegressor:
             self.generate_df()
             self.assign_cells()
 
-    def set_parameters(self, t_history, nx, ny, n_layers, label_weights):
+            self.to_pickle("data.pkl")
+            self.to_pickle('X.pkl')
+
+    def set_parameters(self, t_history,
+                       xc_size, yc_size, n_layers, label_weights=None):
         """
         Setea los hiperparámetros del modelo
 
@@ -964,20 +1020,23 @@ class RForestRegressor:
         t_history : int
           Número de semanas hacia atrás a partir del 31-10-2017 que
           serán usadas para entrenar el modelo
-        nx : int
-        ny : int
+        xc_size : int
+          Tamaño en metros de las celdas en x de la malla
+        yc_size : int
+          Tamaño en metros de las celdas en y de la malla
         n_layers : int
+          Número de capas para considerar en el conteo de delitos de
+          celdas vecinas
         label_weights : np.ndarray
-
-        Returns
-        -------
-
         """
         self.t_history = t_history
-        self.nx = nx
-        self.ny = ny
+        self.xc_size = xc_size
+        self.yc_size = yc_size
         self.n_layers = n_layers
-        self.label_weights = label_weights
+        self.l_weights = label_weights
+
+    def print_parameters(self):
+        print()
 
     @af.timer
     def generate_df(self):
@@ -1069,11 +1128,12 @@ class RForestRegressor:
 
     @af.timer
     def to_pickle(self, file_name):
-        """
+        f"""
         Genera un pickle de self.df o self.data dependiendo el nombre
         dado (data.pkl o df.pkl)
 
         :param str file_name: Nombre del pickle a generar
+        predictivehp/data/file_name
         :return: pickle de self.df o self.data
         """
 
@@ -1087,10 +1147,12 @@ class RForestRegressor:
 
     @af.timer
     def assign_cells(self, week=date(2017, 11, 1)):
-        """
-        Asigna el número de celda asociado a cada incidente en self.data
+        """Asigna el número de celda asociado a cada incidente en self.data
 
-        :return:
+        Parameters
+        ----------
+        week : date
+          Día en el cual comienza el periodo de predicción
         """
         print("\nAssigning cells...\n")
         i_date = week
@@ -1100,8 +1162,8 @@ class RForestRegressor:
             ]
         x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
 
-        x_bins = abs(x_max - x_min) / self.xc_size
-        y_bins = abs(y_max - y_min) / self.yc_size
+        x_bins = abs(x_max - x_min) / self.nx
+        y_bins = abs(y_max - y_min) / self.ny
 
         x, y = np.mgrid[x_min:x_max:x_bins * 1j, y_min:y_max:y_bins * 1j, ]
 
@@ -1121,7 +1183,7 @@ class RForestRegressor:
 
     @af.timer
     def fit(self, X, y):
-        """
+        """Entrena el modelo
 
         Parameters
         ----------
@@ -1129,10 +1191,6 @@ class RForestRegressor:
             X_train
         y : pd.DataFrame
             y_train
-
-        Returns
-        -------
-
         """
         print("\tFitting Model...")
         self.rfr.fit(X, y.to_numpy().ravel())
@@ -1142,22 +1200,24 @@ class RForestRegressor:
 
     @af.timer
     def predict(self, X):
-        """
+        """Predice el score de peligrosidad en cada una de las celdas
+        en la malla de Dallas.
 
         Parameters
         ----------
-        X: pd.DataFrame
-            X_test for prediction
+        X : pd.DataFrame
+          X_test for prediction
 
         Returns
         -------
-
+        y : np.ndarray
+          Vector de predicción que indica el score de peligrocidad en
+          una celda de la malla de Dallas
         """
         print("\tMaking predictions...")
         y_pred = self.rfr.predict(X)
         self.X[('Dangerous_pred', '')] = y_pred / y_pred.max()
 
-        return y_pred
         # if statistics:
         #     rfr_score = self.rfr.score(X_train, X)
         #     rfr_precision = precision_score(y_test, y_pred)
@@ -1169,6 +1229,7 @@ class RForestRegressor:
         #         rfr recall          {rfr_recall:1.3f}
         #             """
         #     )
+        return y_pred
 
     def calculate_hr(self, plot=False, c=0.9):
         """
@@ -1822,7 +1883,7 @@ class RForestRegressor:
 
 class ProMap:
 
-    def __init__(self, n_datos=3600, read_density=False,
+    def __init__(self, bw, n_datos=3600, read_density=False,
                  hx=100, hy=100,
                  radio=None, ventana_dias=7, tiempo_entrenamiento=None,
                  start_prediction=date(2017, 11, 1),
@@ -1840,6 +1901,8 @@ class ProMap:
         self.hx, self.hy, self.km2 = hx, hy, km2
         self.x_min, self.y_min, self.x_max, self.y_max = self.shps[
             'streets'].total_bounds
+        self.bw_x, self.bw_y = bw[0], bw[1]
+        self.bw_t = bw[2] if not tiempo_entrenamiento else tiempo_entrenamiento
         self.radio = radio
         self.bins_x = int(round(abs(self.x_max - self.x_min) / self.hx))
         self.bins_y = int(round(abs(self.y_max - self.y_min) / self.hy))
@@ -1869,6 +1932,8 @@ class ProMap:
         self.bw_x, self.bw_y, self.bw_t = bandwidth
         self.hx, self.hy = hx, hy
 
+    def print_parameters(self):
+        print()
 
     def create_grid(self):
 
@@ -2138,24 +2203,70 @@ class ProMap:
 
 class Model:
     def __init__(self):
+        self.pp = None
         self.stkde = None
         self.promap = None
         self.rfr = None
 
-    def create_model(self, data=None, shps=None,
-                     start_prediction=date(2017, 11, 1), length_prediction=7,
-                     use_stkde=True, use_promap=True, use_rfr=True):
-        if use_stkde:
-            pass
-        if use_promap:
-            self.pm = ProMap(i_df = data, shps = shps,
-                             ventana_dias= length_prediction,
-                             start_prediction=start_prediction)
-        if use_rfr:
-            self.rfr = RForestRegressor(
-                i_df=data, shps=shps,
-                f_date=start_prediction - timedelta(days=1)
-            )
+    def print_parameters(self):
+        if self.stkde:
+            self.stkde.print_parameters()
+        if self.promap:
+            self.promap.print_parameters()
+        if self.rfr:
+            self.rfr.print_parameters()
+
+    def fit(self):
+        if self.stkde:
+            self.stkde.fit(*self.pp.prepare_data())
+        if self.promap:
+            self.promap.fit()
+        if self.rfr:
+            self.rfr.fit()
+    
+    def predict(self):
+        if self.stkde:
+            self.stkde.predict()
+        if self.promap:
+            self.promap.predict()
+        if self.rfr:
+            self.rfr.predict()
+    def plot_heatmap(self, c=0.5, incidences=True):
+        pass
+
+    def validate(self, score=(0.5, 0.9)):
+        pass
+
+    def detected_incidences(self):
+        pass
+
+    def hotspot_area(self):
+        pass
+
+    def plot_hr(self):
+        pass
+
+    def plot_pai(self):
+        pass
+
+    def store(self, file_name='model.data'):
+        pass
+
+
+def create_model(data=None, shps=None,
+                 start_prediction=date(2017, 11, 1), length_prediction=7,
+                 use_stkde=True, use_promap=True, use_rfr=True):
+    m = Model()
+    if use_stkde:
+        m.stkde = STKDE()
+    if use_promap:
+        pass
+    if use_rfr:
+        m.rfr = RForestRegressor(
+            i_df=data, shps=shps,
+            start_prediction=start_prediction - timedelta(days=1)
+        )
+    return m
 
 
 if __name__ == '__main__':
