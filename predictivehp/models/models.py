@@ -1928,6 +1928,8 @@ class ProMap:
     def set_parameters(self, bw, hx=100, hy=100):
         self.bw_x, self.bw_y, self.bw_t = bw
         self.hx, self.hy = hx, hy
+        #se debe actualizar la malla
+        self.create_grid()
 
     def print_parameters(self):
         print()
@@ -1942,10 +1944,6 @@ class ProMap:
         :return: None
 
         """
-
-        print(f'\thx: {self.hx} mts, hy: {self.hy} mts')
-        print(f'\tbw.x: {self.bw_x} mts, bw.y: {self.bw_y} '
-              f'mts, bw.t: {self.bw_t} dias')
 
         delta_x = self.hx / 2
         delta_y = self.hy / 2
