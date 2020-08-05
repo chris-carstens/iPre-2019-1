@@ -125,9 +125,12 @@ class STKDE:
 
         """
         print('STKDE Hyperparameters')
-        print(f'bandwith x: {self.bw[0] / 0.3048} mts.')
-        print(f'bandwith y: {self.bw[1] / 0.3048} mts.')
-        print(f'bandwith t: {self.bw[2] / 0.3048} days\n')
+        if self.bw is not None:
+            print(f'bandwith x: {self.bw[0] / 0.3048} mts.')
+            print(f'bandwith y: {self.bw[1] / 0.3048} mts.')
+            print(f'bandwith t: {self.bw[2] / 0.3048} days\n')
+        else:
+            print("No bandwith set. The model will automatically calculate bandwith after fit.")
 
     def score(self, x, y, t):
         """
