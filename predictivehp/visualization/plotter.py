@@ -73,7 +73,7 @@ class Plotter:
         for m in self.models:
             # print(f"\t {m.name}")
             m.calculate_hr(c=self.c_arr)
-            af.lineplot(x=m.ap, y=m.hr, legend=m.name)
+            af.lineplot(x=m.ap, y=m.hr, label=m.name)
 
         plt.xlabel('Area Percentage')
         plt.ylabel('Hit Rate')
@@ -82,7 +82,7 @@ class Plotter:
     def pai(self):
         for m in self.models:
             m.calculate_pai(c=self.c_arr)
-            af.lineplot(x=m.ap, y=m.pai, legend=m.name)
+            af.lineplot(x=m.ap, y=m.pai, label=m.name)
 
         plt.xlabel('Area Percentage')
         plt.ylabel('PAI')
@@ -95,7 +95,7 @@ class Plotter:
             m.calculate_hr(c=self.c_arr)
             for i in range(1, m.ng + 1):
                 af.lineplot(x=m.ap_by_group[i], y=m.hr_by_group[i],
-                            legend=m.name)
+                            label=m.name)
         plt.xlabel('Area Percentage')
         plt.ylabel('PAI')
         plt.show()
@@ -106,7 +106,7 @@ class Plotter:
             m.calculate_pai(c=self.c_arr)
             for i in range(1, m.ng + 1):
                 af.lineplot(x=m.ap_by_group[i], y=m.pai_by_group[i],
-                            legend=m.name)
+                            label=m.name)
         plt.xlabel('Area Percentage')
         plt.ylabel('PAI')
         plt.show()

@@ -862,9 +862,9 @@ class Framework:
         dallasMapDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
         dallasMapDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
 
-        # setup the color legend parameters for each legend in this view
+        # setup the color label parameters for each label in this view
 
-        # get color legend/bar for densityLUT in view renderView1
+        # get color label/bar for densityLUT in view renderView1
         densityLUTColorBar = GetScalarBar(densityLUT, renderView1)
         densityLUTColorBar.WindowLocation = 'AnyLocation'
         densityLUTColorBar.Position = [0.031037827352085365,
@@ -878,13 +878,13 @@ class Framework:
         # set color bar visibility
         densityLUTColorBar.Visibility = 1
 
-        # show color legend
+        # show color label
         densitiesDisplay.SetScalarBarVisibility(renderView1, True)
 
-        # show color legend
+        # show color label
         belowContourDisplay.SetScalarBarVisibility(renderView1, True)
 
-        # show color legend
+        # show color label
         aboveContourDisplay.SetScalarBarVisibility(renderView1, True)
 
         # ----------------------------------------------------------------

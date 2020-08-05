@@ -3,7 +3,6 @@ from datetime import date, timedelta, datetime
 from time import time
 
 import geopandas as gpd
-import matplotlib.image as mpimg
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,25 +11,21 @@ import seaborn as sns
 from matplotlib.lines import Line2D
 from pyevtk.hl import gridToVTK
 from shapely.geometry import Point
-from sklearn.ensemble \
-    import RandomForestRegressor
-from statsmodels.nonparametric.kernel_density \
-    import KDEMultivariate, EstimatorSettings
+from sklearn.ensemble import RandomForestRegressor
+import statsmodels.nonparametric.kernel_density as kd
 
 import predictivehp.aux_functions as af
 import predictivehp.models.parameters as prm
 import predictivehp.processing.data_processing as dp
 
-# from paraview.simple import *
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 pd.set_option('display.width', 1000)
-settings = EstimatorSettings(efficient=True,
-                             n_jobs=8)
+settings = kd.EstimatorSettings(efficient=True, n_jobs=8)
 
 
-class MyKDEMultivariate(KDEMultivariate):
+class MyKDEMultivariate(kd.KDEMultivariate):
     def resample(self, size: int):
         """
 
@@ -110,7 +105,7 @@ class STKDE:
         -------
 
         """
-        #pasamos a  metros
+        # pasamos a  metros
         self.bw = bw * 0.3048
 
         # Reentrenamos el modelo con nuevo bw
@@ -130,7 +125,8 @@ class STKDE:
             print(f'bandwith y: {self.bw[1] / 0.3048} mts.')
             print(f'bandwith t: {self.bw[2] / 0.3048} days\n')
         else:
-            print("No bandwith set. The model will automatically calculate bandwith after fit.")
+            print(
+                "No bandwith set. The model will automatically calculate bandwith after fit.")
 
     def score(self, x, y, t):
         """
@@ -149,7 +145,6 @@ class STKDE:
         # print(f"STKDE pdf score: {score_pdf}\n")
         return score_pdf
 
-    @af.timer
     def fit(self, df, X, y, predict_groups):
         """
 
@@ -182,7 +177,6 @@ class STKDE:
 
         self.bw = self.kde.bw
 
-    @af.timer
     def data_barplot(self, pdf: bool = False):
         """
         Bar Plot
@@ -226,7 +220,6 @@ class STKDE:
 
         plt.show()
 
-    @af.timer
     def spatial_pattern(self,
                         pdf: bool = False):
         """
@@ -312,7 +305,6 @@ class STKDE:
             plt.savefig("output/spatial_pattern.pdf", format='pdf')
         plt.show()
 
-    @af.timer
     def contour_plot(self,
                      bins: int,
                      ti: int,
@@ -365,7 +357,6 @@ class STKDE:
             plt.savefig("output/dallas_contourplot.pdf", format='pdf')
         plt.show()
 
-    @af.timer
     def heatmap(self,
                 bins=100,
                 ti=100,
@@ -429,7 +420,6 @@ class STKDE:
             plt.savefig("output/dallas_heatmap.pdf", format='pdf')
         plt.show()
 
-    @af.timer
     def generate_grid(self,
                       bins: int = 100):
         """
@@ -778,9 +768,9 @@ class STKDE:
     #     dallasMapDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
     #     dallasMapDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
     #
-    #     # setup the color legend parameters for each legend in this view
+    #     # setup the color label parameters for each label in this view
     #
-    #     # get color legend/bar for densityLUT in view renderView1
+    #     # get color label/bar for densityLUT in view renderView1
     #     densityLUTColorBar = GetScalarBar(densityLUT, renderView1)
     #     densityLUTColorBar.WindowLocation = 'AnyLocation'
     #     densityLUTColorBar.Position = [0.031037827352085365,
@@ -794,13 +784,13 @@ class STKDE:
     #     # set color bar visibility
     #     densityLUTColorBar.Visibility = 1
     #
-    #     # show color legend
+    #     # show color label
     #     densitiesDisplay.SetScalarBarVisibility(renderView1, True)
     #
-    #     # show color legend
+    #     # show color label
     #     belowContourDisplay.SetScalarBarVisibility(renderView1, True)
     #
-    #     # show color legend
+    #     # show color label
     #     aboveContourDisplay.SetScalarBarVisibility(renderView1, True)
     #
     #     # ----------------------------------------------------------------
@@ -1977,7 +1967,6 @@ class ProMap:
         self.bw_x, self.bw_y, self.bw_t = bw
         self.hx, self.hy = hx, hy
         # se debe actualizar la malla
-
 
     def print_parameters(self):
         print('ProMap Hyperparameters')

@@ -12,10 +12,10 @@ from math import floor, sqrt, ceil
 from time import time
 
 import geopandas as gpd
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from scipy.signal import convolve2d
 from shapely.geometry import Point
 
@@ -26,49 +26,46 @@ def timer(fn):
     def inner(*args, **kwargs):
         st = time()
         fn(*args, **kwargs)
-        # print(f"\nFinished! ({time() - st:3.1f} sec)")
+        print(f"\nFinished! ({time() - st:3.1f} sec)")
 
     return inner
 
 
 # Plots
 
-def lineplot(x, y, x_label=None, y_label=None, title=None, legend=None):
-    """
-    Para testear colores de la paleta
-    sns.palplot(sns.dark_palette("red", 100))
-    """
+def lineplot(x, y, x_label=None, y_label=None, title=None, label=None):
+    """Lineplot modificado"""
+    mpl.rcdefaults()
     rc = {
         'figure.facecolor': 'black',
-        # 'figure.figsize': (5.51, 3.54),
+        'figure.figsize': (6.75, 4),  # Values for JLab - (6.0, 4.0) default
 
         'xtick.color': 'white',
-        'ytick.color': 'white',
         'xtick.major.size': 3,
-        'ytick.major.size': 3,
-        'xtick.bottom': True,
         'xtick.top': False,
+        'xtick.bottom': True,
+
+        'ytick.color': 'white',
+        'ytick.major.size': 3,
         'ytick.left': True,
         'ytick.right': False,
 
-        'axes.facecolor': sns.dark_palette("black", 100)[60],
+        'axes.facecolor': '#100000',
         'axes.edgecolor': 'black',
         'axes.labelcolor': 'white',
+        'axes.grid': True,
+        'axes.axisbelow': True,
+
         'text.color': 'white',
 
-        'grid.color': sns.dark_palette("red", 100)[0],
+        'label.shadow': True,
+        'label.framealpha': 1.0,
 
+        'grid.color': '#250000',
     }
+    mpl.rcParams.update(rc)
 
-    # Para testear colores de la paleta (mantener comentado)
-    # sns.palplot(sns.dark_palette("red", 100))
-
-    sns.set(
-        palette=sns.color_palette()[::-1],
-        rc=rc
-    )
-
-    sns.lineplot(x=x, y=y, legend='brief', label=legend)
+    plt.plot(x, y, label=label)
 
     plt.xlabel(x_label) if x_label else None
     plt.ylabel(y_label) if y_label else None
@@ -79,11 +76,14 @@ def lineplot(x, y, x_label=None, y_label=None, title=None, legend=None):
 
 def checked_points(points):
     """
-    Chequea si la lista de puntos está dentro de Dallas.
 
-    :param list points:
-    :param str shp: Path del shapefile asociado
-    :return np.ndarray :
+    Parameters
+    ----------
+    points
+
+    Returns
+    -------
+    np.ndarray
     """
     # 'predictivehp/data/councils.shp'
     dallas_shp = gpd.read_file('predictivehp/data/councils.shp')
@@ -120,104 +120,115 @@ def checked_points(points):
 # ML
 
 def n_i(xi, x_min, hx):
-    """
-    Retorna la coordenada Nx_i, el cálculo es análogo para Ny_i.
+    """Retorna la coordenada Nx_i, el cálculo es análogo para Ny_i.
 
-    :param xi:
-    :param x_min:
-    :param hx:
-    :return:
-    """
+    Parameters
+    ----------
+    xi
+    x_min
+    hx
 
+    Returns
+    -------
+
+    """
     return floor((xi - x_min) / hx)
 
 
 def cell_index(nx_i, ny_i, n_x):
-    """
-    Retorna el cell_index, asociado a la i-ésima celda en la malla.
+    """Retorna el cell_index, asociado a la i-ésima celda en la malla.
 
-    :param nx_i:
-    :param ny_i:
-    :param n_x:
-    :return:
-    """
+    Parameters
+    ----------
+    nx_i
+    ny_i
+    n_x
 
+    Returns
+    -------
+
+    """
     return nx_i + n_x * ny_i
 
 
 def diamond(d=3):
     """
-    Entrega la matriz diamante con 1s en el límite y 0s en su interior.
 
-    :param d: Dimensión dxd del diamante, número impar mayor a 3
-    :return: ndarray con la matriz diamante
+    Parameters
+    ----------
+    d : int
+      Dimensión dxd del diamante, número impar mayor a 3
+    Returns
+    -------
+    np.ndarray
     """
-
     t = np.zeros(shape=(d, d), dtype=int)
-
     l = np.eye(*t.shape, k=t.shape[0] // 2, dtype=int) + \
         np.eye(*t.shape, k=(t.shape[0] // 2) * -1, dtype=int)
     l = l + np.fliplr(l)
 
     # Corrección de los 2s
-
     l[0, t.shape[0] // 2] = 1
     l[t.shape[0] // 2, 0] = 1
     l[t.shape[0] // 2, t.shape[0] - 1] = 1
     l[t.shape[0] - 1, t.shape[0] // 2] = 1
-
     return l
 
 
 def il_neighbors(matrix, i=1):
-    """
-    Calcula la cantidad de incidentes en la i-ésima capa (tipo ProMap)
+    """Calcula la cantidad de incidentes en la i-ésima capa (tipo ProMap)
     para cada una de las celdas en el arreglo matrix.
 
-    :type matrix: np.ndarray
-    :param matrix: ndarray con la cantidad de incidentes ocurridos en
-        cada celda de la malla
-    :param i: int que indica la i-ésima considerada
-    :return: ndarray con la suma de incidentes de la capa i-ésima para
-        cada celda
+    Parameters
+    ----------
+    matrix : np.ndarray
+      Matriz con la cantidad de incidentes ocurridos en cada celda de la
+      malla
+    i : int
+      i-ésima capa considerada
+    Returns
+    -------
+    np.ndarray
     """
-
     kernel = diamond(d=2 * i + 1)
 
     return convolve2d(in1=matrix, in2=kernel, mode='same')
 
 
 def to_df_col(D):
-    """
-    Transforma el array para su inclusión directa como una columna de un
-    Pandas Dataframe
+    """Transforma el array para su inclusión directa como una columna de un
+    Pandas Dataframe.
 
-    :param np.ndarray D:
-    :return:
-    """
+    Parameters
+    ----------
+    D : np.ndarray
 
-    # return np.flipud(np.flipud(D.T)).flatten()
+    Returns
+    -------
+    np.ndarray
+    """
     return D.flatten()
 
 
 def filter_cells(df, shp):
-    """
-    Completa la columna "in_dallas" del dataframe, explicitando cuales de las
-    celdas se encuentran dentro de Dallas.
+    """Completa la columna "in_dallas" del dataframe, explicitando cuales
+    de las celdas se encuentran dentro de Dallas.
 
-    :param pandas.DataFrame df: Dataframe que contiene información de celdas
-        que no necesariamente están en Dallas
-    :param shp: Shapefile
-    :return: Dataframe con celdas filtradas, i.e., que están
-        dentro de Dallas
-    :rtype: pandas.DataFrame
-    """
+    Parameters
+    ----------
+    df : pd.DataFrame
+      Dataframe que contiene información de celdas que no necesariamente
+      están en Dallas
+    shp : gpd.GeoDataFrame
 
+    Returns
+    -------
+    pd.DataFrame
+    """
     aux_df = df
 
     print('\tFiltering cells...')
     print('\t\tLoading shapefile...')
-    # Data/Councils/councils.shp
     dallas_shp = shp
 
     print('\t\tCreating GeoDataframe...')
@@ -227,10 +238,9 @@ def filter_cells(df, shp):
     # Borramos el segundo nivel ''
     geo_pd = geo_pd.T.reset_index(level=1, drop=True).T
     geo_pd.crs = dallas_shp.crs
-
     print('\t\tFiltering...')
     geo_pd = gpd.tools.sjoin(geo_pd, dallas_shp,
-                             how='left',  # left para conservar indices
+                             how='left',
                              op='intersects')[['in_dallas', 'index_right']]
 
     print('\t\tUpdating dataframe... ', end='')
@@ -239,12 +249,10 @@ def filter_cells(df, shp):
 
     # Añadimos la columna del gpd filtrado al df inicial
     aux_df[[('in_dallas', '')]] = geo_pd[['in_dallas']]
-
     # Filtramos el df inicial con la columna añadida
     aux_df = aux_df[aux_df[('in_dallas', '')] == 1]
 
     print(f'finished!', end=" ")
-
     return aux_df
 
 
@@ -271,6 +279,21 @@ def n_semanas(total_dias, dia):
 
 
 def cells_distance(x1, y1, x2, y2, hx, hy):
+    """
+
+    Parameters
+    ----------
+    x1
+    y1
+    x2
+    y2
+    hx
+    hy
+
+    Returns
+    -------
+
+    """
     dx = abs(x1 - x2)
     dy = abs(y1 - y2)
     d = 1 + floor(dx / hx) + floor(dy / hy)
@@ -278,11 +301,37 @@ def cells_distance(x1, y1, x2, y2, hx, hy):
 
 
 def linear_distance(a1, a2):
-    linear_distance = abs(a1 - a2)
-    return float(linear_distance)
+    """
+
+    Parameters
+    ----------
+    a1
+    a2
+
+    Returns
+    -------
+
+    """
+    ld = abs(a1 - a2)
+    return float(ld)
 
 
 def find_position(mgridx, mgridy, x, y, hx, hy):
+    """
+
+    Parameters
+    ----------
+    mgridx
+    mgridy
+    x
+    y
+    hx
+    hy
+
+    Returns
+    -------
+
+    """
     x_desplazada = mgridx - hx / 2
     y_desplazada = mgridy - hy / 2
     pos_x = np.where(x_desplazada <= x)[0][-1]
@@ -291,16 +340,54 @@ def find_position(mgridx, mgridy, x, y, hx, hy):
 
 
 def n_celdas_pintar(xi, yi, x, y, hx, hy):
+    """
+
+    Parameters
+    ----------
+    xi
+    yi
+    x
+    y
+    hx
+    hy
+
+    Returns
+    -------
+
+    """
     x_sum = floor(abs(xi - x) / hx)
     y_sum = floor(abs(yi - y) / hy)
     return 1 + x_sum + y_sum
 
 
 def radio_pintar(ancho_celda, bw):
+    """
+
+    Parameters
+    ----------
+    ancho_celda
+    bw
+
+    Returns
+    -------
+
+    """
     return ceil(bw / ancho_celda)
 
 
 def limites_x(ancho_pintura, punto, malla):
+    """
+
+    Parameters
+    ----------
+    ancho_pintura
+    punto
+    malla
+
+    Returns
+    -------
+
+    """
     izq = punto - ancho_pintura
     if izq < 0:
         izq = 0
@@ -313,6 +400,18 @@ def limites_x(ancho_pintura, punto, malla):
 
 
 def limites_y(ancho_pintura, punto, malla):
+    """
+
+    Parameters
+    ----------
+    ancho_pintura
+    punto
+    malla
+
+    Returns
+    -------
+
+    """
     abajo = punto - ancho_pintura
     if abajo < 0:
         abajo = 0
@@ -327,18 +426,27 @@ def limites_y(ancho_pintura, punto, malla):
 
 def calcular_celdas(hx, hy, superficie):
     """
-    :param hx: en metros
-    :param hy: en metros
-    :param superficie: en kilomtros
-    :return: numero de celdas asociadas
-    """
 
+    Parameters
+    ----------
+    hx : {int, float}
+      en metros
+    hy : {int, float}
+      en metros
+    superficie : {int, float}
+      en kilómetros
+
+    Returns
+    -------
+    {int, float}
+      Número de celdas asociadas
+    """
     superficie = round(superficie)
     hx = hx / 1000
     hy = hy / 1000
-    raiz = sqrt(superficie)
+    sqrt_ = sqrt(superficie)
 
-    return round((raiz / hx) * (raiz / hy))
+    return round((sqrt_ / hx) * (sqrt_ / hy))
 
 
 def print_mes(m_train, m_predict, dias):
