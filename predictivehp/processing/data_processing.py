@@ -26,7 +26,7 @@ pd.set_option('display.width', 1000)
 
 
 class PreProcessing:
-    def __init__(self, models, df=None, year=2017, n=150000):
+    def __init__(self, models=None, df=None, year=2017, n=150000):
         self.models = models
         self.define_models()
         if df is not None:

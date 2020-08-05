@@ -2158,7 +2158,7 @@ class Model:
         self.stkde = None
         self.promap = None
         self.rfr = None
-        self.pp = dp.PreProcessing()
+        self.pp = None
 
     def print_parameters(self):
         pass
@@ -2204,6 +2204,7 @@ def create_model(data=None, shps=None,
             i_df=data, shps=shps,
             start_prediction=start_prediction - timedelta(days=1)
         )
+
     return m
 
 
