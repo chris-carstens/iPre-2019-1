@@ -1,8 +1,10 @@
 from calendar import month_name
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from time import time
 
+import numpy as np
 import geopandas as gpd
+from shapely.geometry import Point
 import matplotlib.image as mpimg
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -15,8 +17,9 @@ from sklearn.ensemble \
 from statsmodels.nonparametric.kernel_density \
     import KDEMultivariate, EstimatorSettings
 
+import predictivehp.models.parameters as prm
 import predictivehp.aux_functions as af
-from predictivehp.processing.data_processing import *
+import predictivehp.processing.data_processing as dp
 
 # from paraview.simple import *
 
@@ -191,10 +194,10 @@ class STKDE:
 
         for district, data in dallas_districts.groupby('DISTRICT'):
             data.plot(ax=ax,
-                      color=d_colors[district],
+                      color=prm.d_colors[district],
                       linewidth=2.5,
                       edgecolor="black")
-            handles.append(mpatches.Patch(color=d_colors[district],
+            handles.append(mpatches.Patch(color=prm.d_colors[district],
                                           label=f"Dallas District {district}"))
 
         handles.sort(key=lambda x: int(x._label.split(' ')[2]))
@@ -909,41 +912,47 @@ class STKDE:
 class RForestRegressor:
     def __init__(self, i_df=None, shps=None,
                  xc_size=100, yc_size=100, n_layers=7,
-                 t_history=4, i_date=date(2017, 11, 1),
-                 # nx=None, ny=None,
+                 t_history=4, start_prediction=date(2017, 11, 1),
                  read_data=False, read_df=False, name='RForestRegressor'):
         """
 
-        :param pd.DataFrame i_df: Initial Dataframe. Corresponde a los
+        Parameters
+        ----------
+        i_df : pd.DataFrame
+          Corresponde a los
             datos extraídos en primera instancia desde la Socrata API
-        :param int xc_size: Ancho de las celdas en metros
-        :param int yc_size: Largo de las celdas en metros
-        :param int n_layers: Nro. de capas
-        :param bool read_data: True si se desea
-        :param bool read_df: True para leer el df con la
-            información de las celdas
+        shps : gpd.GeoDataFrame
+        xc_size : int
+        yc_size : int
+        n_layers : int
+        t_history : int
+        start_prediction : date
+        read_data : bool
+          True para leer el df con los Incidentes
+        read_df : bool
+          True para leer el df con la información de las celdas
+        name : str
         """
-
         self.name = name
         self.shps = shps
         self.xc_size, self.yc_size = xc_size, yc_size
         self.n_layers = n_layers
         self.nx, self.ny, self.hx, self.hy = None, None, None, None
         self.t_history = t_history
-        self.start_prediction = i_date
+        self.start_prediction = start_prediction
         self.weeks = []
         self.l_weights = None
 
         self.rfr = RandomForestRegressor(n_jobs=8)
         self.ap, self.hr, self.pai = None, None, None
 
-        i_date = self.start_prediction  # For prediction
+        start_prediction = self.start_prediction  # For prediction
         c_date = self.start_prediction - timedelta(days=1)
         for _ in range(self.t_history):
             c_date -= timedelta(days=7)
             self.weeks.append(c_date + timedelta(days=1))
         self.weeks.reverse()
-        self.weeks.append(i_date)
+        self.weeks.append(start_prediction)
 
         if read_df and read_data:
             st = time()
@@ -2149,6 +2158,7 @@ class Model:
         self.stkde = None
         self.promap = None
         self.rfr = None
+        self.pp = dp.PreProcessing()
 
     def print_parameters(self):
         pass
@@ -2162,7 +2172,7 @@ class Model:
     def plot_heatmap(self, c=0.5, incidences=True):
         pass
 
-    def validate(self, score=[0.5, 0.9]):
+    def validate(self, score=(0.5, 0.9)):
         pass
 
     def detected_incidences(self):
@@ -2192,7 +2202,7 @@ def create_model(data=None, shps=None,
     if use_rfr:
         m.rfr = RForestRegressor(
             i_df=data, shps=shps,
-            i_date=start_prediction - timedelta(days=1)
+            start_prediction=start_prediction - timedelta(days=1)
         )
     return m
 
