@@ -124,8 +124,8 @@ class PreProcessing:
             c_limits.crs = 2276
             c_limits.to_crs(epsg=3857, inplace=True)
 
-        shps['streets'], shps['councils'], shps[
-            'c_limits'] = streets, councils, c_limits
+        shps['streets'], shps['councils'], shps['c_limits'] = \
+            streets, councils, c_limits
 
         return shps
 

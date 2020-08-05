@@ -64,15 +64,9 @@ class Plotter:
             m.heatmap()
 
     def hr(self):
-        """
-
-        Returns
-        -------
-
-        """
-        print("\nPlotting Hit Rates:", end="")
+        # print("\nPlotting Hit Rates:", end="")
         for m in self.models:
-            print(f"\t {m.name}")
+            # print(f"\t {m.name}")
             m.calculate_hr(c=self.c_arr)
             af.lineplot(x=m.ap, y=m.hr, legend=m.name)
 
@@ -81,10 +75,6 @@ class Plotter:
         plt.show()
 
     def pai(self):
-        """
-
-        :return:
-        """
         for m in self.models:
             m.calculate_pai(c=self.c_arr)
             af.lineplot(x=m.ap, y=m.pai, legend=m.name)

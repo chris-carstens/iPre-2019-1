@@ -128,7 +128,7 @@ class STKDE:
         print(f'bandwith y: {self.bw[1]} ft.')
         print(f'bandwith t: {self.bw[2]} days\n')
 
-    def score(self, x , y, t):
+    def score(self, x, y, t):
         """
 
         Parameters
@@ -142,9 +142,8 @@ class STKDE:
         score_pdf : float
         """
         score_pdf = self.kde.pdf(np.array([x, y, t]))
-        #print(f"STKDE pdf score: {score_pdf}\n")
+        # print(f"STKDE pdf score: {score_pdf}\n")
         return score_pdf
-
 
     @af.timer
     def fit(self, df, X, y, predict_groups):
@@ -379,7 +378,7 @@ class STKDE:
         -------
 
         """
-        #print("\nPlotting Heatmap...")
+        # print("\nPlotting Heatmap...")
 
         dallas = gpd.read_file('predictivehp/data/streets.shp')
 
@@ -1012,7 +1011,7 @@ class RForestRegressor:
         self.ap, self.hr, self.pai = None, None, None
 
         start_prediction = self.start_prediction  # For prediction
-        c_date = self.start_prediction - timedelta(days=1)
+        c_date = self.start_prediction - timedelta(days=1)  # sp - 1
         for _ in range(self.t_history):
             c_date -= timedelta(days=7)
             self.weeks.append(c_date + timedelta(days=1))
@@ -1158,6 +1157,8 @@ class RForestRegressor:
         self.X = af.filter_cells(df=self.X, shp=self.shps['councils'])
         self.X.drop(columns=[('in_dallas', '')], inplace=True)
 
+        print(self.X.head())
+
     @af.timer
     def to_pickle(self, file_name):
         f"""
@@ -1229,6 +1230,7 @@ class RForestRegressor:
 
         # Sirven para determinar celdas con TP/FN
         self.X[('Dangerous', '')] = y
+        self.to_pickle('X.pkl')
 
     @af.timer
     def predict(self, X):
@@ -1249,43 +1251,46 @@ class RForestRegressor:
         # print("\tMaking predictions...")
         y_pred = self.rfr.predict(X)
         self.X[('Dangerous_pred', '')] = y_pred / y_pred.max()
+        self.to_pickle('X.pkl')
 
-        # if statistics:
-        #     rfr_score = self.rfr.score(X_train, X)
-        #     rfr_precision = precision_score(y_test, y_pred)
-        #     rfr_recall = recall_score(y_test, y_pred)
-        #     print(
-        #         f"""
-        #         rfr score           {rfr_score:1.3f}
-        #         rfr precision       {rfr_precision:1.3f}
-        #         rfr recall          {rfr_recall:1.3f}
-        #             """
-        #     )
         return y_pred
 
-    def calculate_hr(self, plot=False, c=0.9):
-        """
-        Calculates de Hit Rate for the given Framework
+    def score(self):
+        return self.X[('Dangerous_pred', '')]
+        # y_pred = self.predict(X_test)
+        #
+        # score = self.rfr.score(X_test, y_test)
+        # precision = precision_score(y_test, y_pred)
+        # recall = recall_score(y_test, y_pred)
+        #
+        # print(f"{'Score:':<10s}{score:1.5f}")
+        # print(f"{'Precision:':<10s}{precision:1.5f}")
+        # print(f"{'Recall:':<10s}{recall:1.5f}")
 
-        :param [float, np.ndarray] c: Threshold de confianza para
-            filtrar hotspots
-        :param plot: Plotea las celdas de los incidentes luego de aplicar
-            un join
-        :rtype: int
-        :return:
+    def calculate_hr(self, c=0.9):
+        """
+
+        Parameters
+        ----------
+        c : {float, np.ndarray}
+          Threshold de confianza para filtrar hotspots
         """
         if c.size == 1:
             # incidents = pd.DataFrame(self.data)
             # incidents_oct = incidents[incidents.month1 == 'October']  # 332
-
-            data_nov = pd.DataFrame(self.data[
-                                        (date(2017, 11, 1) <= self.data.date) &
-                                        (self.data.date <= date(2017, 11, 7))
-                                        ])  # 62 Incidentes
+            if None in self.data.Cell.unique().tolist():
+                print('Nones!')
+            data_nov = pd.DataFrame(
+                self.data[
+                    (date(2017, 11, 1) <= self.data.date) &
+                    (self.data.date <= date(2017, 11, 7))
+                    ]
+            )  # 62 Incidentes
             data_nov.drop(columns='geometry', inplace=True)
-            # print(data_oct['Cell'])
-            # print(self.df.shape)
-
+            data_nov.columns = pd.MultiIndex.from_product(
+                [data_nov.columns, ['']]
+            )
+            print(data_nov.head())
             ans = data_nov.join(other=self.X, on='Cell', how='left')
 
             # ans = ans[ans[('geometry', '')].notna()]
@@ -1295,7 +1300,7 @@ class RForestRegressor:
 
             # incidentsh = ans[ans[('Dangerous_pred_Oct', '')] == 1]
             incidentsh = ans[ans[('Dangerous_pred', '')] >= c[0]]
-            # print(incidentsh.shape)
+            # print(c, incidentsh.shape)
 
             hr = incidentsh.shape[0] / data_nov.shape[0]
             # print(hr)
@@ -1375,7 +1380,7 @@ class RForestRegressor:
         ans = ans[ans[('Dangerous_pred', '')] >= c]
         d_streets = self.shps['streets']
 
-        print("\tRendering Plot...")
+        # print("\tRendering Plot...")
         fig, ax = plt.subplots(figsize=(20, 15))
         d_streets.plot(ax=ax,
                        alpha=0.4,
@@ -2310,13 +2315,13 @@ def create_model(data=None, shps=None,
         if read_rfr:
             m.rfr = RForestRegressor(
                 i_df=data, shps=shps,
-                start_prediction=start_prediction - timedelta(days=1),
+                start_prediction=start_prediction,
                 read_data=True, read_df=True
             )
         else:
             m.rfr = RForestRegressor(
                 i_df=data, shps=shps,
-                start_prediction=start_prediction - timedelta(days=1)
+                start_prediction=start_prediction
             )
     return m
 

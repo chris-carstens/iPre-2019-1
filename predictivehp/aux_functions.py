@@ -99,7 +99,7 @@ def checked_points(points):
     geo_inc = gpd.GeoDataFrame({'geometry': inc_points, 'day': df_points['t']})
 
     # Para borrar el warning asociado a != epsg distintos
-    geo_inc.crs = {'init': 'epsg:2276'}
+    geo_inc.crs = 2276
 
     valid_inc = gpd.tools.sjoin(geo_inc,
                                 dallas_shp,
