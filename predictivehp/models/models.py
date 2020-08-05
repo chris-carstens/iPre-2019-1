@@ -98,9 +98,26 @@ class STKDE:
         print('-' * 30)
 
     def set_parameters(self, bw):
+        """
+
+        Parameters
+        ----------
+        bw: np.array
+            Bandwith for x,y,t
+
+        Returns
+        -------
+
+        """
         self.bw = bw
 
     def print_parameters(self):
+        """
+
+        Returns
+        -------
+
+        """
         print('STKDE bandwith\'s: ', self.bw)
 
     @af.timer
@@ -1018,6 +1035,9 @@ class RForestRegressor:
         self.n_layers = n_layers
         self.l_weights = label_weights
 
+    def print_parameters(self):
+        print()
+
     @af.timer
     def generate_df(self):
         """
@@ -1912,6 +1932,8 @@ class ProMap:
         self.bw_x, self.bw_y, self.bw_t = bandwidth
         self.hx, self.hy = hx, hy
 
+    def print_parameters(self):
+        print()
 
     def create_grid(self):
 
