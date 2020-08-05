@@ -2,24 +2,23 @@ from calendar import month_name
 from datetime import date, timedelta, datetime
 from time import time
 
-import numpy as np
 import geopandas as gpd
-from shapely.geometry import Point
 import matplotlib.image as mpimg
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib.lines import Line2D
 from pyevtk.hl import gridToVTK
+from shapely.geometry import Point
 from sklearn.ensemble \
     import RandomForestRegressor
 from statsmodels.nonparametric.kernel_density \
     import KDEMultivariate, EstimatorSettings
 
-import predictivehp.models.parameters as prm
 import predictivehp.aux_functions as af
-import predictivehp.processing.data_processing as dp
+import predictivehp.models.parameters as prm
 
 # from paraview.simple import *
 
@@ -877,7 +876,7 @@ class STKDE:
             f_nodos = stkde.pdf(af.checked_points(
                 np.array([x.flatten(), y.flatten(), t.flatten()])))
             f_max = max([f_nodos.max(), f_delitos.max()])
-            #normalizar
+            # normalizar
             f_delitos = f_delitos / f_max
             f_nodos = f_nodos / f_max
 
@@ -1885,10 +1884,10 @@ class ProMap:
 
     def __init__(self, n_datos=3600, read_density=False,
                  hx=100, hy=100,
+                 bw_x=400, bw_y=400, bw_t=7,
                  radio=None, ventana_dias=7, tiempo_entrenamiento=None,
                  start_prediction=date(2017, 11, 1),
                  km2=1_000, name='Promap', shps=None):
-
         # DATA
         self.n = n_datos
         self.start_prediction = start_prediction
@@ -1899,9 +1898,9 @@ class ProMap:
 
         # MAP
         self.hx, self.hy, self.km2 = hx, hy, km2
+        self.bw_x, self.bw_y, self.bw_t = bw_x, bw_y, bw_t
         self.x_min, self.y_min, self.x_max, self.y_max = self.shps[
             'streets'].total_bounds
-
         self.radio = radio
         self.bins_x = int(round(abs(self.x_max - self.x_min) / self.hx))
         self.bins_y = int(round(abs(self.y_max - self.y_min) / self.hy))
@@ -1917,7 +1916,6 @@ class ProMap:
         print('-' * 100)
         print('\t\t', self.name)
 
-
         self.create_grid()
 
         if read_density:
@@ -1927,7 +1925,7 @@ class ProMap:
 
         print('-' * 100)
 
-    def set_parameters(self, bw, hx = 100, hy = 100):
+    def set_parameters(self, bw, hx=100, hy=100):
         self.bw_x, self.bw_y, self.bw_t = bw
         self.hx, self.hy = hx, hy
 
@@ -2222,7 +2220,7 @@ class Model:
             self.promap.fit()
         if self.rfr:
             self.rfr.fit()
-    
+
     def predict(self):
         if self.stkde:
             self.stkde.predict()
