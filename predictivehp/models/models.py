@@ -1926,8 +1926,8 @@ class ProMap:
         self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
         self.hr, self.pai, self.ap = None, None, None
 
-        print('-' * 100)
-        print('\t\t', self.name)
+        #print('-' * 100)
+        #print('\t\t', self.name)
 
         self.create_grid()
 
@@ -1936,7 +1936,7 @@ class ProMap:
                 'predictivehp/data/prediction.npy')
             self.readed = True
 
-        print('-' * 100)
+        #print('-' * 100)
 
     def set_parameters(self, bw, hx=100, hy=100):
         self.bw_x, self.bw_y, self.bw_t = bw
@@ -1951,6 +1951,7 @@ class ProMap:
         print(f'bandwith t: {self.bw_t} days')
         print(f'hx: {self.hx} mts')
         print(f'hy: {self.hy} mts')
+        print()
 
 
     def create_grid(self):
@@ -1974,7 +1975,7 @@ class ProMap:
 
     def fit(self):
 
-        print('Fitting...')
+        #print('Fitting...')
 
         points = np.array([self.xx.flatten(), self.yy.flatten()])
         self.cells_in_map = af.checked_points_pm(points)  # 141337
@@ -1998,13 +1999,13 @@ class ProMap:
         self.dias_train = self.X['y_day'].max()
 
         if not self.readed:
-            print('\nEstimando densidades...')
-            print(
-                f'\n\tNº de datos para entrenar el modelo: {len(self.X)}')
-            print(
-                f'\tNº de días usados para entrenar el modelo: {self.dias_train}')
-            print(
-                f'\tNº de datos para testear el modelo: {len(self.y)}')
+            # print('\nEstimando densidades...')
+            # print(
+            #     f'\n\tNº de datos para entrenar el modelo: {len(self.X)}')
+            # print(
+            #     f'\tNº de días usados para entrenar el modelo: {self.dias_train}')
+            # print(
+            #     f'\tNº de datos para testear el modelo: {len(self.y)}')
 
             if not self.radio:
                 ancho_x = af.radio_pintar(self.hx, self.bw_x)
@@ -2042,7 +2043,7 @@ class ProMap:
 
             self.score = self.score / self.score.max()
 
-            print('\nGuardando datos...')
+            #print('\nGuardando datos...')
             np.save('predictivehp/data/prediction.npy', self.score)
 
     def load_train_matrix(self):
