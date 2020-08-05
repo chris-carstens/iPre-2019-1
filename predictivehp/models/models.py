@@ -142,7 +142,7 @@ class STKDE:
         score_pdf : float
         """
         score_pdf = self.kde.pdf(np.array([x, y, t]))
-        print(f"STKDE pdf score: {score_pdf}\n")
+        #print(f"STKDE pdf score: {score_pdf}\n")
         return score_pdf
 
 
