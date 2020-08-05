@@ -1228,7 +1228,7 @@ class RForestRegressor:
           Vector de predicción que indica el score de peligrocidad en
           una celda de la malla de Dallas
         """
-        print("\tMaking predictions...")
+        # print("\tMaking predictions...")
         y_pred = self.rfr.predict(X)
         self.X[('Dangerous_pred', '')] = y_pred / y_pred.max()
 
@@ -2249,9 +2249,10 @@ class Model:
         if self.promap:
             self.promap.predict(*self.pp.preparing_data('ProMap'))
         if self.rfr:
-            self.rfr.predict(*self.pp.preparing_data(
-                'RForestRegressor', mode='test', label='default')
-                             )
+            X_test, _ = self.pp.preparing_data(
+                'RForestRegressor', mode='test', label='default'
+            )
+            self.rfr.predict(X_test)
 
     def plot_heatmap(self, c=0.5, incidences=True):
         pass
