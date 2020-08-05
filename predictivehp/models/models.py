@@ -110,6 +110,9 @@ class STKDE:
         """
         self.bw = bw
 
+        #Reentrenamos el modelo con nuevo bw
+        self.fit(self.df, self.X, self.y, self.predict_groups)
+
     def print_parameters(self):
         """
 
