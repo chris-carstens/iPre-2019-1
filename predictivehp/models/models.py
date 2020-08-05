@@ -2203,20 +2203,34 @@ class ProMap:
 
 class Model:
     def __init__(self):
+        self.pp = None
         self.stkde = None
         self.promap = None
         self.rfr = None
-        self.pp = None
 
     def print_parameters(self):
-        pass
+        if self.stkde:
+            self.stkde.print_parameters()
+        if self.promap:
+            self.promap.print_parameters()
+        if self.rfr:
+            self.rfr.print_parameters()
 
     def fit(self):
-        pass
-
+        if self.stkde:
+            self.stkde.fit(*self.pp.prepare_data())
+        if self.promap:
+            self.promap.fit()
+        if self.rfr:
+            self.rfr.fit()
+    
     def predict(self):
-        pass
-
+        if self.stkde:
+            self.stkde.predict()
+        if self.promap:
+            self.promap.predict()
+        if self.rfr:
+            self.rfr.predict()
     def plot_heatmap(self, c=0.5, incidences=True):
         pass
 
