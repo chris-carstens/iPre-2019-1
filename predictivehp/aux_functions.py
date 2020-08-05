@@ -87,7 +87,7 @@ def checked_points(points):
     """
     # 'predictivehp/data/councils.shp'
     dallas_shp = gpd.read_file('predictivehp/data/councils.shp')
-    dallas_shp.crs = {'init': 'epsg:2276'}
+    dallas_shp.crs = 2276
 
     df_points = pd.DataFrame(
         {'x': points[0, :], 'y': points[1, :], 't': points[2, :]}

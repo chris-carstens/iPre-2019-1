@@ -133,7 +133,7 @@ class PreProcessing:
         for model in self.models:
             if "STKDE" in model.name:
                 self.stkde = model
-            elif "Promap" in model.name:
+            elif "ProMap" in model.name:
                 self.promap = model
             else:
                 self.rfr = model
@@ -285,7 +285,7 @@ class PreProcessing:
             y = y[('Dangerous', '')]  # Hace el .drop() del resto de las cols
 
         else:
-            print("Preparing Testing Data for RFR...")
+            # print("Preparing Testing Data for RFR...")
             # Nos movemos una semana adelante
             X = self.rfr.X.loc[
                 :,
