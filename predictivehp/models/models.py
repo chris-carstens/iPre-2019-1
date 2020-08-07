@@ -64,25 +64,42 @@ class STKDE:
 
     def __init__(self,
                  year: str = "2017",
-                 bw=None, sample_number=3600, training_months=10,
+                 bw=None, sample_number=3600,
                  number_of_groups=1, start_prediction=date(2017, 11, 1),
-                 window_days=7, month_division=10, name="STKDE", shps=None):
+                 window_days=7, name="STKDE", shps=None):
         """
-        n: Número de registros que se piden a la database.
-        year: Año de los registros pedidos
-        t_model: Entrenamiento del modelo, True en caso de que se quieran
-        usar los métodos contour_plot o heatmap.
-        """
+
+        Parameters
+        ----------
+        year: string
+              Database year
+        bw: np.array
+            bandwith for x,y,t
+        sample_number: int
+            Número de muestras de la base de datos
+        number_of_groups:
+            Número de grupos distintos a generar para predecir por separado.
+            Si no se desea dividir en grupos, por defecto es 1.
+        start_prediction : date
+          Fecha de comienzo en la ventana temporal a predecir
+        window_days : int
+          Número de días de ventana a predecir
+        name : str
+          Nombre predeterminado del modelo
+        shps : gpd.GeoDataFrame
+          GeoDataFrame que contiene información sobre la ciudad de Dallas
+                """
+
         self.name, self.sn, self.year, self.bw = name, sample_number, year, bw
         self.shps = shps
-        self.X_months = training_months
         self.start_prediction = start_prediction
-        self.ng, self.wd, self.md = number_of_groups, window_days, month_division
+        self.ng, self.wd= number_of_groups, window_days
 
         self.hr, self.ap, self.pai = None, None, None
         self.hr_by_group, self.ap_by_group, self.pai_by_group = None, None, None
         self.f_delitos_by_group, self.f_nodos_by_group = None, None
         self.df = None
+
         # training data 3000
         # testing data  600
         # print('-' * 30)
@@ -103,12 +120,11 @@ class STKDE:
         -------
 
         """
-        # pasamos a  metros
-        self.bw = bw * 0.3048
+        self.bw = bw
 
         # Reentrenamos el modelo con nuevo bw
         if self.df is not None:
-            self.fit(self.df, self.X, self.y, self.predict_groups)
+            self.fit(self.df, self.X, self.y, self.pg)
 
     def print_parameters(self):
         """
@@ -119,12 +135,12 @@ class STKDE:
         """
         print('STKDE Hyperparameters')
         if self.bw is not None:
-            print(f'bandwith x: {self.bw[0] / 0.3048} mts.')
-            print(f'bandwith y: {self.bw[1] / 0.3048} mts.')
-            print(f'bandwith t: {self.bw[2] / 0.3048} days\n')
+            print(f'bandwith x: {self.bw[0]} mts.')
+            print(f'bandwith y: {self.bw[1]} mts.')
+            print(f'bandwith t: {self.bw[2]} days\n')
         else:
             print(
-                "No bandwith set. The model will automatically calculate bandwith after fit.")
+                "No bandwith set. The model will automatically calculate bandwith after fit.\n")
 
     def score(self, x, y, t):
         """
@@ -138,6 +154,8 @@ class STKDE:
         Returns
         -------
         score_pdf : float
+                    Valor de la función densidad de
+                    la predicción evaluada en (x,y,t)
         """
         score_pdf = self.kde.pdf(np.array([x, y, t]))
         # print(f"STKDE pdf score: {score_pdf}\n")
@@ -155,8 +173,9 @@ class STKDE:
         y : pd.DataFrame
             Testing data.
         predict_groups: list
-            List with data separate in groups
-            and with corresponding windows.
+            Lista con los datos separados
+            por grupos y sus correspondientes
+            ventanas.
 
         Returns
         -------
@@ -357,15 +376,16 @@ class STKDE:
 
     def heatmap(self,
                 bins=100,
-                ti=100,
-                pdf=False):
+                ti=100):
         """
 
         Parameters
         ----------
         bins : int
+               Número de bins para heatmap
         ti : int
-        pdf : bool
+             Tiempo fijo para evaluar
+             densidad en la predicción
 
         Returns
         -------
@@ -414,8 +434,6 @@ class STKDE:
         cbar.solids.set(alpha=1)
         # ax.set_axis_off()
 
-        if pdf:
-            plt.savefig("output/dallas_heatmap.pdf", format='pdf')
         plt.show()
 
     def generate_grid(self,
@@ -828,7 +846,13 @@ class STKDE:
         Returns
         -------
         f_delitos_by_group : dict
+                    Diccionario con los valores de la
+                    función densidad evaluada en los puntos
+                    a predecir con llave el grupo
         f_nodos_by_group : dict
+                    Diccionario con los valores de la
+                    función densidad evaluada en la malla original
+                    con llave el grupo
         """
         if self.f_delitos_by_group:
             return self.f_delitos_by_group, self.f_nodos_by_group
@@ -914,8 +938,11 @@ class STKDE:
         Returns
         -------
         hr_by_group: list
+                    Lista con los valores del HR
+                    para cada grupo
         ap_by_group: list
-
+                    Lista con los valores del
+                    Area Percentage para cada grupo
         """
         if not self.f_delitos_by_group:
             self.predict()
@@ -947,9 +974,14 @@ class STKDE:
         Returns
         -------
         pai_by_group : list
+                    Lista con los valores del PAI
+                    para cada grupo
         hr_by_group: list
+                    Lista con los valores del HR
+                    para cada grupo
         ap_by_group: list
-
+                    Lista con los valores del
+                    Area Percentage para cada grupo
         """
         pai_by_group = []
         if not self.hr_by_group:
