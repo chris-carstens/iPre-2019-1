@@ -2247,7 +2247,9 @@ class Model:
         self.pp = None
 
     def preprocessing(self):
-        self.pp = dp.PreProcessing(models=[self.stkde, self.promap, self.rfr])
+        models = [m for m in [self.stkde, self.promap, self.rfr]
+                  if m is not None]
+        self.pp = dp.PreProcessing(models=models)
 
     def print_parameters(self):
         """
@@ -2355,8 +2357,8 @@ def create_model(data=None, shps=None,
     if use_promap:
         m.promap = ProMap(shps=shps, start_prediction=start_prediction)
     if use_rfr:
-        m.rfr = RandomForestRegressor(i_df=data, shps=shps,
-                                      start_prediction=start_prediction)
+        m.rfr = RForestRegressor(data_0=data, shps=shps,
+                                 start_prediction=start_prediction)
     return m
 
 
