@@ -1967,10 +1967,41 @@ class RForestRegressor(object):
 class ProMap:
     def __init__(self, n_datos=3600, read_density=False,
                  hx=100, hy=100,
-                 bw_x=400, bw_y=400, bw_t=7,
-                 radio=None, ventana_dias=7, tiempo_entrenamiento=None,
+                 bw_x=400, bw_y=400, bw_t=7, ventana_dias=7,
+                 tiempo_entrenamiento=None,
                  start_prediction=date(2017, 11, 1),
                  km2=1_000, name='ProMap', shps=None):
+
+        """
+        Modelo Promap
+        Parameters
+        ----------
+        n_datos: int
+            indica el nº de datos que se usarán para entrenar el modelo
+        read_density: bool
+            True si se va a leer una matriz de densidades
+        hx: int
+            Ancho en x de las celdas en metros
+        hy: int
+            Ancho en y de las celdas en metros
+        bw_x: float
+            Ancho de banda en x
+        bw_y: float
+            Ancho de banda en y
+        bw_t: float
+            Ancho de banda en t
+        ventana_dias: int
+            Número de días que se quiere predecir
+        tiempo_entrenamiento: int
+            Número de días que se quiern entrenar al modelo.
+            Si es None, se usa bw_t
+        start_prediction: datetime
+            Fecha desde donde comienza la predicción
+        name: str
+            Nombre del modelo
+        shps: gpd.GeoDataFrame
+            GeoDataFrame que contiene información sobre la ciudad de Dallas
+        """
         # DATA
         self.n = n_datos
         self.start_prediction = start_prediction
@@ -2005,6 +2036,8 @@ class ProMap:
             self.readed = True
 
         # print('-' * 100)
+
+
 
     def set_parameters(self, bw, hx=100, hy=100):
         """
