@@ -272,7 +272,7 @@ class PreProcessing:
         # de celdas en las capas [o distancia])
         # [('Incidents_i', self.model.weeks[-2])] for i in range(8)
         if self.rfr.X is None:
-            self.rfr.generate_df()
+            self.rfr.generate_X()
 
         if mode == 'train':
             # print("\nPreparing Training Data for RFR...")

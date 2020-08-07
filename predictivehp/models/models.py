@@ -1009,7 +1009,7 @@ class RForestRegressor(object):
         self.shps = shps
         self.xc_size, self.yc_size = xc_size, yc_size
         self.n_layers = n_layers
-        self.nx, self.ny, self.hx, self.hy = None, None, None, None
+        self.nx, self.ny, self.hx, self.hy = [None] * 4
         self.t_history = t_history
         self.start_prediction = start_prediction
         self.weeks = []
@@ -1017,7 +1017,8 @@ class RForestRegressor(object):
         self.X = None
 
         self.rfr = RandomForestRegressor(n_jobs=8)
-        self.ap, self.hr, self.pai = None, None, None
+        self.read_data, self.read_X = [None] * 2
+        self.ap, self.hr, self.pai = [None] * 3
 
         start_prediction = self.start_prediction
         # current date, que corresponde al último día en la ventana
@@ -1030,15 +1031,20 @@ class RForestRegressor(object):
         self.weeks.reverse()
         self.weeks.append(start_prediction)
 
-        if read_X and read_data:
+        self.data, self.X = [None] * 2
+        if read_X:
             self.X = pd.read_pickle('predictivehp/data/X.pkl')
+        if read_data:
             self.data = pd.read_pickle('predictivehp/data/data.pkl')
         else:
+            # en caso que no se tenga un data.pkl de antes, se recibe el
+            # dado por la PreProcessing Class, mientras que self.X es llenado
+            # al llamar self.generate_X dentro de self.fit()
             self.data = i_df
 
     def set_parameters(self, t_history,
                        xc_size, yc_size, n_layers,
-                       label_weights=None):
+                       label_weights=None, read_data=False, read_X=False):
         """
         Setea los hiperparámetros del modelo
 
@@ -1055,12 +1061,16 @@ class RForestRegressor(object):
           Número de capas para considerar en el conteo de delitos de
           celdas vecinas
         label_weights : np.ndarray
+        read_data : bool
+        read_X : bool
         """
         self.t_history = t_history
         self.xc_size = xc_size
         self.yc_size = yc_size
         self.n_layers = n_layers
         self.l_weights = label_weights
+        self.read_data = read_data
+        self.read_X = read_X
 
     def print_parameters(self):
         print('RFR Hyperparameters')
@@ -1071,7 +1081,7 @@ class RForestRegressor(object):
         print(f'{"l_weights:":<20s}{self.l_weights}')
         print()
 
-    def generate_df(self):
+    def generate_X(self):
         """
         La malla se genera de la esquina inf-izquierda a la esquina sup-derecha,
         partiendo con id = 0.
@@ -1175,7 +1185,7 @@ class RForestRegressor(object):
             self.X.to_pickle(f"predictivehp/data/{file_name}")
         if file_name == "data.pkl":
             if self.data is None:
-                self.generate_df()
+                self.generate_X()
             self.data.to_pickle(f"predictivehp/data/{file_name}")
 
     def assign_cells(self):
@@ -2322,25 +2332,30 @@ class Model:
 
 def create_model(data=None, shps=None,
                  start_prediction=date(2017, 11, 1), length_prediction=7,
-                 use_stkde=False, use_promap=False, use_rfr=False,
-                 read_rfr=False):
+                 use_stkde=False, use_promap=False, use_rfr=False):
+    """
+
+    Parameters
+    ----------
+    data
+    shps
+    start_prediction
+    length_prediction
+    use_stkde
+    use_promap
+    use_rfr
+
+    Returns
+    -------
+    Model
+    """
     m = Model()
-    if use_stkde:
-        m.stkde = STKDE()
+    m.stkde = STKDE() if use_stkde else m.stkde
     if use_promap:
         m.promap = ProMap(shps=shps, start_prediction=start_prediction)
     if use_rfr:
-        if read_rfr:
-            m.rfr = RForestRegressor(
-                i_df=data, shps=shps,
-                start_prediction=start_prediction,
-                read_data=True, read_X=True
-            )
-        else:
-            m.rfr = RForestRegressor(
-                i_df=data, shps=shps,
-                start_prediction=start_prediction,
-            )
+        m.rfr = RandomForestRegressor(i_df=data, shps=shps,
+                                      start_prediction=start_prediction)
     return m
 
 
