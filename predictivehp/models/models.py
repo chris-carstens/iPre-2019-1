@@ -1945,7 +1945,7 @@ class ProMap:
         self.X, self.y = None, None
         self.shps = shps
         self.readed = False
-        self.fitted = False
+
 
         # MAP
         self.hx, self.hy, self.km2 = hx, hy, km2
@@ -1975,11 +1975,28 @@ class ProMap:
         # print('-' * 100)
 
     def set_parameters(self, bw, hx=100, hy=100):
+        """
+        Setea los hiperparámetros del modelo Promap
+        Parameters
+        ----------
+        bw: list or np.array
+            anchos de banda en x, y, t
+        hx: int
+            ancho de la celda en metros, en x
+        hy: int
+            ancho de la celda en metros, en y
+        -------
+        """
+
         self.bw_x, self.bw_y, self.bw_t = bw
         self.hx, self.hy = hx, hy
         # se debe actualizar la malla
 
     def print_parameters(self):
+        """
+        Imprime los parametros del modelo
+        """
+
         print('ProMap Hyperparameters')
         print(f'bandwith x: {self.bw_x} mts')
         print(f'bandwith y: {self.bw_y} mts')
@@ -1995,8 +2012,6 @@ class ProMap:
         Recordar que cada nodo de la malla representa el centro de cada
         celda en la malla del mapa.
 
-        :return: None
-
         """
 
         delta_x = self.hx / 2
@@ -2009,29 +2024,35 @@ class ProMap:
 
     def fit(self):
 
+        """
+        Se encarga de generar la malla en base a los datos del modelo.
+        También se encarga de filtrar los puntos que no están dentro de dallas.
+        """
+
         # print('Fitting...')
+
+        self.create_grid()
 
         points = np.array([self.xx.flatten(), self.yy.flatten()])
         self.cells_in_map = af.checked_points_pm(points)  # 141337
-        self.fitted = True
+
 
     def predict(self, X, y):
 
-        """""
-        Calcula los scores de la malla en base a los delitos del self.data
-        
-        :param X: pandas.dataframe
-        :return None
-        
-        Nota: 
-        X hace referencia a todos los datos de entrenamiento (x, y, delito)
-        y hace referencia a todos los datos de testeo (x, y, delito)
+        """
+        Calula el score en cada celda de la malla de densidades.
+        Parameters
+        ----------
+        X: pd.dataframe
+            Son los datos de entrenamiento (x_point, y_point)
+        y: pd.dataframe
+            Son los datos para el testeo (x_point, y_point)
+        """
 
-        """""
         self.X = X
         self.y = y
         self.dias_train = self.X['y_day'].max()
-        self.create_grid()
+
 
         if not self.readed:
             # print('\nEstimando densidades...')
@@ -2084,8 +2105,7 @@ class ProMap:
     def load_train_matrix(self):
 
         """
-        Ubica los delitos en la matriz de training
-        :return: None
+        Ubica los delitos en la matriz de entrenamiento.
         """
 
         for index, row in self.X.iterrows():
@@ -2101,8 +2121,11 @@ class ProMap:
 
         """
         Ubica los delitos en la matriz de testeo
-        :param ventana_dias: int
-        :return: None
+
+        Parameters
+        ----------
+        ventana_dias: int
+            Cantidad de días que se quieren predecir.
         """
 
         for index, row in self.y.iterrows():
@@ -2121,8 +2144,10 @@ class ProMap:
 
         """
         Calcula el hr (n/N)
-        :param c: np.linespace(1, n, 100)
-        :return: None
+        Parameters
+        ----------
+        c: np.linespace(1, n, 100)
+            Vector que sirve para analizar el mapa en cada punto
         """
 
         self.load_train_matrix()
@@ -2162,18 +2187,17 @@ class ProMap:
 
         self.hr = [i / n_delitos_testing for i in hits_n]
 
-        if not self.fitted:
-            self.fit()
-
         self.ap = [1 if j > 1 else j for j in [i / self.cells_in_map for
                                                i in area_hits]]
 
     def calculate_pai(self, c):
 
         """
-        Calcula el Pai (n/N)/(a/A)
-        :param c: np.linespace(1, n, 100)
-        :return: None
+        Calcula el PAI (n/N) / (a/A)
+        Parameters
+        ----------
+        c: np.linespace(1, n, 100)
+            Vector que sirve para analizar el mapa en cada punto
         """
 
         if not self.hr:
@@ -2187,12 +2211,18 @@ class ProMap:
     def heatmap(self, c=0,
                 nombre_grafico='Predictive Crime Map - Dallas (Method: Promap)'):
 
+
         """
         Mostrar un heatmap de una matriz de riesgo.
 
-        :param c: float
-        :param nombre_grafico: str
-        :return None
+        Parameters
+        ----------
+        c: float
+            Representa el valor desde donde quiero ver los scores en el mapa
+        nombre_grafico: str
+            nombre del gráfico
+        -------
+
         """
 
         matriz = np.where(self.prediction >= c,
@@ -2222,11 +2252,14 @@ class ProMap:
     def plot_incident(self, matriz, nombre_grafico):
 
         """
-        Plotea los incidentes de una matriz
-
-        :param matriz: np.mgrid
-        :param nombre_grafico: str
-        :return None
+        Parameters
+        ----------
+        matriz: np.mgrid
+            Matriz donde cada celda representa un punto del mapa.
+            Los valores representan los Nº de delitos en ese punto.
+        nombre_grafico: str
+            nombre del grafico
+        -------
         """
 
         dallas = gpd.read_file('predictivehp/data/streets.shp')
@@ -2251,6 +2284,13 @@ class ProMap:
         plt.show()
 
     def score(self):
+
+        """
+        Entrega la matriz de riesgo.
+        Returns: np.mgrid
+        -------
+
+        """
         return self.prediction
 
 
