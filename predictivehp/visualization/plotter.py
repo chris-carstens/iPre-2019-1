@@ -77,6 +77,7 @@ class Plotter:
 
         plt.xlabel('Area Percentage')
         plt.ylabel('Hit Rate')
+        plt.legend()
         plt.show()
 
     def pai(self):
@@ -86,7 +87,7 @@ class Plotter:
 
         plt.xlabel('Area Percentage')
         plt.ylabel('PAI')
-
+        plt.legend()
         plt.show()
 
     def hr_groups(self):
@@ -98,6 +99,7 @@ class Plotter:
                             label=m.name)
         plt.xlabel('Area Percentage')
         plt.ylabel('PAI')
+        plt.legend()
         plt.show()
 
     def pai_groups(self):
@@ -109,6 +111,7 @@ class Plotter:
                             label=m.name)
         plt.xlabel('Area Percentage')
         plt.ylabel('PAI')
+        plt.legend()
         plt.show()
 
 
