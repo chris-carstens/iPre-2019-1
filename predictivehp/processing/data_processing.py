@@ -117,10 +117,20 @@ class PreProcessing:
 
     @staticmethod
     def shps_processing(s_shp='', c_shp='', cl_shp=''):
+        """
+
+        Parameters
+        ----------
+        s_shp
+        c_shp
+        cl_shp
+
+        Returns
+        -------
+
+        """
         streets, councils, c_limits = [None, ] * 3
-
         shps = {}
-
         if s_shp:
             streets = gpd.read_file(filename=s_shp)
             streets.crs = 2276
@@ -130,7 +140,7 @@ class PreProcessing:
             councils.crs = 2276
             councils.to_crs(epsg=3857, inplace=True)
         if cl_shp:
-            c_limits = gpd.read_file(filename=cl_shp) if cl_shp else None
+            c_limits = gpd.read_file(filename=cl_shp)
             c_limits.crs = 2276
             c_limits.to_crs(epsg=3857, inplace=True)
 
@@ -141,16 +151,13 @@ class PreProcessing:
 
     def define_models(self):
         for model in self.models:
-            if "STKDE" in model.name:
-                self.stkde = model
-            elif "ProMap" in model.name:
-                self.promap = model
-            else:
-                self.rfr = model
+            self.stkde = model if model.name == 'STKDE' else self.stkde
+            self.promap = model if model.name == 'ProMap' else self.promap
+            self.rfr = model if model.name == 'RForestRegressor' else self.rfr
 
     def preparing_data(self, model, **kwargs):
         if model not in [m.name for m in self.models]:
-            print("Model not found.")
+            print("Model not found!\n")
             return None
         if "STKDE" in model:
             return self.prepare_stkde()
@@ -213,14 +220,14 @@ class PreProcessing:
         df = self.df
 
         if len(df) >= self.promap.n:
-            #print(f'\nEligiendo {self.promap.n} datos...')
+            # print(f'\nEligiendo {self.promap.n} datos...')
             df = df.sample(n=self.promap.n,
                            replace=False,
                            random_state=250499)
             df.sort_values(by=['date'], inplace=True)
             df.reset_index(drop=True, inplace=True)
 
-        #print("\nGenerando dataframe...")
+        # print("\nGenerando dataframe...")
 
         geometry = [Point(xy) for xy in zip(
             np.array(df[['x']]),
@@ -266,7 +273,6 @@ class PreProcessing:
         # [('Incidents_i', self.model.weeks[-2])] for i in range(8)
         if self.rfr.X is None:
             self.rfr.generate_df()
-            self.rfr.assign_cells()
 
         if mode == 'train':
             # print("\nPreparing Training Data for RFR...")
@@ -316,7 +322,7 @@ class PreProcessing:
             if label == 'default':
                 y[('Dangerous', '')] = y.T.any().astype(int)
             else:
-                if self.rfr.l_weights:
+                if self.rfr.l_weights is not None:
                     w = self.rfr.l_weights
                 else:
                     w = np.array([1 / (l + 1)

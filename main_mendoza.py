@@ -1,6 +1,8 @@
 # %%
+
 import predictivehp.processing.data_processing as dp
 from predictivehp.models.models import RForestRegressor
+
 from predictivehp.visualization.plotter import Plotter
 
 # %% Data
@@ -26,12 +28,9 @@ rfr.fit(X_train, y_train)
 rfr.predict(X_test)
 
 # %%
-# Plotter
-pltr = Plotter(models=[
-    rfr,
-])
-
+pltr = Plotter(models=[rfr])
 pltr.hr()
+
 
 if __name__ == '__main__':
     pass

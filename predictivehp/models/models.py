@@ -1,6 +1,5 @@
 from calendar import month_name
 from datetime import date, timedelta, datetime
-from time import time
 
 import geopandas as gpd
 import matplotlib.patches as mpatches
@@ -8,16 +7,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import statsmodels.nonparametric.kernel_density as kd
 from matplotlib.lines import Line2D
 from pyevtk.hl import gridToVTK
 from shapely.geometry import Point
 from sklearn.ensemble import RandomForestRegressor
-import statsmodels.nonparametric.kernel_density as kd
 
 import predictivehp.aux_functions as af
 import predictivehp.models.parameters as prm
 import predictivehp.processing.data_processing as dp
-
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -967,7 +965,7 @@ class STKDE:
         return self.pai_by_group, self.hr_by_group, self.ap_by_group
 
 
-class RForestRegressor:
+class RForestRegressor(object):
     def __init__(self, i_df=None, shps=None,
                  xc_size=100, yc_size=100, n_layers=7,
                  t_history=4, start_prediction=date(2017, 11, 1),
@@ -1033,17 +1031,10 @@ class RForestRegressor:
         self.weeks.append(start_prediction)
 
         if read_X and read_data:
-            st = time()
-            # print("\nReading df pickle...", end=" ")
             self.X = pd.read_pickle('predictivehp/data/X.pkl')
-            # print(f"finished! ({time() - st:3.1f} sec)")
-            st = time()
-            # print("Reading data pickle...", end=" ")
             self.data = pd.read_pickle('predictivehp/data/data.pkl')
-            # print(f"finished! ({time() - st:3.1f} sec)")
         else:
             self.data = i_df
-            self.to_pickle("data.pkl")
 
     def set_parameters(self, t_history,
                        xc_size, yc_size, n_layers,
@@ -1105,7 +1096,7 @@ class RForestRegressor:
         print("\nGenerating dataframe...\n")
 
         # Creación de la malla
-        print("\tCreating mgrid...")
+        # print("\tCreating mgrid...")
         x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
         x_bins = abs(x_max - x_min) / self.xc_size
         y_bins = abs(y_max - y_min) / self.yc_size
@@ -1132,6 +1123,8 @@ class RForestRegressor:
         self.data = gpd.GeoDataFrame(self.data, crs=2276, geometry=geometry)
         self.data.to_crs(epsg=3857, inplace=True)
         self.data['Cell'] = None
+        self.assign_cells()
+        self.to_pickle('data.pkl')
 
         # Nro. incidentes en la i-ésima capa de la celda (i, j)
         for week in self.weeks:
@@ -1151,7 +1144,7 @@ class RForestRegressor:
 
             # Actualización del pandas dataframe
             for i in range(self.n_layers + 1):
-                self.X.loc[:, (f"Incidents_{i}", str(week))] = \
+                self.X.loc[:, (f"Incidents_{i}", f"{week}")] = \
                     af.to_df_col(D) if i == 0 \
                         else af.to_df_col(af.il_neighbors(D, i))
             print('finished!')
@@ -1166,8 +1159,6 @@ class RForestRegressor:
         # Filtrado de celdas (llenado de la columna 'in_dallas')
         self.X = af.filter_cells(df=self.X, shp=self.shps['councils'])
         self.X.drop(columns=[('in_dallas', '')], inplace=True)
-
-        print(self.X.head())
 
     def to_pickle(self, file_name):
         f"""
@@ -1187,34 +1178,28 @@ class RForestRegressor:
                 self.generate_df()
             self.data.to_pickle(f"predictivehp/data/{file_name}")
 
-    def assign_cells(self, week=date(2017, 11, 1)):
-        """Asigna el número de celda asociado a cada incidente en self.data
+    def assign_cells(self):
+        """Rellena la columna 'Cell' de self.data. Asigna el número de
+        celda asociado a cada incidente.
 
         Parameters
         ----------
         week : date
           Día en el cual comienza el periodo de predicción
         """
-        print("\nAssigning cells...\n")
-        i_date = week
-        f_date = week + timedelta(days=6)
-        data = self.data[
-            (i_date <= self.data.date) & (self.data.date <= f_date)
-            ]
+        # print("\nAssigning cells...\n")
         x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
 
-        x_bins = abs(x_max - x_min) / self.nx
-        y_bins = abs(y_max - y_min) / self.ny
+        x_bins = abs(x_max - x_min) / self.xc_size
+        y_bins = abs(y_max - y_min) / self.yc_size
 
         x, y = np.mgrid[x_min:x_max:x_bins * 1j, y_min:y_max:y_bins * 1j, ]
 
         nx = x.shape[0] - 1
         ny = y.shape[1] - 1
-
         hx = (x.max() - x.min()) / nx
         hy = (y.max() - y.min()) / ny
-
-        for idx, inc in data.iterrows():
+        for idx, inc in self.data.iterrows():
             xi, yi = inc.geometry.x, inc.geometry.y
             nx_i = af.n_i(xi, x.min(), hx)
             ny_i = af.n_i(yi, y.min(), hy)
@@ -1231,13 +1216,16 @@ class RForestRegressor:
             X_train
         y : pd.DataFrame
             y_train
+
+        Returns
+        -------
+        self : object
         """
         # print("\tFitting Model...")
         self.rfr.fit(X, y.to_numpy().ravel())
-
         # Sirven para determinar celdas con TP/FN
         self.X[('Dangerous', '')] = y
-        self.to_pickle('X.pkl')
+        return self
 
     def predict(self, X):
         """Predice el score de peligrosidad en cada una de las celdas
@@ -1258,7 +1246,6 @@ class RForestRegressor:
         y_pred = self.rfr.predict(X)
         self.X[('Dangerous_pred', '')] = y_pred / y_pred.max()
         self.to_pickle('X.pkl')
-
         return y_pred
 
     def score(self):
@@ -1287,10 +1274,8 @@ class RForestRegressor:
             # if None in self.data.Cell.unique().tolist():
             #     print('Nones!')
             data_nov = pd.DataFrame(
-                self.data[
-                    (date(2017, 11, 1) <= self.data.date) &
-                    (self.data.date <= date(2017, 11, 7))
-                    ]
+                self.data[(date(2017, 11, 1) <= self.data.date) &
+                          (self.data.date <= date(2017, 11, 7))]
             )  # 62 Incidentes
             data_nov.drop(columns='geometry', inplace=True)
             data_nov.columns = pd.MultiIndex.from_product(

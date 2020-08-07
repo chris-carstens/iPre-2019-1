@@ -58,8 +58,8 @@ def lineplot(x, y, x_label=None, y_label=None, title=None, label=None):
 
         'text.color': 'white',
 
-        'label.shadow': True,
-        'label.framealpha': 1.0,
+        # 'label.shadow': True,
+        # 'label.framealpha': 1.0,
 
         'grid.color': '#250000',
     }
@@ -133,22 +133,6 @@ def n_i(xi, x_min, hx):
 
     """
     return floor((xi - x_min) / hx)
-
-
-def cell_index(nx_i, ny_i, n_x):
-    """Retorna el cell_index, asociado a la i-ésima celda en la malla.
-
-    Parameters
-    ----------
-    nx_i
-    ny_i
-    n_x
-
-    Returns
-    -------
-
-    """
-    return nx_i + n_x * ny_i
 
 
 def diamond(d=3):
@@ -230,7 +214,6 @@ def filter_cells(df, shp):
     print('\tFiltering cells...')
     print('\t\tLoading shapefile...')
     dallas_shp = shp
-
     print('\t\tCreating GeoDataframe...')
     geo_pd = gpd.GeoDataFrame(aux_df[[('geometry', ''), ('in_dallas', '')]],
                               crs=3857)
