@@ -966,7 +966,7 @@ class STKDE:
 
 
 class RForestRegressor(object):
-    def __init__(self, i_df=None, shps=None,
+    def __init__(self, data_0=None, shps=None,
                  xc_size=100, yc_size=100, n_layers=7,
                  t_history=4, start_prediction=date(2017, 11, 1),
                  read_data=False, read_X=False, name='RForestRegressor'):
@@ -974,7 +974,7 @@ class RForestRegressor(object):
 
         Parameters
         ----------
-        i_df : pd.DataFrame
+        data_0 : pd.DataFrame
           Corresponde a los datos extraídos en primera instancia desde
           la Socrata API.
         shps : gpd.GeoDataFrame
@@ -1031,16 +1031,10 @@ class RForestRegressor(object):
         self.weeks.reverse()
         self.weeks.append(start_prediction)
 
+        self.data_0 = data_0
         self.data, self.X = [None] * 2
         if read_X:
             self.X = pd.read_pickle('predictivehp/data/X.pkl')
-        if read_data:
-            self.data = pd.read_pickle('predictivehp/data/data.pkl')
-        else:
-            # en caso que no se tenga un data.pkl de antes, se recibe el
-            # dado por la PreProcessing Class, mientras que self.X es llenado
-            # al llamar self.generate_X dentro de self.fit()
-            self.data = i_df
 
     def set_parameters(self, t_history,
                        xc_size, yc_size, n_layers,
@@ -1127,6 +1121,13 @@ class RForestRegressor(object):
         self.hx = (x.max() - x.min()) / self.nx
         self.hy = (y.max() - y.min()) / self.ny
 
+        if self.read_data:
+            self.data = pd.read_pickle('predictivehp/data/data.pkl')
+        else:
+            # en caso que no se tenga un data.pkl de antes, se recibe el
+            # dado por la PreProcessing Class, mientras que self.X es llenado
+            # al llamar self.generate_X dentro de self.fit()
+            self.data = self.data_0
         # Manejo de los puntos de incidentes para poder trabajar en (x, y)
         geometry = [Point(xy) for xy in zip(np.array(self.data[['x']]),
                                             np.array(self.data[['y']]))]

@@ -22,7 +22,7 @@ shps = {}
 stkde = STKDE(bw=bw_stkde)
 
 # %% Random Forest Regressor
-#rfr = RForestRegressor(i_df=df, shps=shps,
+#rfr = RForestRegressor(data_0=df, shps=shps,
  #                      xc_size=100, yc_size=100, layers_n=7,
   ##                     read_data=False, read_X=False)
 #rfr.heatmap()

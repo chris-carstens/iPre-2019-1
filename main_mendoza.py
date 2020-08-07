@@ -17,7 +17,7 @@ shps = pp.shps_processing(s_shp_p, c_shp_p, cl_shp_p)
 df = pp.get_data(year=2017, n=150000)
 
 # %% Random Forest Regressor
-rfr = RForestRegressor(i_df=df, shps=shps,
+rfr = RForestRegressor(data_0=df, shps=shps,
                        xc_size=100, yc_size=100, n_layers=7,
                        read_data=False, read_X=False)
 pp = dp.PreProcessing([rfr])
