@@ -969,7 +969,9 @@ class RForestRegressor(object):
     def __init__(self, data_0=None, shps=None,
                  xc_size=100, yc_size=100, n_layers=7,
                  t_history=4, start_prediction=date(2017, 11, 1),
-                 read_data=False, read_X=False, name='RForestRegressor'):
+                 read_data=False, w_data=False,
+                 read_X=False, w_X=False,
+                 name='RForestRegressor'):
         """ Regressor modificado de Scipy usado para predecir delitos.
 
         Parameters
@@ -1014,10 +1016,8 @@ class RForestRegressor(object):
         self.start_prediction = start_prediction
         self.weeks = []
         self.l_weights = None
-        self.X = None
 
         self.rfr = RandomForestRegressor(n_jobs=8)
-        self.read_data, self.read_X = [None] * 2
         self.ap, self.hr, self.pai = [None] * 3
 
         start_prediction = self.start_prediction
@@ -1033,12 +1033,16 @@ class RForestRegressor(object):
 
         self.data_0 = data_0
         self.data, self.X = [None] * 2
+        self.read_data, self.read_X = read_data, w_data
+        self.w_data, self.w_X = w_data, w_X
         if read_X:
             self.X = pd.read_pickle('predictivehp/data/X.pkl')
 
     def set_parameters(self, t_history,
                        xc_size, yc_size, n_layers,
-                       label_weights=None, read_data=False, read_X=False):
+                       label_weights=None,
+                       read_data=False, w_data=False,
+                       read_X=False, w_X=False):
         """
         Setea los hiperparámetros del modelo
 
@@ -1057,6 +1061,8 @@ class RForestRegressor(object):
         label_weights : np.ndarray
         read_data : bool
         read_X : bool
+        w_data : bool
+        w_X : bool
         """
         self.t_history = t_history
         self.xc_size = xc_size
@@ -1065,6 +1071,8 @@ class RForestRegressor(object):
         self.l_weights = label_weights
         self.read_data = read_data
         self.read_X = read_X
+        self.w_data = w_data
+        self.w_X = w_X
 
     def print_parameters(self):
         print('RFR Hyperparameters')
@@ -1128,14 +1136,17 @@ class RForestRegressor(object):
             # dado por la PreProcessing Class, mientras que self.X es llenado
             # al llamar self.generate_X dentro de self.fit()
             self.data = self.data_0
-        # Manejo de los puntos de incidentes para poder trabajar en (x, y)
-        geometry = [Point(xy) for xy in zip(np.array(self.data[['x']]),
-                                            np.array(self.data[['y']]))]
-        self.data = gpd.GeoDataFrame(self.data, crs=2276, geometry=geometry)
-        self.data.to_crs(epsg=3857, inplace=True)
-        self.data['Cell'] = None
-        self.assign_cells()
-        self.to_pickle('data.pkl')
+            # Manejo de los puntos de incidentes para poder trabajar en (x, y)
+            geometry = [Point(xy) for xy in zip(np.array(self.data[['x']]),
+                                                np.array(self.data[['y']]))]
+            self.data = gpd.GeoDataFrame(self.data, crs=2276,
+                                         geometry=geometry)
+            self.data.to_crs(epsg=3857, inplace=True)
+            self.data['Cell'] = None
+            self.assign_cells()
+
+            if self.w_data:
+                self.to_pickle('data.pkl')
 
         # Nro. incidentes en la i-ésima capa de la celda (i, j)
         for week in self.weeks:
@@ -1172,21 +1183,26 @@ class RForestRegressor(object):
         self.X.drop(columns=[('in_dallas', '')], inplace=True)
 
     def to_pickle(self, file_name):
-        f"""
-        Genera un pickle de self.df o self.data dependiendo el nombre
-        dado (data.pkl o df.pkl)
+        """Genera un pickle de self.df o self.data dependiendo el nombre
+        dado (data.pkl o X.pkl).
 
-        :param str file_name: Nombre del pickle a generar
-        predictivehp/data/file_name
-        :return: pickle de self.df o self.data
+        OBS.
+
+        >>> self.data  # es guardado en self.generate_X()
+        >>> self.X  # es guardado en self.predict()
+
+        luego, si self.read_X = True, no es necesario realizar un
+        self.fit() o self.predict()
+
+        Parameters
+        ----------
+        file_name : str
+          Nombre del pickle a generar en predictivehp/data/file_name
         """
-
         # print("\nPickling dataframe...", end=" ")
         if file_name == "X.pkl":
             self.X.to_pickle(f"predictivehp/data/{file_name}")
         if file_name == "data.pkl":
-            if self.data is None:
-                self.generate_X()
             self.data.to_pickle(f"predictivehp/data/{file_name}")
 
     def assign_cells(self):
@@ -1246,6 +1262,8 @@ class RForestRegressor(object):
         ----------
         X : pd.DataFrame
           X_test for prediction
+        pickle : bool
+          True para guardar en un .pkl la información de self.X
 
         Returns
         -------
@@ -1256,7 +1274,8 @@ class RForestRegressor(object):
         # print("\tMaking predictions...")
         y_pred = self.rfr.predict(X)
         self.X[('Dangerous_pred', '')] = y_pred / y_pred.max()
-        self.to_pickle('X.pkl')
+        if self.w_X:
+            self.to_pickle('X.pkl')
         return y_pred
 
     def score(self):
@@ -1371,10 +1390,11 @@ class RForestRegressor(object):
     def heatmap(self, c=0):
         """
 
-        :param float c: Threshold a partir del cual se consideran los
+        Parameters
+        ----------
+        c : float
+          Threshold a partir del cual se consideran los
             incidentes
-
-        :return:
         """
         # Datos Oct luego de aplicar el rfr
         ans = self.X[[('geometry', ''), ('Dangerous_pred', '')]]
@@ -1384,13 +1404,8 @@ class RForestRegressor(object):
 
         # print("\tRendering Plot...")
         fig, ax = plt.subplots(figsize=(20, 15))
-        d_streets.plot(ax=ax,
-                       alpha=0.4,
-                       color="dimgrey",
-                       label="Streets")
-        ans.plot(ax=ax,
-                 column=('Dangerous_pred', ''),
-                 cmap='jet')
+        d_streets.plot(ax=ax, alpha=0.4, color="dimgrey", label="Streets")
+        ans.plot(ax=ax, column=('Dangerous_pred', ''), cmap='jet')
 
         # Background
         ax.set_axis_off()
