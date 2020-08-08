@@ -24,13 +24,13 @@ df, shps['streets'], shps['councils'], shps['c_limits'] = \
 stkde = STKDE(df=df, bw=bw)
 #
 # # %% Random Forest Regressor
-#rfr = RForestRegressor(data_0=df, shps=shps,
+#rfr = RForestRegressor(data_0=data, shps=shps,
                         #xc_size=100, yc_size=100, layers_n=7,
                         #read_data=False, read_X=False)
 # rfr.heatmap()
 # #
 # rfr.to_pickle('data.pkl')
-# rfr.to_pickle('df.pkl')
+# rfr.to_pickle('data.pkl')
 
 # %%
 pm = ProMap(i_df=df, bw=bw, shps=shps)

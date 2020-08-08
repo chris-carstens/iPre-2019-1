@@ -25,7 +25,7 @@ X_train, y_train = pp.prepare_rfr('train', 'default')
 X_test, y_test = pp.prepare_rfr('test', 'default')
 
 rfr.fit(X_train, y_train)
-rfr.predict(X_test, pickle=False)
+rfr.predict(X_test)
 
 # %%
 pltr = Plotter(models=[rfr])

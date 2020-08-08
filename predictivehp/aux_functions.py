@@ -74,20 +74,19 @@ def lineplot(x, y, x_label=None, y_label=None, title=None, label=None):
 
 # STKDE
 
-def checked_points(points):
+def checked_points(points, shp):
     """
 
     Parameters
     ----------
     points
-
+    shp : gpd.GeoDataFrame
+      Councils shp
     Returns
     -------
     np.ndarray
     """
-    # 'predictivehp/data/councils.shp'
-    dallas_shp = gpd.read_file('predictivehp/data/councils.shp')
-    dallas_shp.crs = 2276
+    dallas_shp = shp
 
     df_points = pd.DataFrame(
         {'x': points[0, :], 'y': points[1, :], 't': points[2, :]}
@@ -230,9 +229,9 @@ def filter_cells(df, shp):
     geo_pd.fillna(value={'index_right': 14}, inplace=True)  # para filtrar
     geo_pd.loc[geo_pd['index_right'] < 14, 'in_dallas'] = 1
 
-    # Añadimos la columna del gpd filtrado al df inicial
+    # Añadimos la columna del gpd filtrado al data inicial
     aux_df[[('in_dallas', '')]] = geo_pd[['in_dallas']]
-    # Filtramos el df inicial con la columna añadida
+    # Filtramos el data inicial con la columna añadida
     aux_df = aux_df[aux_df[('in_dallas', '')] == 1]
 
     print(f'finished!', end=" ")

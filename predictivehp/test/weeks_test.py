@@ -8,7 +8,7 @@ from predictivehp.processing.data_processing import get_data
 # 5 weeks train: 4 feature weeks, 1 label week
 # Final Date: 31-10-2017, de ahí hacia atrás formamos 4 semanas. La más
 # cercana a Final Date es considerada label week, el resto son features
-# Obs. Para predecir: hay desplazamiento en una semana en X e y.
+# Obs. Para predecir: hay desplazamiento en una semana en X_train e y.
 
 df, _, _, _ = get_data()
 layers = [f"Layer_{i}" for i in range(8)]

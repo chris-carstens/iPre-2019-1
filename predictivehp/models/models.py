@@ -61,25 +61,24 @@ class MyKDEMultivariate(kd.KDEMultivariate):
 
 
 class STKDE:
-
     def __init__(self,
-                 year: str = "2017",
+                 shps=None, month_division=10,
+                 year="2017",
                  bw=None, sample_number=3600,
                  number_of_groups=1, start_prediction=date(2017, 11, 1),
-                 window_days=7, name="STKDE", shps=None):
+                 window_days=7, name="STKDE"):
         """
-
         Parameters
         ----------
         year: string
-              Database year
+          Database year
         bw: np.array
-            bandwith for x,y,t
+          bandwidth for x, y, t
         sample_number: int
-            Número de muestras de la base de datos
+          Número de muestras de la base de datos
         number_of_groups:
-            Número de grupos distintos a generar para predecir por separado.
-            Si no se desea dividir en grupos, por defecto es 1.
+          Número de grupos distintos a generar para predecir por separado.
+          Si no se desea dividir en grupos, por defecto es 1.
         start_prediction : date
           Fecha de comienzo en la ventana temporal a predecir
         window_days : int
@@ -88,12 +87,13 @@ class STKDE:
           Nombre predeterminado del modelo
         shps : gpd.GeoDataFrame
           GeoDataFrame que contiene información sobre la ciudad de Dallas
-                """
+        """
 
         self.name, self.sn, self.year, self.bw = name, sample_number, year, bw
+        self.md = month_division
         self.shps = shps
         self.start_prediction = start_prediction
-        self.ng, self.wd= number_of_groups, window_days
+        self.ng, self.wd = number_of_groups, window_days
 
         self.hr, self.ap, self.pai = None, None, None
         self.hr_by_group, self.ap_by_group, self.pai_by_group = None, None, None
@@ -121,10 +121,9 @@ class STKDE:
 
         """
         self.bw = bw
-
         # Reentrenamos el modelo con nuevo bw
         if self.df is not None:
-            self.fit(self.df, self.X, self.y, self.pg)
+            self.fit(self.df, self.X_train, self.y, self.pg)
 
     def print_parameters(self):
         """
@@ -141,6 +140,114 @@ class STKDE:
         else:
             print(
                 "No bandwith set. The model will automatically calculate bandwith after fit.\n")
+
+    def fit(self, X, X_t, predict_groups):
+        """
+        Parameters
+        ----------
+        X : pd.DataFrame
+          Training data.
+        X_t : pd.DataFrame
+          Test data.
+        predict_groups: list
+          Lista con los datos separados por grupos y sus correspondientes
+          ventanas.
+        """
+        self.X_train, self.X_test, self.pg = X, X_t, predict_groups
+
+        # print("\nBuilding KDE...")
+        self.kde = MyKDEMultivariate(
+            [np.array(self.X_train[['x']]),
+             np.array(self.X_train[['y']]),
+             np.array(self.X_train[['y_day']])],
+            'ccc', bw=self.bw)
+
+        self.bw = self.kde.bw
+
+    def predict(self):
+        """
+        Returns
+        -------
+        f_delitos_by_group : dict
+          Diccionario con los valores de la función densidad evaluada en
+          los puntos a predecir con llave el grupo
+        f_nodos_by_group : dict
+          Diccionario con los valores de la función densidad evaluada en
+          la malla original con llave el grupo
+        """
+        if self.f_delitos_by_group:
+            return self.f_delitos_by_group, self.f_nodos_by_group
+        f_nodos_by_group, f_delitos_by_group = {}, {}
+        for i in range(1, self.ng + 1):
+            x, y, t = \
+                np.array(self.pg[f'group_{i}']['t2_data']['x']), \
+                np.array(self.pg[f'group_{i}']['t2_data']['y']), \
+                np.array(self.pg[f'group_{i}']['t2_data']['y_day'])
+
+            if i == 1:
+                # Data base, para primer grupo
+                x_training = pd.Series(
+                    self.X_train["x"]).tolist() + pd.Series(
+                    self.pg[f'group_{i}']['t1_data']['x']).tolist()
+                y_training = pd.Series(
+                    self.X_train["y"]).tolist() + pd.Series(
+                    self.pg[f'group_{i}']['t1_data']['y']).tolist()
+                t_training = pd.Series(
+                    self.X_train["y_day"]).tolist() + pd.Series(
+                    self.pg[f'group_{i}']['t1_data'][
+                        'y_day']).tolist()
+
+            else:
+                # Data agregada del grupo anterior, para re-entrenamiento
+                for j in range(1, i):
+                    x_training += pd.Series(
+                        self.pg[f'group_{j}']['t2_data'][
+                            'x']).tolist()
+                    y_training += pd.Series(
+                        self.pg[f'group_{j}']['t2_data'][
+                            'y']).tolist()
+                    t_training += pd.Series(
+                        self.pg[f'group_{j}']['t2_data'][
+                            'y_day']).tolist()
+
+            if i > 1:
+                # re-entrenamos modelo
+                stkde = MyKDEMultivariate(
+                    [np.array(x_training),
+                     np.array(y_training),
+                     np.array(t_training)],
+                    'ccc', bw=self.bw)
+
+            else:
+                stkde = self.kde
+
+            stkde.resample(len(x_training))
+
+            m = np.repeat(max(t_training), x.size)
+            f_delitos = stkde.pdf(af.checked_points(
+                np.array([x.flatten(), y.flatten(), m.flatten()])))
+            x, y, t = np.mgrid[
+                      np.array(x_training).min():
+                      np.array(x_training).max():100 * 1j,
+                      np.array(y_training).min():
+                      np.array(y_training).max():100 * 1j,
+                      np.array(t_training).max():
+                      np.array(t_training).max():1 * 1j
+                      ]
+
+            # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
+            f_nodos = stkde.pdf(af.checked_points(
+                np.array([x.flatten(), y.flatten(), t.flatten()]),
+                self.shps['councils']
+            ))
+            f_max = max([f_nodos.max(), f_delitos.max()])
+            # normalizar
+            f_delitos = f_delitos / f_max
+            f_nodos = f_nodos / f_max
+
+            f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
+        self.f_delitos_by_group, self.f_nodos_by_group = f_delitos_by_group, f_nodos_by_group
+        return self.f_delitos_by_group, self.f_nodos_by_group
 
     def score(self, x, y, t):
         """
@@ -161,38 +268,53 @@ class STKDE:
         # print(f"STKDE pdf score: {score_pdf}\n")
         return score_pdf
 
-    def fit(self, df, X, y, predict_groups):
+    def heatmap(self, bins=100, ti=100):
         """
 
         Parameters
         ----------
-        df : pd.DataFrame
-            Initial Dataframe.
-        X : pd.DataFrame
-            Training data.
-        y : pd.DataFrame
-            Testing data.
-        predict_groups: list
-            Lista con los datos separados
-            por grupos y sus correspondientes
-            ventanas.
-
-        Returns
-        -------
-
+        bins : int
+          Número de bins para heatmap
+        ti : int
+          Tiempo fijo para evaluar densidad en la predicción
         """
+        # print("\nPlotting Heatmap...")
 
-        self.data, self.X, self.y, self.pg = df, X, y, predict_groups
+        dallas = self.shps['streets']
 
-        # print("\nBuilding KDE...")
+        fig, ax = plt.subplots(figsize=(15, 12))
+        ax.set_facecolor('xkcd:black')
+        dallas.plot(ax=ax, alpha=.4, color="gray", zorder=1)
 
-        self.kde = MyKDEMultivariate(
-            [np.array(self.X[['x']]),
-             np.array(self.X[['y']]),
-             np.array(self.X[['y_day']])],
-            'ccc', bw=self.bw)
+        x, y = np.mgrid[
+               np.array(self.X_test[['x']]).min():
+               np.array(self.X_test[['x']]).max():bins * 1j,
+               np.array(self.X_test[['y']]).min():
+               np.array(self.X_test[['y']]).max():bins * 1j
+               ]
+        z = self.kde.pdf(np.vstack([x.flatten(),
+                                    y.flatten(),
+                                    ti * np.ones(x.size)]))
 
-        self.bw = self.kde.bw
+        # Normalizar
+        z = z / z.max()
+
+        heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
+                                 shading='gouraud',
+                                 alpha=.2,
+                                 cmap='jet',
+                                 zorder=2,
+                                 )
+
+        plt.title(f"Dallas Incidents - Heatmap\n",
+                  fontdict={'fontsize': 20}, pad=20)
+        cbar = plt.colorbar(heatmap,
+                            ax=ax,
+                            shrink=.5,
+                            aspect=10)
+        cbar.solids.set(alpha=1)
+        # ax.set_axis_off()
+        plt.show()
 
     def data_barplot(self, pdf: bool = False):
         """
@@ -237,8 +359,7 @@ class STKDE:
 
         plt.show()
 
-    def spatial_pattern(self,
-                        pdf: bool = False):
+    def spatial_pattern(self, pdf: bool = False):
         """
         Spatial pattern of incidents
         pdf: True si se desea guardar el plot en formato pdf
@@ -322,10 +443,7 @@ class STKDE:
             plt.savefig("output/spatial_pattern.pdf", format='pdf')
         plt.show()
 
-    def contour_plot(self,
-                     bins: int,
-                     ti: int,
-                     pdf: bool = False):
+    def contour_plot(self, bins: int, ti: int, pdf: bool = False):
         """
         Draw the contour lines
         bins:
@@ -374,70 +492,7 @@ class STKDE:
             plt.savefig("output/dallas_contourplot.pdf", format='pdf')
         plt.show()
 
-    def heatmap(self,
-                bins=100,
-                ti=100):
-        """
-
-        Parameters
-        ----------
-        bins : int
-               Número de bins para heatmap
-        ti : int
-             Tiempo fijo para evaluar
-             densidad en la predicción
-
-        Returns
-        -------
-
-        """
-        # print("\nPlotting Heatmap...")
-
-        dallas = gpd.read_file('predictivehp/data/streets.shp')
-
-        fig, ax = plt.subplots(figsize=(15, 12))
-        ax.set_facecolor('xkcd:black')
-
-        dallas.plot(ax=ax,
-                    alpha=.4,  # Ancho de las calles
-                    color="gray",
-                    zorder=1)
-
-        x, y = np.mgrid[
-               np.array(self.y[['x']]).min():
-               np.array(self.y[['x']]).max():bins * 1j,
-               np.array(self.y[['y']]).min():
-               np.array(self.y[['y']]).max():bins * 1j
-               ]
-        z = self.kde.pdf(np.vstack([x.flatten(),
-                                    y.flatten(),
-                                    ti * np.ones(x.size)]))
-
-        # Normalizar
-        z = z / z.max()
-
-        heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
-                                 shading='gouraud',
-                                 alpha=.2,
-                                 cmap='jet',
-                                 zorder=2,
-                                 )
-
-        plt.title(f"Dallas Incidents - Heatmap\n"
-                  f"n = {self.data.shape[0]}   Year = {self.year}",
-                  fontdict={'fontsize': 20},
-                  pad=20)
-        cbar = plt.colorbar(heatmap,
-                            ax=ax,
-                            shrink=.5,
-                            aspect=10)
-        cbar.solids.set(alpha=1)
-        # ax.set_axis_off()
-
-        plt.show()
-
-    def generate_grid(self,
-                      bins: int = 100):
+    def generate_grid(self, bins: int = 100):
         """
         :return:
         """
@@ -502,7 +557,7 @@ class STKDE:
     #     renderView1.OSPRayMaterialLibrary = materialLibrary1
     #
     #     # init the 'GridAxes3DActor' selected for 'AxesGrid'
-    #     renderView1.AxesGrid.XTitle = 'X'
+    #     renderView1.AxesGrid.XTitle = 'X_train'
     #     renderView1.AxesGrid.YTitle = 'Y'
     #     renderView1.AxesGrid.ZTitle = 'T'
     #     renderView1.AxesGrid.XTitleFontFile = ''
@@ -840,92 +895,6 @@ class STKDE:
     #         Interact()
     #         print("finished!")
 
-    def predict(self):
-        """
-
-        Returns
-        -------
-        f_delitos_by_group : dict
-                    Diccionario con los valores de la
-                    función densidad evaluada en los puntos
-                    a predecir con llave el grupo
-        f_nodos_by_group : dict
-                    Diccionario con los valores de la
-                    función densidad evaluada en la malla original
-                    con llave el grupo
-        """
-        if self.f_delitos_by_group:
-            return self.f_delitos_by_group, self.f_nodos_by_group
-        f_nodos_by_group, f_delitos_by_group = {}, {}
-        for i in range(1, self.ng + 1):
-            x, y, t = \
-                np.array(self.pg[f'group_{i}']['t2_data']['x']), \
-                np.array(self.pg[f'group_{i}']['t2_data']['y']), \
-                np.array(self.pg[f'group_{i}']['t2_data']['y_day'])
-
-            if i == 1:
-                # Data base, para primer grupo
-                x_training = pd.Series(
-                    self.X["x"]).tolist() + pd.Series(
-                    self.pg[f'group_{i}']['t1_data']['x']).tolist()
-                y_training = pd.Series(
-                    self.X["y"]).tolist() + pd.Series(
-                    self.pg[f'group_{i}']['t1_data']['y']).tolist()
-                t_training = pd.Series(
-                    self.X["y_day"]).tolist() + pd.Series(
-                    self.pg[f'group_{i}']['t1_data'][
-                        'y_day']).tolist()
-
-            else:
-                # Data agregada del grupo anterior, para re-entrenamiento
-                for j in range(1, i):
-                    x_training += pd.Series(
-                        self.pg[f'group_{j}']['t2_data'][
-                            'x']).tolist()
-                    y_training += pd.Series(
-                        self.pg[f'group_{j}']['t2_data'][
-                            'y']).tolist()
-                    t_training += pd.Series(
-                        self.pg[f'group_{j}']['t2_data'][
-                            'y_day']).tolist()
-
-            if i > 1:
-                # re-entrenamos modelo
-                stkde = MyKDEMultivariate(
-                    [np.array(x_training),
-                     np.array(y_training),
-                     np.array(t_training)],
-                    'ccc', bw=self.bw)
-
-            else:
-                stkde = self.kde
-
-            stkde.resample(len(x_training))
-
-            m = np.repeat(max(t_training), x.size)
-            f_delitos = stkde.pdf(af.checked_points(
-                np.array([x.flatten(), y.flatten(), m.flatten()])))
-            x, y, t = np.mgrid[
-                      np.array(x_training).min():
-                      np.array(x_training).max():100 * 1j,
-                      np.array(y_training).min():
-                      np.array(y_training).max():100 * 1j,
-                      np.array(t_training).max():
-                      np.array(t_training).max():1 * 1j
-                      ]
-
-            # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
-            f_nodos = stkde.pdf(af.checked_points(
-                np.array([x.flatten(), y.flatten(), t.flatten()])))
-            f_max = max([f_nodos.max(), f_delitos.max()])
-            # normalizar
-            f_delitos = f_delitos / f_max
-            f_nodos = f_nodos / f_max
-
-            f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
-        self.f_delitos_by_group, self.f_nodos_by_group = f_delitos_by_group, f_nodos_by_group
-        return self.f_delitos_by_group, self.f_nodos_by_group
-
     def calculate_hr(self, c=None):
         """
 
@@ -1067,8 +1036,10 @@ class RForestRegressor(object):
         self.data, self.X = [None] * 2
         self.read_data, self.read_X = read_data, w_data
         self.w_data, self.w_X = w_data, w_X
-        if read_X:
-            self.X = pd.read_pickle('predictivehp/data/X.pkl')
+        if self.read_X:
+            self.X = pd.read_pickle('predictivehp/data/X_train.pkl')
+        if self.read_data:
+            self.data = pd.read_pickle('predictivehp/data/data.pkl')
 
     def set_parameters(self, t_history,
                        xc_size, yc_size, n_layers,
@@ -1155,7 +1126,7 @@ class RForestRegressor(object):
         self.X = pd.DataFrame(columns=X_cols)
 
         # Creación de los parámetros para el cálculo de los índices
-        print("\tFilling df...")
+        print("\tFilling data...")
         self.nx = x.shape[0] - 1
         self.ny = y.shape[1] - 1
         self.hx = (x.max() - x.min()) / self.nx
@@ -1165,7 +1136,7 @@ class RForestRegressor(object):
             self.data = pd.read_pickle('predictivehp/data/data.pkl')
         else:
             # en caso que no se tenga un data.pkl de antes, se recibe el
-            # dado por la PreProcessing Class, mientras que self.X es llenado
+            # dado por la PreProcessing Class, mientras que self.X_train es llenado
             # al llamar self.generate_X dentro de self.fit()
             self.data = self.data_0
             # Manejo de los puntos de incidentes para poder trabajar en (x, y)
@@ -1203,8 +1174,8 @@ class RForestRegressor(object):
                         else af.to_df_col(af.il_neighbors(D, i))
             print('finished!')
 
-        # Adición de las columnas 'geometry' e 'in_dallas' al df
-        print("\tPreparing df for filtering...")
+        # Adición de las columnas 'geometry' e 'in_dallas' al data
+        print("\tPreparing data for filtering...")
         self.X[('geometry', '')] = [Point(i) for i in
                                     zip(x[:-1, :-1].flatten(),
                                         y[:-1, :-1].flatten())]
@@ -1215,13 +1186,13 @@ class RForestRegressor(object):
         self.X.drop(columns=[('in_dallas', '')], inplace=True)
 
     def to_pickle(self, file_name):
-        """Genera un pickle de self.df o self.data dependiendo el nombre
+        """Genera un pickle de self.data o self.data dependiendo el nombre
         dado (data.pkl o X.pkl).
 
         OBS.
 
         >>> self.data  # es guardado en self.generate_X()
-        >>> self.X  # es guardado en self.predict()
+        >>> self.X_train  # es guardado en self.predict()
 
         luego, si self.read_X = True, no es necesario realizar un
         self.fit() o self.predict()
@@ -1232,7 +1203,7 @@ class RForestRegressor(object):
           Nombre del pickle a generar en predictivehp/data/file_name
         """
         # print("\nPickling dataframe...", end=" ")
-        if file_name == "X.pkl":
+        if file_name == "X_train.pkl":
             self.X.to_pickle(f"predictivehp/data/{file_name}")
         if file_name == "data.pkl":
             self.data.to_pickle(f"predictivehp/data/{file_name}")
@@ -1295,7 +1266,7 @@ class RForestRegressor(object):
         X : pd.DataFrame
           X_test for prediction
         pickle : bool
-          True para guardar en un .pkl la información de self.X
+          True para guardar en un .pkl la información de self.X_train
 
         Returns
         -------
@@ -1307,7 +1278,7 @@ class RForestRegressor(object):
         y_pred = self.rfr.predict(X)
         self.X[('Dangerous_pred', '')] = y_pred / y_pred.max()
         if self.w_X:
-            self.to_pickle('X.pkl')
+            self.to_pickle('X_train.pkl')
         return y_pred
 
     def score(self):
@@ -1384,11 +1355,11 @@ class RForestRegressor(object):
         # data_oct = pd.DataFrame(self.data[self.data.month1 == 'October'])
         # data_oct.drop(columns='geometry', inplace=True)
 
-        # ans = data_oct.join(other=fwork.df, on='Cell', how='left')
-        # ans = self.df[self.df[('geometry', '')].notna()]
+        # ans = data_oct.join(other=fwork.data, on='Cell', how='left')
+        # ans = self.data[self.data[('geometry', '')].notna()]
 
-        # a = self.df[self.df[('Dangerous_pred_Oct', '')] == 1].shape[0]
-        # a = self.df[self.df[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
+        # a = self.data[self.data[('Dangerous_pred_Oct', '')] == 1].shape[0]
+        # a = self.data[self.data[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
         def a(x, c):
             return x[x[('Dangerous_pred', '')] >= c].shape[0]
 
@@ -1680,7 +1651,7 @@ class RForestRegressor(object):
         # Quitamos el nivel ''
         data = data.T.reset_index(level=1, drop=True).T
 
-        # Creamos el df para los datos reales (1) y predichos (2).
+        # Creamos el data para los datos reales (1) y predichos (2).
         data1 = data[['geometry', 'Dangerous_Oct']]
         data2 = data[['geometry', 'Dangerous_pred_Oct']]
 
@@ -1978,7 +1949,6 @@ class ProMap:
         self.shps = shps
         self.readed = False
 
-
         # MAP
         self.hx, self.hy, self.km2 = hx, hy, km2
         self.bw_x, self.bw_y, self.bw_t = bw_x, bw_y, bw_t
@@ -2068,7 +2038,6 @@ class ProMap:
         points = np.array([self.xx.flatten(), self.yy.flatten()])
         self.cells_in_map = af.checked_points_pm(points)  # 141337
 
-
     def predict(self, X, y):
 
         """
@@ -2085,11 +2054,10 @@ class ProMap:
         self.y = y
         self.dias_train = self.X['y_day'].max()
 
-
         if not self.readed:
             # print('\nEstimando densidades...')
             # print(
-            #     f'\n\tNº de datos para entrenar el modelo: {len(self.X)}')
+            #     f'\n\tNº de datos para entrenar el modelo: {len(self.X_train)}')
             # print(
             #     f'\tNº de días usados para entrenar el modelo: {self.dias_train}')
             # print(
@@ -2242,7 +2210,6 @@ class ProMap:
 
     def heatmap(self, c=0,
                 nombre_grafico='Predictive Crime Map - Dallas (Method: Promap)'):
-
 
         """
         Mostrar un heatmap de una matriz de riesgo.

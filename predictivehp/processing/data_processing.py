@@ -26,14 +26,14 @@ pd.set_option('display.width', 1000)
 
 
 class PreProcessing:
-    def __init__(self, models=None, df=None, year=2017, n=150000):
+    def __init__(self, models=None, data=None, year=2017, n=150000):
         """
 
         Parameters
         ----------
         models : {None, list}
           Lista de modelos
-        df
+        data
         year
         n
         """
@@ -43,10 +43,10 @@ class PreProcessing:
         self.rfr = None
         if models:
             self.define_models()
-        if df is not None:
-            self.df = df
+        if data is not None:
+            self.data = data
         else:
-            self.df = self.get_data(year=year, n=n)
+            self.data = self.get_data(year=year, n=n)
 
     @staticmethod
     def get_data(year=2017, n=150000):
@@ -85,7 +85,7 @@ class PreProcessing:
             # print("\n"
             #       f"\tn = {n} incidents requested  Year = {year}"
             #       "\n"
-            #       f"\t{df.shape[0]} incidents successfully retrieved!")
+            #       f"\t{data.shape[0]} incidents successfully retrieved!")
 
             # DB Cleaning & Formatting
             for col in ['x_coordinate', 'y_cordinate']:
@@ -166,14 +166,26 @@ class PreProcessing:
         return self.prepare_rfr(**kwargs)
 
     def prepare_stkde(self):
-        df = self.df
-        df = df.sample(n=self.stkde.sn, replace=False, random_state=250499)
-        df.sort_values(by=['date'], inplace=True)
-        df.reset_index(drop=True, inplace=True)
+        """
 
-        # División en training data (X) y testing data (y)
-        X = df[df["date"] < self.stkde.start_prediction]
-        y = df[df["date"] >= self.stkde.start_prediction]
+        Returns
+        -------
+
+        """
+        data = self.data
+        geometry = [Point(xy) for xy in zip(np.array(data[['x']]),
+                                            np.array(data[['y']]))]
+        data = gpd.GeoDataFrame(data, crs=2276, geometry=geometry)
+        data.to_crs(epsg=3857, inplace=True)
+
+        data = data.sample(n=self.stkde.sn, replace=False, random_state=0)
+        data.sort_values(by=['date'], inplace=True)
+        data.reset_index(drop=True, inplace=True)
+
+        # División en training data (X_train) y testing data (y)
+        X_train = data[data["date"] < self.stkde.start_prediction]
+        X_test = data[data["date"] >= self.stkde.start_prediction]
+
         predict_groups = {
             f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None}
             for i in range(1, self.stkde.ng + 1)}
@@ -191,31 +203,32 @@ class PreProcessing:
         group_n = 1
         for i in range(1, len(days))[::self.stkde.wd]:
             predict_groups[f"group_{group_n}"]['t2_data'] = \
-                days[i - 1 + prm.days_by_month[self.stkde.md]:i - 1 +
-                                                              prm.days_by_month[
-                                                                  self.stkde.md] + self.stkde.wd]
+                days[i - 1 + prm.days_by_month[
+                    self.stkde.md]:i - 1 + prm.days_by_month[
+                    self.stkde.md] + self.stkde.wd
+                ]
             group_n += 1
             if group_n > self.stkde.ng:
                 break
         # Time 1 Data for building STKDE models : 1 Month
         for group in predict_groups:
             predict_groups[group]['t1_data'] = \
-                df[df['date'].apply(lambda x:
-                                    predict_groups[group]['t1_data'][0]
-                                    <= x <=
-                                    predict_groups[group]['t1_data'][-1])]
+                data[data['date'].apply(lambda x:
+                                        predict_groups[group]['t1_data'][0]
+                                        <= x <=
+                                        predict_groups[group]['t1_data'][-1])]
         # Time 2 Data for Prediction            : 1 Week
         for group in predict_groups:
             predict_groups[group]['t2_data'] = \
-                df[df['date'].apply(lambda x:
-                                    predict_groups[group]['t2_data'][0]
-                                    <= x <=
-                                    predict_groups[group]['t2_data'][-1])]
-        return df, X, y, predict_groups
+                data[data['date'].apply(lambda x:
+                                        predict_groups[group]['t2_data'][0]
+                                        <= x <=
+                                        predict_groups[group]['t2_data'][-1])]
+        return X_train, X_test, predict_groups
 
     def prepare_promap(self):
 
-        df = self.df
+        df = self.data
 
         if len(df) >= self.promap.n:
             # print(f'\nEligiendo {self.promap.n} datos...')
@@ -255,7 +268,7 @@ class PreProcessing:
         Parameters
         ----------
         mode : str
-            Tipo de X, y a retornar. Elegir entre {'train', 'test'}
+            Tipo de X_train, y a retornar. Elegir entre {'train', 'test'}
         label : str
             Establece la forma en la que se generará la label:
             {'default', 'weighted'}. En el caso de 'weighted', se usa
@@ -273,11 +286,11 @@ class PreProcessing:
             self.rfr.generate_X()
         else:
             self.rfr.data = pd.read_pickle('predictivehp/data/data.pkl')
-            self.rfr.X = pd.read_pickle('predictivehp/data/X.pkl')
+            self.rfr.X_train = pd.read_pickle('predictivehp/data/X_train.pkl')
         if mode == 'train':
             # print("\nPreparing Training Data for RFR...")
             # First three weeks of October
-            X = self.rfr.X.loc[
+            X = self.rfr.X_train.loc[
                 :,
                 reduce(lambda a, b: a + b,
                        [[(f'Incidents_{i}', week)]
@@ -286,8 +299,8 @@ class PreProcessing:
                        )
                 ]
             # Last week of October
-            # y = self.model.X.loc[:, [('Incidents_0', self.model.weeks[-2])]]
-            y = self.rfr.X.loc[
+            # y = self.model.X_train.loc[:, [('Incidents_0', self.model.weeks[-2])]]
+            y = self.rfr.X_train.loc[
                 :, [(f'Incidents_{i}', self.rfr.weeks[-2])
                     for i in range(self.rfr.n_layers)]
                 ]
@@ -307,7 +320,7 @@ class PreProcessing:
         else:
             # print("Preparing Testing Data for RFR...")
             # Nos movemos una semana adelante
-            X = self.rfr.X.loc[
+            X = self.rfr.X_train.loc[
                 :,
                 reduce(lambda a, b: a + b,
                        [[(f'Incidents_{i}', week)]
@@ -315,7 +328,7 @@ class PreProcessing:
                         for week in self.rfr.weeks[1:-1]]
                        )
                 ]
-            y = self.rfr.X.loc[
+            y = self.rfr.X_train.loc[
                 :, [(f'Incidents_{i}', self.rfr.weeks[-1])
                     for i in range(self.rfr.n_layers)]
                 ]

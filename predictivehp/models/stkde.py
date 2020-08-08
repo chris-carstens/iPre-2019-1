@@ -581,7 +581,7 @@ class Framework:
         renderView1.OSPRayMaterialLibrary = materialLibrary1
 
         # init the 'GridAxes3DActor' selected for 'AxesGrid'
-        renderView1.AxesGrid.XTitle = 'X'
+        renderView1.AxesGrid.XTitle = 'X_train'
         renderView1.AxesGrid.YTitle = 'Y'
         renderView1.AxesGrid.ZTitle = 'T'
         renderView1.AxesGrid.XTitleFontFile = ''
