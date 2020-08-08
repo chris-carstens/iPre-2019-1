@@ -1034,10 +1034,10 @@ class RForestRegressor(object):
 
         self.data_0 = data_0
         self.data, self.X = [None] * 2
-        self.read_data, self.read_X = read_data, w_data
+        self.read_data, self.read_X = read_data, read_X
         self.w_data, self.w_X = w_data, w_X
         if self.read_X:
-            self.X = pd.read_pickle('predictivehp/data/X_train.pkl')
+            self.X = pd.read_pickle('predictivehp/data/X.pkl')
         if self.read_data:
             self.data = pd.read_pickle('predictivehp/data/data.pkl')
 
@@ -1136,7 +1136,7 @@ class RForestRegressor(object):
             self.data = pd.read_pickle('predictivehp/data/data.pkl')
         else:
             # en caso que no se tenga un data.pkl de antes, se recibe el
-            # dado por la PreProcessing Class, mientras que self.X_train es llenado
+            # dado por la PreProcessing Class, mientras que self.X es llenado
             # al llamar self.generate_X dentro de self.fit()
             self.data = self.data_0
             # Manejo de los puntos de incidentes para poder trabajar en (x, y)
@@ -1192,7 +1192,7 @@ class RForestRegressor(object):
         OBS.
 
         >>> self.data  # es guardado en self.generate_X()
-        >>> self.X_train  # es guardado en self.predict()
+        >>> self.X  # es guardado en self.predict()
 
         luego, si self.read_X = True, no es necesario realizar un
         self.fit() o self.predict()
@@ -1203,7 +1203,7 @@ class RForestRegressor(object):
           Nombre del pickle a generar en predictivehp/data/file_name
         """
         # print("\nPickling dataframe...", end=" ")
-        if file_name == "X_train.pkl":
+        if file_name == "X.pkl":
             self.X.to_pickle(f"predictivehp/data/{file_name}")
         if file_name == "data.pkl":
             self.data.to_pickle(f"predictivehp/data/{file_name}")
@@ -1265,8 +1265,6 @@ class RForestRegressor(object):
         ----------
         X : pd.DataFrame
           X_test for prediction
-        pickle : bool
-          True para guardar en un .pkl la información de self.X_train
 
         Returns
         -------
@@ -1278,7 +1276,7 @@ class RForestRegressor(object):
         y_pred = self.rfr.predict(X)
         self.X[('Dangerous_pred', '')] = y_pred / y_pred.max()
         if self.w_X:
-            self.to_pickle('X_train.pkl')
+            self.to_pickle('X.pkl')
         return y_pred
 
     def score(self):
@@ -2090,7 +2088,7 @@ class ProMap:
         if not self.readed:
             # print('\nEstimando densidades...')
             # print(
-            #     f'\n\tNº de datos para entrenar el modelo: {len(self.X_train)}')
+            #     f'\n\tNº de datos para entrenar el modelo: {len(self.X)}')
             # print(
             #     f'\tNº de días usados para entrenar el modelo: {self.dias_train}')
             # print(
@@ -2371,19 +2369,25 @@ class Model:
             )
             self.rfr.predict(X_test)
 
-    def plot_heatmap(self, c=None, incidences=False):
+    def plot_heatmap(self, c=0, incidences=False):
         """
 
         Parameters
         ----------
-        c : {None, float, list}
-          None :
-          float :
-          list :
+        c : {int, float, list}
+          Si un solo elemento es especificado, luego celdas con un
+          score superior a c son consideradas parte del hotspot. El
+          resto quedan de color transparente.
+
+          Si es una lista, tenemos hotpots con scores entre c[0] y c[1],
+          el resto de las celdas quedan transparentes.
         incidences : bool
-          Determina si se plotean o no los incidentes en el heatmap
+          Determina si se plotean o no los incidentes en el heatmap.
+
+          Green marker para hits, Red marker para misses.
         """
-        pass
+        if self.rfr:
+            pass
 
     def validate(self, c=None):
         """
