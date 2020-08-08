@@ -178,6 +178,9 @@ class PreProcessing:
         data = gpd.GeoDataFrame(data, crs=2276, geometry=geometry)
         data.to_crs(epsg=3857, inplace=True)
 
+        data['x'] = data['geometry'].apply(lambda x: x.x)
+        data['y'] = data['geometry'].apply(lambda x: x.y)
+
         data = data.sample(n=self.stkde.sn, replace=False, random_state=0)
         data.sort_values(by=['date'], inplace=True)
         data.reset_index(drop=True, inplace=True)
