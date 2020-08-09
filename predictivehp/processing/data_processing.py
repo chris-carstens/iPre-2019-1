@@ -271,7 +271,7 @@ class PreProcessing:
         Parameters
         ----------
         mode : str
-            Tipo de X_train, y a retornar. Elegir entre {'train', 'test'}
+            Tipo de X, y a retornar. Elegir entre {'train', 'test'}
         label : str
             Establece la forma en la que se generará la label:
             {'default', 'weighted'}. En el caso de 'weighted', se usa
@@ -285,15 +285,15 @@ class PreProcessing:
         # suma ponderada de las columnas (considerar division por número
         # de celdas en las capas [o distancia])
         # [('Incidents_i', self.model.weeks[-2])] for i in range(8)
-        if not self.rfr.read_X:
+        if self.rfr.X is None:
             self.rfr.generate_X()
         else:
             self.rfr.data = pd.read_pickle('predictivehp/data/data.pkl')
-            self.rfr.X_train = pd.read_pickle('predictivehp/data/X_train.pkl')
+            self.rfr.X = pd.read_pickle('predictivehp/data/X.pkl')
         if mode == 'train':
             # print("\nPreparing Training Data for RFR...")
             # First three weeks of October
-            X = self.rfr.X_train.loc[
+            X = self.rfr.X.loc[
                 :,
                 reduce(lambda a, b: a + b,
                        [[(f'Incidents_{i}', week)]
@@ -303,7 +303,7 @@ class PreProcessing:
                 ]
             # Last week of October
             # y = self.model.X_train.loc[:, [('Incidents_0', self.model.weeks[-2])]]
-            y = self.rfr.X_train.loc[
+            y = self.rfr.X.loc[
                 :, [(f'Incidents_{i}', self.rfr.weeks[-2])
                     for i in range(self.rfr.n_layers)]
                 ]
@@ -323,7 +323,7 @@ class PreProcessing:
         else:
             # print("Preparing Testing Data for RFR...")
             # Nos movemos una semana adelante
-            X = self.rfr.X_train.loc[
+            X = self.rfr.X.loc[
                 :,
                 reduce(lambda a, b: a + b,
                        [[(f'Incidents_{i}', week)]
@@ -331,7 +331,7 @@ class PreProcessing:
                         for week in self.rfr.weeks[1:-1]]
                        )
                 ]
-            y = self.rfr.X_train.loc[
+            y = self.rfr.X.loc[
                 :, [(f'Incidents_{i}', self.rfr.weeks[-1])
                     for i in range(self.rfr.n_layers)]
                 ]

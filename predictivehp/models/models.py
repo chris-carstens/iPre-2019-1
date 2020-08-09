@@ -1036,6 +1036,10 @@ class RForestRegressor(object):
         self.data, self.X = [None] * 2
         self.read_data, self.read_X = read_data, read_X
         self.w_data, self.w_X = w_data, w_X
+        self.X = None
+
+        self.d_incidents = 0  # Detected incidents
+        self.h_area = 0  # Hotspot area
         if self.read_X:
             self.X = pd.read_pickle('predictivehp/data/X.pkl')
         if self.read_data:
@@ -1237,6 +1241,9 @@ class RForestRegressor(object):
 
             self.data.loc[idx, 'Cell'] = cell_idx
 
+        # Dejamos la asociación inc-cell en el index de self.data
+        self.data.set_index('Cell', drop=True, inplace=True)
+
     def fit(self, X, y):
         """Entrena el modelo
 
@@ -1275,6 +1282,7 @@ class RForestRegressor(object):
         # print("\tMaking predictions...")
         y_pred = self.rfr.predict(X)
         self.X[('Dangerous_pred', '')] = y_pred / y_pred.max()
+        self.X.index.name = 'Cell'
         if self.w_X:
             self.to_pickle('X.pkl')
         return y_pred
@@ -1291,6 +1299,23 @@ class RForestRegressor(object):
         # print(f"{'Precision:':<10s}{precision:1.5f}")
         # print(f"{'Recall:':<10s}{recall:1.5f}")
 
+    def validate(self, c=None):
+        """
+
+        Parameters
+        ----------
+        c
+
+        Returns
+        -------
+
+        """
+        d_inc = 0
+        h_area = 0
+
+        self.d_incidents = d_inc
+        self.h_area = h_area
+
     def calculate_hr(self, c=0.9):
         """
 
@@ -1300,10 +1325,6 @@ class RForestRegressor(object):
           Threshold de confianza para filtrar hotspots
         """
         if c.size == 1:
-            # incidents = pd.DataFrame(self.data)
-            # incidents_oct = incidents[incidents.month1 == 'October']  # 332
-            # if None in self.data.Cell.unique().tolist():
-            #     print('Nones!')
             data_nov = pd.DataFrame(
                 self.data[(date(2017, 11, 1) <= self.data.date) &
                           (self.data.date <= date(2017, 11, 7))]
@@ -1312,20 +1333,9 @@ class RForestRegressor(object):
             data_nov.columns = pd.MultiIndex.from_product(
                 [data_nov.columns, ['']]
             )
-            # print(data_nov.head())
-            ans = data_nov.join(other=self.X, on='Cell', how='left')
-
-            # ans = ans[ans[('geometry', '')].notna()]
-            # print(f"Data Oct: {data_oct.shape}")
-            # print(f"Ans shape: {ans.shape}")
-            # print(ans[('Dangerous_pred_Oct_rfr', '')])
-
-            # incidentsh = ans[ans[('Dangerous_pred_Oct', '')] == 1]
+            ans = data_nov.join(self.X)
             incidentsh = ans[ans[('Dangerous_pred', '')] >= c[0]]
-            # print(c, incidentsh.shape)
-
             hr = incidentsh.shape[0] / data_nov.shape[0]
-            # print(hr)
             return hr
         else:
             A = self.X.shape[0]
@@ -2004,8 +2014,6 @@ class ProMap:
             self.readed = True
 
         # print('-' * 100)
-
-
 
     def set_parameters(self, bw, hx=100, hy=100):
         """
