@@ -198,7 +198,7 @@ class PreProcessing:
         # División en training data (X_train) y testing data (y)
         X_train = data[data["date"] <= self.stkde.start_prediction]
         X_test = data[data["date"] > self.stkde.start_prediction]
-        X_test = data[data["date"] < self.stkde.start_prediction + datetime.timedelta(days=self.stkde.wd)]
+        X_test = X_test[X_test["date"] < self.stkde.start_prediction + datetime.timedelta(days=self.stkde.wd)]
 
         return X_train, X_test
 
