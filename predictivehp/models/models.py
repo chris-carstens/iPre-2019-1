@@ -224,7 +224,7 @@ class STKDE:
                 stkde = self.kde
 
             # Prediction
-            stkde.resample(len(x_training))
+            self.predict_sim = stkde.resample(len(x_training))
 
             m = np.repeat(max(t_training), x.size)
             f_delitos = stkde.pdf(af.checked_points(
