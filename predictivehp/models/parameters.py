@@ -57,8 +57,8 @@ f_size = mpl.rcParams.get('figure.figsize')
 
 # Optimal Bandwidths
 
-bw = np.array([1577.681 / 1.5, 1167.16 / 1.5, 30.549])
-bw_stkde = np.array([7859.14550575/4, 10910.84908688/4, 30.38113667])
+bw = np.array([1577.681, 1167.16, 30.549])
+bw_stkde = np.array([7859.14550575/10, 10910.84908688/10, 24.38113667])
 
 
 # Oct - Nov - Dic
