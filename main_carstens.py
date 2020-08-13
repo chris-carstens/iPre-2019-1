@@ -15,7 +15,7 @@ shps = pp.shps_processing(s_shp_p, c_shp_p, cl_shp_p)
 df = pp.get_data(year=2017, n=150000)
 
 # %% STKDE
-stkde = STKDE(shps=shps, bw=bw_stkde)
+stkde = STKDE(shps=shps, bw=bw)
 pp.models = [stkde]
 pp.define_models()
 
@@ -23,11 +23,11 @@ stkde.fit(*pp.prepare_stkde())
 stkde.heatmap()
 
 # %% Plotter
-# pltr = Plotter(models=[
-#     stkde,
-# ])
-# pltr.hr()
-# pltr.pai()
+pltr = Plotter(models=[
+     stkde,
+])
+pltr.hr()
+pltr.pai()
 # stkde.heatmap()
 # pltr.heatmap()
 

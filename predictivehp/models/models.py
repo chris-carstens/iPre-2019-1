@@ -24,7 +24,7 @@ settings = kd.EstimatorSettings(efficient=True, n_jobs=8)
 
 
 class MyKDEMultivariate(kd.KDEMultivariate):
-    def resample(self, size: int):
+    def resample(self, size, shp):
         """
 
         Parameters
@@ -47,7 +47,7 @@ class MyKDEMultivariate(kd.KDEMultivariate):
 
         # simulated and checked points
         s_points = np.transpose(means + norm)
-        c_points = af.checked_points(s_points)
+        c_points = af.checked_points(s_points, shp)
 
         # print(f"\n{size - c_points.shape[1]} invalid points found")
 
@@ -55,17 +55,15 @@ class MyKDEMultivariate(kd.KDEMultivariate):
             # print("\nfinished!")
             return s_points
 
-        a_points = self.resample(size - c_points.shape[1])
+        a_points = self.resample(size - c_points.shape[1], shp)
 
         return np.hstack((c_points, a_points))
 
 
 class STKDE:
     def __init__(self,
-                 shps=None, month_division=10,
-                 year="2017",
-                 bw=None, sample_number=3600,
-                 number_of_groups=1, start_prediction=date(2017, 11, 1),
+                 shps=None,
+                 bw=None, sample_number=3600, start_prediction=date(2017, 11, 1),
                  window_days=7, name="STKDE"):
         """
         Parameters
@@ -89,15 +87,13 @@ class STKDE:
           GeoDataFrame que contiene información sobre la ciudad de Dallas
         """
 
-        self.name, self.sn, self.year, self.bw = name, sample_number, year, bw
-        self.md = month_division
+        self.name, self.sn, self.bw = name, sample_number, bw
         self.shps = shps
         self.start_prediction = start_prediction
-        self.ng, self.wd = number_of_groups, window_days
+        self.wd = window_days
 
         self.hr, self.ap, self.pai = None, None, None
-        self.hr_by_group, self.ap_by_group, self.pai_by_group = None, None, None
-        self.f_delitos_by_group, self.f_nodos_by_group = None, None
+        self.f_delitos, self.f_nodos = None, None
         self.df = None
 
         # training data 3000
@@ -141,7 +137,7 @@ class STKDE:
             print(
                 "No bandwith set. The model will automatically calculate bandwith after fit.\n")
 
-    def fit(self, X, X_t, predict_groups):
+    def fit(self, X, X_t):
         """
         Parameters
         ----------
@@ -153,7 +149,7 @@ class STKDE:
           Lista con los datos separados por grupos y sus correspondientes
           ventanas.
         """
-        self.X_train, self.X_test, self.pg = X, X_t, predict_groups
+        self.X_train, self.X_test = X, X_t
 
         # print("\nBuilding KDE...")
         self.kde = MyKDEMultivariate(
@@ -175,58 +171,21 @@ class STKDE:
           Diccionario con los valores de la función densidad evaluada en
           la malla original con llave el grupo
         """
-        if self.f_delitos_by_group:
-            return self.f_delitos_by_group, self.f_nodos_by_group
-        f_nodos_by_group, f_delitos_by_group = {}, {}
-        for i in range(1, self.ng + 1):
-            x, y, t = \
-                np.array(self.pg[f'group_{i}']['t2_data']['x']), \
-                np.array(self.pg[f'group_{i}']['t2_data']['y']), \
-                np.array(self.pg[f'group_{i}']['t2_data']['y_day'])
+        if self.f_delitos:
+            return self.f_delitos, self.f_nodos
+        stkde = self.kde
 
-            if i == 1:
-                # Data base, para primer grupo
-                x_training = pd.Series(
-                    self.X_train["x"]).tolist() + pd.Series(
-                    self.pg[f'group_{i}']['t1_data']['x']).tolist()
-                y_training = pd.Series(
-                    self.X_train["y"]).tolist() + pd.Series(
-                    self.pg[f'group_{i}']['t1_data']['y']).tolist()
-                t_training = pd.Series(
-                    self.X_train["y_day"]).tolist() + pd.Series(
-                    self.pg[f'group_{i}']['t1_data'][
-                        'y_day']).tolist()
+        # Data base, para primer grupo
+        x_training = pd.Series(
+            self.X_train["x"]).tolist()
+        y_training = pd.Series(
+            self.X_train["y"]).tolist()
+        t_training = pd.Series(
+            self.X_train["y_day"]).tolist()
 
-            else:
-                # Data agregada del grupo anterior, para re-entrenamiento
-                for j in range(1, i):
-                    x_training += pd.Series(
-                        self.pg[f'group_{j}']['t2_data'][
-                            'x']).tolist()
-                    y_training += pd.Series(
-                        self.pg[f'group_{j}']['t2_data'][
-                            'y']).tolist()
-                    t_training += pd.Series(
-                        self.pg[f'group_{j}']['t2_data'][
-                            'y_day']).tolist()
+        #predicted = stkde.resample(len(x_training), self.shps["councils"])
 
-            if i > 1:
-                # re-entrenamos modelo
-                stkde = MyKDEMultivariate(
-                    [np.array(x_training),
-                     np.array(y_training),
-                     np.array(t_training)],
-                    'ccc', bw=self.bw)
-
-            else:
-                stkde = self.kde
-
-            stkde.resample(len(x_training))
-
-            m = np.repeat(max(t_training), x.size)
-            f_delitos = stkde.pdf(af.checked_points(
-                np.array([x.flatten(), y.flatten(), m.flatten()])))
-            x, y, t = np.mgrid[
+        x, y, t = np.mgrid[
                       np.array(x_training).min():
                       np.array(x_training).max():100 * 1j,
                       np.array(y_training).min():
@@ -235,19 +194,28 @@ class STKDE:
                       np.array(t_training).max():1 * 1j
                       ]
 
-            # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
-            f_nodos = stkde.pdf(af.checked_points(
-                np.array([x.flatten(), y.flatten(), t.flatten()]),
-                self.shps['councils']
-            ))
-            f_max = max([f_nodos.max(), f_delitos.max()])
-            # normalizar
-            f_delitos = f_delitos / f_max
-            f_nodos = f_nodos / f_max
+        # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
+        f_nodos = stkde.pdf(af.checked_points(
+            np.array([x.flatten(), y.flatten(), t.flatten()]),
+            self.shps['councils']))
 
-            f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
-        self.f_delitos_by_group, self.f_nodos_by_group = f_delitos_by_group, f_nodos_by_group
-        return self.f_delitos_by_group, self.f_nodos_by_group
+        x, y, t = \
+            np.array(self.X_test['x']), \
+            np.array(self.X_test['y']), \
+            np.array(self.X_test['y_day'])
+        ti = np.repeat(max(t_training), x.size)
+        f_delitos = stkde.pdf(af.checked_points(
+                np.array([x.flatten(), y.flatten(), ti.flatten()]), self.shps["councils"]))
+
+
+        f_max = max([f_nodos.max(), f_delitos.max()])
+
+        # normalizar
+        f_delitos = f_delitos / f_max
+        f_nodos = f_nodos / f_max
+
+        self.f_delitos, self.f_nodos = f_delitos, f_nodos
+        return self.f_delitos, self.f_nodos
 
     def score(self, x, y, t):
         """
@@ -268,7 +236,7 @@ class STKDE:
         # print(f"STKDE pdf score: {score_pdf}\n")
         return score_pdf
 
-    def heatmap(self, bins=100, ti=100):
+    def heatmap(self, c=0, bins=100, ti=100):
         """
 
         Parameters
@@ -295,9 +263,10 @@ class STKDE:
         z = self.kde.pdf(np.vstack([x.flatten(),
                                     y.flatten(),
                                     ti * np.ones(x.size)]))
-
         # Normalizar
         z = z / z.max()
+
+        z = z[z > c]
 
         heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
                                  shading='gouraud',
@@ -313,7 +282,7 @@ class STKDE:
                             shrink=.5,
                             aspect=10)
         cbar.solids.set(alpha=1)
-        # ax.set_axis_off()
+        #ax.set_axis_off()
         plt.show()
 
     def data_barplot(self, pdf: bool = False):
@@ -913,23 +882,16 @@ class STKDE:
                     Lista con los valores del
                     Area Percentage para cada grupo
         """
-        if not self.f_delitos_by_group:
+        if self.f_delitos is None:
             self.predict()
-        hr_by_group, ap_by_group = [], []
-        for g in range(1, self.ng + 1):
-            f_delitos, f_nodos = self.f_delitos_by_group[g], \
-                                 self.f_nodos_by_group[g]
-            # c = np.linspace(0, f_nodos.max(), 100)
-            hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
-            area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
-            HR = [i / len(f_delitos) for i in hits]
-            area_percentaje = [i / len(f_nodos) for i in area_h]
-            if g == 1:
-                # caso base para el grupo 1 (o cuando se utiliza solo un grupo), sirve para función plotter
-                self.hr, self.ap = HR, area_percentaje
-            hr_by_group.append(HR), ap_by_group.append(area_percentaje)
-        self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
-        return self.hr_by_group, self.ap_by_group
+        f_delitos, f_nodos = self.f_delitos, self.f_nodos
+        # c = np.linspace(0, f_nodos.max(), 100)
+        hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
+        area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
+        HR = [i / len(f_delitos) for i in hits]
+        area_percentaje = [i / len(f_nodos) for i in area_h]
+        self.hr, self.ap = HR, area_percentaje
+        return self.hr, self.ap
 
     def calculate_pai(self, c=None):
         """
@@ -952,18 +914,12 @@ class STKDE:
                     Lista con los valores del
                     Area Percentage para cada grupo
         """
-        pai_by_group = []
-        if not self.hr_by_group:
+        if not self.hr:
             self.calculate_hr(c)
-        for g in range(1, self.ng + 1):
-            PAI = [float(self.hr_by_group[g - 1][i]) / float(
-                self.ap_by_group[g - 1][i]) if
-                   self.ap_by_group[g - 1][i] else 0 for i in
-                   range(len(self.hr_by_group[g - 1]))]
-            pai_by_group.append(PAI)
-            if g == 1:
-                self.pai = PAI
-        return self.pai_by_group, self.hr_by_group, self.ap_by_group
+        PAI = [float(self.hr[i]) / float(self.ap[i]) if
+               self.ap[i] else 0 for i in range(len(self.hr))]
+        self.pai = PAI
+        return self.pai, self.hr, self.ap
 
 
 class RForestRegressor(object):

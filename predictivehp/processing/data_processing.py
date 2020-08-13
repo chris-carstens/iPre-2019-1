@@ -156,7 +156,7 @@ class PreProcessing:
             self.rfr = model if model.name == 'RForestRegressor' else self.rfr
 
     def preparing_data(self, model, **kwargs):
-        if model not in [m.name for m in self.models]:
+        if model.name not in [m.name for m in self.models]:
             print("Model not found!\n")
             return None
         if "STKDE" in model:
@@ -186,48 +186,11 @@ class PreProcessing:
         data.reset_index(drop=True, inplace=True)
 
         # División en training data (X_train) y testing data (y)
-        X_train = data[data["date"] < self.stkde.start_prediction]
-        X_test = data[data["date"] >= self.stkde.start_prediction]
+        X_train = data[data["date"] <= self.stkde.start_prediction]
+        X_test = data[data["date"] > self.stkde.start_prediction]
+        X_test = data[data["date"] < self.stkde.start_prediction + datetime.timedelta(days=self.stkde.wd)]
 
-        predict_groups = {
-            f"group_{i}": {'t1_data': [], 't2_data': [], 'STKDE': None}
-            for i in range(1, self.stkde.ng + 1)}
-        days = prm.days_year[self.stkde.md - 1:]
-        days = reduce(lambda a, b: a + b, days)
-        # Time 1 Data for building STKDE models : 1 Month
-        group_n = 1
-        for i in range(1, len(days))[::self.stkde.wd]:
-            predict_groups[f"group_{group_n}"]['t1_data'] = \
-                days[i - 1:i - 1 + prm.days_by_month[self.stkde.md]]
-            group_n += 1
-            if group_n > self.stkde.ng:
-                break
-            # Time 2 Data for Prediction            : 1 Week
-        group_n = 1
-        for i in range(1, len(days))[::self.stkde.wd]:
-            predict_groups[f"group_{group_n}"]['t2_data'] = \
-                days[i - 1 + prm.days_by_month[
-                    self.stkde.md]:i - 1 + prm.days_by_month[
-                    self.stkde.md] + self.stkde.wd
-                ]
-            group_n += 1
-            if group_n > self.stkde.ng:
-                break
-        # Time 1 Data for building STKDE models : 1 Month
-        for group in predict_groups:
-            predict_groups[group]['t1_data'] = \
-                data[data['date'].apply(lambda x:
-                                        predict_groups[group]['t1_data'][0]
-                                        <= x <=
-                                        predict_groups[group]['t1_data'][-1])]
-        # Time 2 Data for Prediction            : 1 Week
-        for group in predict_groups:
-            predict_groups[group]['t2_data'] = \
-                data[data['date'].apply(lambda x:
-                                        predict_groups[group]['t2_data'][0]
-                                        <= x <=
-                                        predict_groups[group]['t2_data'][-1])]
-        return X_train, X_test, predict_groups
+        return X_train, X_test
 
     def prepare_promap(self):
 
