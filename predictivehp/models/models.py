@@ -189,13 +189,13 @@ class STKDE:
             self.X_test["x"]).tolist()), self.shps["councils"])
 
         x, y, t = np.mgrid[
-                      np.array(x_training).min():
-                      np.array(x_training).max():100 * 1j,
-                      np.array(y_training).min():
-                      np.array(y_training).max():100 * 1j,
-                      np.array(t_training).max():
-                      np.array(t_training).max():1 * 1j
-                      ]
+                  np.array(x_training).min():
+                  np.array(x_training).max():100 * 1j,
+                  np.array(y_training).min():
+                  np.array(y_training).max():100 * 1j,
+                  np.array(t_training).max():
+                  np.array(t_training).max():1 * 1j
+                  ]
 
         # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
         f_nodos = stkde.pdf(af.checked_points(
@@ -208,8 +208,7 @@ class STKDE:
             np.array(self.X_test['y_day'])
         ti = np.repeat(max(t_training), x.size)
         f_delitos = stkde.pdf(af.checked_points(
-                np.array([x.flatten(), y.flatten(), ti.flatten()]), self.shps["councils"]))
-
+            np.array([x.flatten(), y.flatten(), ti.flatten()]), self.shps["councils"]))
 
         f_max = max([f_nodos.max(), f_delitos.max()])
 
@@ -286,7 +285,7 @@ class STKDE:
         cbar.solids.set(alpha=1)
 
         if validate_incidents:
-            #print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
+            # print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
 
             # US Survey Foot: 0.3048 m
             # print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")  # 2276
@@ -355,19 +354,18 @@ class STKDE:
 
         plt.show()
 
-    def spatial_pattern(self, pdf: bool = False):
+    def spatial_pattern(self):
         """
         Spatial pattern of incidents
         pdf: True si se desea guardar el plot en formato pdf
         """
 
         self.predict()
-        print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
+        # print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
 
-        print("\tReading shapefiles...", end=" ")
-        dallas_districts = self.shps['councils']
+        # print("\tReading shapefiles...", end=" ")
         dallas = self.shps['streets']
-        print("finished!")
+        # print("finished!")
 
         fig, ax = plt.subplots(figsize=(15, 15))
         ax.set_facecolor('xkcd:black')
@@ -377,42 +375,19 @@ class STKDE:
 
         geometry = [Point(xy) for xy in zip(
             np.array(self.X_test[['x']]),
-            np.array(self.X_test[['y']]))
-                    ]
-        geo_df = gpd.GeoDataFrame(self.X_test,
-                                  crs=dallas.crs,
+            np.array(self.X_test[['y']]))]
+        geo_df = gpd.GeoDataFrame(self.X_test, crs=dallas.crs,
                                   geometry=geometry)
 
-        print("\tPlotting Districts...", end=" ")
-
-        handles = []
-
-        #for district, data in dallas_districts.groupby('DISTRICT'):
-       # for district, data in dallas_districts.groupby('DISTRICT'):
-        #    data.plot(ax=ax,
-         #             color=prm.d_colors[district],
-          #            linewidth=2.5,
-        #          edgecolor="black")
-         #   handles.append(mpatches.Patch(color=prm.d_colors[district],
-            #                              label=f"Dallas District {district}"))
-
-        handles.sort(key=lambda x: int(x._label.split(' ')[2]))
-        handles = [Line2D([], [], marker='o', color='red', label='Incident',
-                          linestyle="None"),
-                   Line2D([0], [0], color="steelblue", label="Streets")] + \
-                  handles
-
-        print("finished!")
-
-        print("\tPlotting Streets...", end=" ")
+        # print("\tPlotting Streets...", end=" ")
         dallas.plot(ax=ax,
                     alpha=0.4,
                     color="steelblue",
                     zorder=2,
                     label="Streets")
-        print("finished!")
+        # print("finished!")
 
-        print("\tPlotting Incidents...", end=" ")
+        # print("\tPlotting Incidents...", end=" ")
 
         geo_df.plot(ax=ax,
                     markersize=17.5,
@@ -421,16 +396,16 @@ class STKDE:
                     zorder=3,
                     label="Incidents")
 
-        print("finished!")
+        # print("finished!")
 
         geometry = [Point(xy) for xy in zip(self.predicted_sim[0],
-            self.predicted_sim[1])
-                    ]
+                                            self.predicted_sim[1])]
+        
         geo_df = gpd.GeoDataFrame(self.X_test,
                                   crs=dallas.crs,
                                   geometry=geometry)
 
-        print("\tPlotting Sim...", end=" ")
+        # print("\tPlotting Simulated Incidents...", end=" ")
 
         geo_df.plot(ax=ax,
                     markersize=17.5,
@@ -439,7 +414,7 @@ class STKDE:
                     zorder=3,
                     label="Simulated Incidents")
 
-        print("finished!")
+        # print("finished!")
 
         plt.title(f"Dallas Incidents - Spatial Pattern\n",
                   fontdict={'fontsize': 20},
@@ -447,10 +422,9 @@ class STKDE:
 
         plt.legend(loc="lower right",
                    frameon=False,
-                   fontsize=13.5,
-                   handles=handles)
+                   fontsize=13.5)
 
-        #ax.set_axis_off()
+        # ax.set_axis_off()
         plt.show()
 
     def contour_plot(self, bins: int, ti: int, pdf: bool = False):
@@ -2159,8 +2133,6 @@ class ProMap:
 
         """
 
-
-
         delta_x = self.hx / 2
         delta_y = self.hy / 2
 
@@ -2180,8 +2152,8 @@ class ProMap:
 
         self.create_grid()
 
-        #points = np.array([self.xx.flatten(), self.yy.flatten()])
-        #self.cells_in_map = af.checked_points_pm(points)  # 141337
+        # points = np.array([self.xx.flatten(), self.yy.flatten()])
+        # self.cells_in_map = af.checked_points_pm(points)  # 141337
 
     def predict(self, X, y):
 
@@ -2207,7 +2179,6 @@ class ProMap:
             #     f'\tNº de días usados para entrenar el modelo: {self.dias_train}')
             # print(
             #     f'\tNº de datos para testear el modelo: {len(self.y)}')
-
 
             ancho_x = af.radio_pintar(self.hx, self.bw_x)
             ancho_y = af.radio_pintar(self.hy, self.bw_y)
@@ -2351,7 +2322,7 @@ class ProMap:
             for i in range(len(self.ap))]
 
     def heatmap(self, c=0,
-                 incidents = False):
+                incidents=False):
 
         """
         Mostrar un heatmap de una matriz de riesgo.
@@ -2403,8 +2374,6 @@ class ProMap:
                         marker='o',
                         zorder=3,
                         label="Incidents")
-
-
 
         plt.colorbar()
         plt.show()
@@ -2458,7 +2427,7 @@ class ProMap:
         self.d_incidents = np.sum((self.prediction >= c) * self.testing_matrix)
         n_delitos_testing = np.sum(self.testing_matrix)
         self.h_area = np.count_nonzero(self.prediction >= c) * self.hx * \
-                      self.hy / 10**-6 #km^2
+                      self.hy / 10 ** -6  # km^2
 
 
 class Model:

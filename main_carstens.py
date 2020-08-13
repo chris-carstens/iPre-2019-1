@@ -19,7 +19,7 @@ pp.models = [stkde]
 pp.define_models()
 
 stkde.fit(*pp.prepare_stkde())
-#stkde.spatial_pattern()
+stkde.spatial_pattern()
 
 stkde.heatmap(validate_incidents=True)
 
