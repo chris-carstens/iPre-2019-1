@@ -62,8 +62,7 @@ class MyKDEMultivariate(kd.KDEMultivariate):
 
 class STKDE:
     def __init__(self,
-                 shps=None,
-                 year="2017", bw=None, sample_number=3600,
+                 shps=None, bw=None, sample_number=3600,
                  start_prediction=date(2017, 11, 1),
                  window_days=7, name="STKDE"):
         """
@@ -2168,8 +2167,9 @@ class ProMap:
 
         self.create_grid()
 
-        points = np.array([self.xx.flatten(), self.yy.flatten()])
-        self.cells_in_map = af.checked_points_pm(points)  # 141337
+        # points = np.array([self.xx.flatten(), self.yy.flatten()])
+        # self.cells_in_map = af.checked_points_pm(points)  # 141337
+        self.cells_in_map = 100_000
 
     def predict(self, X, y):
 
@@ -2354,8 +2354,17 @@ class ProMap:
 
         """
 
-        matriz = np.where(self.prediction >= c,
-                          self.prediction, 0)
+        if type(c) == list or type(c) == tuple:
+            c1 = min(c)
+            c2 = max(c)
+            matriz = np.where(self.prediction >= c1,
+                              self.prediction, 0)
+            matriz = np.where(matriz <= c2, matriz, 0)
+
+        else:
+
+            matriz = np.where(self.prediction >= c,
+                              self.prediction, 0)
 
         dallas = gpd.read_file('predictivehp/data/streets.shp')
         dallas.crs = 2276
@@ -2453,10 +2462,18 @@ class ProMap:
 
     def validate(self, c=0):
         self.load_test_matrix(self.ventana_dias)
-        self.d_incidents = np.sum((self.prediction >= c) * self.testing_matrix)
-        n_delitos_testing = np.sum(self.testing_matrix)
-        self.h_area = np.count_nonzero(self.prediction >= c) * self.hx * \
-                      self.hy / 10 ** -6  # km^2
+        if type(c) == list or type(c) == tuple:
+            c1 = min(c)
+            c2 = max(c)
+            aux = self.prediction[self.prediction >= c1]
+            aux = aux <= c2
+            self.d_incidents = np.sum(aux * self.testing_matrix)
+            self.h_area = np.count_nonzero(aux) * self.hx * self.hy / 10 ** -6  # km^2
+
+        else:
+            self.d_incidents = np.sum((self.prediction >= c) * self.testing_matrix)
+            self.h_area = np.count_nonzero(self.prediction >= c) * self.hx * \
+                          self.hy / 10 ** -6  # km^2
 
 
 class Model:
