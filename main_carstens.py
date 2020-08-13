@@ -14,14 +14,14 @@ pp = dp.PreProcessing()
 shps = pp.shps_processing(s_shp_p, c_shp_p, cl_shp_p)
 
 # %% STKDE
-stkde = STKDE(shps=shps, bw=bw)
+stkde = STKDE(shps=shps, bw=bw_stkde)
 pp.models = [stkde]
 pp.define_models()
 
 stkde.fit(*pp.prepare_stkde())
-stkde.spatial_pattern()
+#stkde.spatial_pattern()
 
-stkde.heatmap(validate_incidents=True)
+stkde.heatmap(incidences=True)
 
 # %% Plotter
 pltr = Plotter(models=[

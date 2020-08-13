@@ -238,7 +238,8 @@ class STKDE:
         # print(f"STKDE pdf score: {score_pdf}\n")
         return score_pdf
 
-    def heatmap(self, c=0, validate_incidents=False, bins=100, ti=100):
+    def heatmap(self, c=0, show_score=True, incidences=False,
+                savefig=False, fname='', bins=100, ti=100, **kwargs):
         """
         Parameters
         ----------
@@ -251,7 +252,7 @@ class STKDE:
 
         dallas = self.shps['streets']
 
-        fig, ax = plt.subplots(figsize=(15, 12))
+        fig, ax = plt.subplots(figsize=[prm.f_size[0]] * 2)
         ax.set_facecolor('xkcd:black')
         dallas.plot(ax=ax, alpha=.4, color="gray", zorder=1)
 
@@ -275,16 +276,17 @@ class STKDE:
                                  cmap='jet',
                                  zorder=2,
                                  )
+        ax.set_facecolor('xkcd:black')
+        #   plt.title(f"Dallas Incidents - Heatmap\n",
+        #        fontdict={'fontsize': 20}, pad=20)
+        if show_score:
+            cbar = plt.colorbar(heatmap,
+                                ax=ax,
+                                shrink=.5,
+                                aspect=10)
+            cbar.solids.set(alpha=1)
 
-        plt.title(f"Dallas Incidents - Heatmap\n",
-                  fontdict={'fontsize': 20}, pad=20)
-        cbar = plt.colorbar(heatmap,
-                            ax=ax,
-                            shrink=.5,
-                            aspect=10)
-        cbar.solids.set(alpha=1)
-
-        if validate_incidents:
+        if incidences:
             # print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
 
             # US Survey Foot: 0.3048 m
@@ -309,6 +311,9 @@ class STKDE:
             print("finished!")
 
         # ax.set_axis_off()
+        plt.tight_layout()
+        if savefig:
+            plt.savefig(fname, **kwargs)
         plt.show()
 
     def data_barplot(self, pdf: bool = False):
