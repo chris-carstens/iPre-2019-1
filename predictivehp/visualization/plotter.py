@@ -1,3 +1,4 @@
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 # from mpl_toolkits.mplot3d import Axes3D
 # from matplotlib import cm
@@ -21,6 +22,8 @@ class Plotter:
         """
         self.c_arr = np.linspace(0, 1, n)
         self.models = [] if not models else models
+
+        self.set_paramaters()
 
     def add_model(self, model):
         """
@@ -49,6 +52,45 @@ class Plotter:
         """
         pass
 
+    @staticmethod
+    def set_paramaters():
+        """
+
+        Returns
+        -------
+
+        """
+        mpl.rcdefaults()
+        rc = {
+            'figure.facecolor': 'black',
+            'figure.figsize': (6.75, 4),
+            # Values for Jup. Lab // (6.0, 4.0) default
+
+            'xtick.color': 'white',
+            'xtick.major.size': 3,
+            'xtick.top': False,
+            'xtick.bottom': True,
+
+            'ytick.color': 'white',
+            'ytick.major.size': 3,
+            'ytick.left': True,
+            'ytick.right': False,
+
+            'axes.facecolor': '#100000',
+            'axes.edgecolor': 'black',
+            'axes.labelcolor': 'white',
+            'axes.grid': True,
+            'axes.axisbelow': True,
+
+            'text.color': 'white',
+
+            'legend.shadow': True,
+            'legend.framealpha': 1.0,
+
+            'grid.color': '#250000',
+        }
+        mpl.rcParams.update(rc)
+
     def predict(self):
         """
 
@@ -58,7 +100,8 @@ class Plotter:
         """
         pass
 
-    def heatmap(self, c=0, **kwargs):
+    def heatmap(self, c=0, show_score=True, incidences=False,
+                savefig=False, fname='', **kwargs):
         """
 
         Returns
@@ -66,7 +109,8 @@ class Plotter:
 
         """
         for m in self.models:
-            m.heatmap(c=c, **kwargs)
+            m.heatmap(c=c, show_score=show_score, incidences=incidences,
+                      savefig=savefig, fname=fname, **kwargs)
 
     def hr(self):
         # print("\nPlotting Hit Rates:", end="")
