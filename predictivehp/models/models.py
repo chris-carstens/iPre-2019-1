@@ -284,10 +284,33 @@ class STKDE:
                             shrink=.5,
                             aspect=10)
         cbar.solids.set(alpha=1)
-        #ax.set_axis_off()
-        plt.show()
 
-    
+        if validate_incidents:
+            #print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
+
+            # US Survey Foot: 0.3048 m
+            # print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")  # 2276
+
+            geometry = [Point(xy) for xy in zip(
+                np.array(self.X_test[['x']]),
+                np.array(self.X_test[['y']]))]
+            geo_df = gpd.GeoDataFrame(self.X_test,
+                                      crs=dallas.crs,
+                                      geometry=geometry)
+
+            print("\tPlotting Incidents...", end=" ")
+
+            geo_df.plot(ax=ax,
+                        markersize=17.5,
+                        color='red',
+                        marker='o',
+                        zorder=3,
+                        label="Incidents")
+
+            print("finished!")
+
+        # ax.set_axis_off()
+        plt.show()
 
     def data_barplot(self, pdf: bool = False):
         """

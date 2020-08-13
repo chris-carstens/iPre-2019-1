@@ -19,9 +19,9 @@ pp.models = [stkde]
 pp.define_models()
 
 stkde.fit(*pp.prepare_stkde())
-stkde.spatial_pattern()
+#stkde.spatial_pattern()
 
-stkde.heatmap()
+stkde.heatmap(validate_incidents=True)
 
 # %% Plotter
 pltr = Plotter(models=[
