@@ -58,7 +58,7 @@ class Plotter:
         """
         pass
 
-    def heatmap(self, c=0):
+    def heatmap(self, c=0, **kwargs):
         """
 
         Returns
@@ -66,7 +66,7 @@ class Plotter:
 
         """
         for m in self.models:
-            m.heatmap(c=0)
+            m.heatmap(c=c, **kwargs)
 
     def hr(self):
         # print("\nPlotting Hit Rates:", end="")

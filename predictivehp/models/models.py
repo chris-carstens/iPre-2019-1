@@ -400,7 +400,7 @@ class STKDE:
 
         geometry = [Point(xy) for xy in zip(self.predicted_sim[0],
                                             self.predicted_sim[1])]
-        
+
         geo_df = gpd.GeoDataFrame(self.X_test,
                                   crs=dallas.crs,
                                   geometry=geometry)
@@ -1314,7 +1314,7 @@ class RForestRegressor(object):
         hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
 
         d_incidents = hits.shape[0]
-        h_area = d_cells.shape[0]  # *(100**2) pero el print dejarlo en m2
+        h_area = d_cells.shape[0]*self.xc_size*self.yc_size * (10**-6)
 
         self.d_incidents = d_incidents
         self.h_area = h_area
@@ -1401,7 +1401,7 @@ class RForestRegressor(object):
             self.ap = np.array(ap_l)
             self.pai = np.array(pai_l)
 
-    def heatmap(self, c=0, show_score=False, incidences=False,
+    def heatmap(self, c=0, show_score=True, incidences=False,
                 savefig=False, fname='', **kwargs):
         """
 
@@ -1563,157 +1563,157 @@ class RForestRegressor(object):
         )
         plt.show()
 
-    def plot_incidents(self, i_type="real", month="October"):
-        """
-        Plotea los incidentes almacenados en self.data en el mes dado.
-        Asegurarse que al momento de realizar el ploteo, ya se haya
-        hecho un llamado al método ml_algorithm() para identificar los
-        incidentes TP y FN
-
-        :param str i_type: Tipo de incidente a plotear (e.g. TP, FN, TP & FN)
-        :param str month: String con el nombre del mes que se predijo
-            con ml_algorithm()
-        :return:
-        """
-
-        print(f"\nPlotting {month} Incidents...")
-        print("\tFiltering incidents...")
-
-        tp_data, fn_data, data = None, None, None
-
-        if i_type == "TP & FN":
-            data = gpd.GeoDataFrame(self.X)
-            tp_data = data[self.X.TP == 1]
-            fn_data = data[self.X.FN == 1]
-        if i_type == "TP":
-            data = gpd.GeoDataFrame(self.X)
-            tp_data = self.X[self.X.TP == 1]
-        if i_type == "FN":
-            data = gpd.GeoDataFrame(self.X)
-            fn_data = self.X[self.X.FN == 1]
-        if i_type == "real":
-            data = self.data[self.data.month1 == month]
-            n_incidents = data.shape[0]
-            print(f"\tNumber of Incidents in {month}: {n_incidents}")
-        if i_type == "pred":
-            data = gpd.GeoDataFrame(self.X)
-            all_hp = data[self.X[('Dangerous_pred_Oct', '')] == 1]
-
-        print("\tReading shapefile...")
-        d_streets = gpd.GeoDataFrame.from_file(
-            "../Data/Streets/streets.shp")
-        d_streets.to_crs(epsg=3857, inplace=True)
-
-        print("\tRendering Plot...")
-        fig, ax = plt.subplots(figsize=(20, 15))
-
-        d_streets.plot(ax=ax,
-                       alpha=0.4,
-                       color="dimgrey",
-                       zorder=2,
-                       label="Streets")
-
-        if i_type == 'pred':
-            all_hp.plot(
-                ax=ax,
-                markersize=2.5,
-                color='y',
-                marker='o',
-                zorder=3,
-                label="TP Incidents"
-            )
-        if i_type == "real":
-            data.plot(
-                ax=ax,
-                markersize=10,
-                color='darkorange',
-                marker='o',
-                zorder=3,
-                label="TP Incidents"
-            )
-        if i_type == "TP":
-            tp_data.plot(
-                ax=ax,
-                markersize=2.5,
-                color='red',
-                marker='o',
-                zorder=3,
-                label="TP Incidents"
-            )
-        if i_type == "FN":
-            fn_data.plot(
-                ax=ax,
-                markersize=2.5,
-                color='blue',
-                marker='o',
-                zorder=3,
-                label="FN Incidents"
-            )
-        if i_type == "TP & FN":
-            tp_data.plot(
-                ax=ax,
-                markersize=2.5,
-                color='red',
-                marker='o',
-                zorder=3,
-                label="TP Incidents"
-            )
-            fn_data.plot(
-                ax=ax,
-                markersize=2.5,
-                color='blue',
-                marker='o',
-                zorder=3,
-                label="FN Incidents"
-            )
-
-        # Legends
-        handles = [
-            Line2D([], [],
-                   marker='o',
-                   color='darkorange',
-                   label='Incident',
-                   linestyle='None'),
-            Line2D([], [],
-                   marker='o',
-                   color='red',
-                   label='TP Incident',
-                   linestyle='None'),
-            Line2D([], [],
-                   marker='o',
-                   color="blue",
-                   label="FN Incident",
-                   linestyle='None'),
-            Line2D([], [],
-                   marker='o',
-                   color='y',
-                   label='Predicted Incidents',
-                   linestyle='None')
-        ]
-
-        plt.legend(loc="best",
-                   bbox_to_anchor=(0.1, 0.7),
-                   frameon=False,
-                   fontsize=13.5,
-                   handles=handles)
-
-        legends = ax.get_legend()
-        for text in legends.get_texts():
-            text.set_color('white')
-
-            hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
-            misses = gpd.GeoDataFrame(join_[join_['Hit'] == 0])
-            if not hits.empty:
-                hits.plot(ax=ax, marker='x', markersize=0.25, color='lime',
-                          label="Hits")
-            if not misses.empty:
-                misses.plot(ax=ax, marker='x', markersize=0.25, color='r',
-                            label="Misses")
-
-        ax.set_axis_off()
-        fig.set_facecolor('black')
-        plt.show()
-        plt.close()
+    # def plot_incidents(self, i_type="real", month="October"):
+    #     """
+    #     Plotea los incidentes almacenados en self.data en el mes dado.
+    #     Asegurarse que al momento de realizar el ploteo, ya se haya
+    #     hecho un llamado al método ml_algorithm() para identificar los
+    #     incidentes TP y FN
+    #
+    #     :param str i_type: Tipo de incidente a plotear (e.g. TP, FN, TP & FN)
+    #     :param str month: String con el nombre del mes que se predijo
+    #         con ml_algorithm()
+    #     :return:
+    #     """
+    #
+    #     print(f"\nPlotting {month} Incidents...")
+    #     print("\tFiltering incidents...")
+    #
+    #     tp_data, fn_data, data = None, None, None
+    #
+    #     if i_type == "TP & FN":
+    #         data = gpd.GeoDataFrame(self.X)
+    #         tp_data = data[self.X.TP == 1]
+    #         fn_data = data[self.X.FN == 1]
+    #     if i_type == "TP":
+    #         data = gpd.GeoDataFrame(self.X)
+    #         tp_data = self.X[self.X.TP == 1]
+    #     if i_type == "FN":
+    #         data = gpd.GeoDataFrame(self.X)
+    #         fn_data = self.X[self.X.FN == 1]
+    #     if i_type == "real":
+    #         data = self.data[self.data.month1 == month]
+    #         n_incidents = data.shape[0]
+    #         print(f"\tNumber of Incidents in {month}: {n_incidents}")
+    #     if i_type == "pred":
+    #         data = gpd.GeoDataFrame(self.X)
+    #         all_hp = data[self.X[('Dangerous_pred_Oct', '')] == 1]
+    #
+    #     print("\tReading shapefile...")
+    #     d_streets = gpd.GeoDataFrame.from_file(
+    #         "../Data/Streets/streets.shp")
+    #     d_streets.to_crs(epsg=3857, inplace=True)
+    #
+    #     print("\tRendering Plot...")
+    #     fig, ax = plt.subplots(figsize=(20, 15))
+    #
+    #     d_streets.plot(ax=ax,
+    #                    alpha=0.4,
+    #                    color="dimgrey",
+    #                    zorder=2,
+    #                    label="Streets")
+    #
+    #     if i_type == 'pred':
+    #         all_hp.plot(
+    #             ax=ax,
+    #             markersize=2.5,
+    #             color='y',
+    #             marker='o',
+    #             zorder=3,
+    #             label="TP Incidents"
+    #         )
+    #     if i_type == "real":
+    #         data.plot(
+    #             ax=ax,
+    #             markersize=10,
+    #             color='darkorange',
+    #             marker='o',
+    #             zorder=3,
+    #             label="TP Incidents"
+    #         )
+    #     if i_type == "TP":
+    #         tp_data.plot(
+    #             ax=ax,
+    #             markersize=2.5,
+    #             color='red',
+    #             marker='o',
+    #             zorder=3,
+    #             label="TP Incidents"
+    #         )
+    #     if i_type == "FN":
+    #         fn_data.plot(
+    #             ax=ax,
+    #             markersize=2.5,
+    #             color='blue',
+    #             marker='o',
+    #             zorder=3,
+    #             label="FN Incidents"
+    #         )
+    #     if i_type == "TP & FN":
+    #         tp_data.plot(
+    #             ax=ax,
+    #             markersize=2.5,
+    #             color='red',
+    #             marker='o',
+    #             zorder=3,
+    #             label="TP Incidents"
+    #         )
+    #         fn_data.plot(
+    #             ax=ax,
+    #             markersize=2.5,
+    #             color='blue',
+    #             marker='o',
+    #             zorder=3,
+    #             label="FN Incidents"
+    #         )
+    #
+    #     # Legends
+    #     handles = [
+    #         Line2D([], [],
+    #                marker='o',
+    #                color='darkorange',
+    #                label='Incident',
+    #                linestyle='None'),
+    #         Line2D([], [],
+    #                marker='o',
+    #                color='red',
+    #                label='TP Incident',
+    #                linestyle='None'),
+    #         Line2D([], [],
+    #                marker='o',
+    #                color="blue",
+    #                label="FN Incident",
+    #                linestyle='None'),
+    #         Line2D([], [],
+    #                marker='o',
+    #                color='y',
+    #                label='Predicted Incidents',
+    #                linestyle='None')
+    #     ]
+    #
+    #     plt.legend(loc="best",
+    #                bbox_to_anchor=(0.1, 0.7),
+    #                frameon=False,
+    #                fontsize=13.5,
+    #                handles=handles)
+    #
+    #     legends = ax.get_legend()
+    #     for text in legends.get_texts():
+    #         text.set_color('white')
+    #
+    #         hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
+    #         misses = gpd.GeoDataFrame(join_[join_['Hit'] == 0])
+    #         if not hits.empty:
+    #             hits.plot(ax=ax, marker='x', markersize=0.25, color='lime',
+    #                       label="Hits")
+    #         if not misses.empty:
+    #             misses.plot(ax=ax, marker='x', markersize=0.25, color='r',
+    #                         label="Misses")
+    #
+    #     ax.set_axis_off()
+    #     fig.set_facecolor('black')
+    #     plt.show()
+    #     plt.close()
 
     def plot_hotspots(self):
         """
@@ -1954,72 +1954,72 @@ class RForestRegressor(object):
         plt.show()
         plt.close()
 
-    def plot_joined_cells(self):
-        """
-
-        :return:
-        """
-
-        data_oct = pd.DataFrame(self.data[self.data.month1 == 'October'])
-        data_oct.drop(columns='geometry', inplace=True)
-
-        ans = data_oct.join(other=self.X, on='Cell', how='left')
-        ans = ans[ans[('geometry', '')].notna()]
-
-        gpd_ans = gpd.GeoDataFrame(ans, geometry=ans[('geometry', '')])
-
-        d_streets = gpd.GeoDataFrame.from_file(
-            "../Data/Streets/streets.shp")
-        d_streets.to_crs(epsg=3857, inplace=True)
-
-        fig, ax = plt.subplots(figsize=(20, 15))
-
-        d_streets.plot(ax=ax,
-                       alpha=0.4,
-                       color="dimgrey",
-                       zorder=2,
-                       label="Streets")
-
-        gpd_ans.plot(
-            ax=ax,
-            markersize=10,
-            color='red',
-            marker='o',
-            zorder=3,
-            label="Joined Incidents"
-        )
-
-        handles = [
-            Line2D([], [],
-                   marker='o',
-                   color='red',
-                   label='Joined Incidents',
-                   linestyle='None'),
-        ]
-
-        plt.legend(loc="best",
-                   bbox_to_anchor=(0.1, 0.7),
-                   frameon=False,
-                   fontsize=13.5,
-                   handles=handles)
-
-        legends = ax.get_legend()
-        for text in legends.get_texts():
-            text.set_color('white')
-
-            hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
-            misses = gpd.GeoDataFrame(join_[join_['Hit'] == 0])
-            if not hits.empty:
-                hits.plot(ax=ax, marker='x', markersize=0.25, color='lime',
-                          label="Hits")
-            if not misses.empty:
-                misses.plot(ax=ax, marker='x', markersize=0.25, color='r',
-                            label="Misses")
-
-        ax.set_axis_off()
-        fig.set_facecolor('black')
-        plt.show()
-        plt.close()
+    # def plot_joined_cells(self):
+    #     """
+    #
+    #     :return:
+    #     """
+    #
+    #     data_oct = pd.DataFrame(self.data[self.data.month1 == 'October'])
+    #     data_oct.drop(columns='geometry', inplace=True)
+    #
+    #     ans = data_oct.join(other=self.X, on='Cell', how='left')
+    #     ans = ans[ans[('geometry', '')].notna()]
+    #
+    #     gpd_ans = gpd.GeoDataFrame(ans, geometry=ans[('geometry', '')])
+    #
+    #     d_streets = gpd.GeoDataFrame.from_file(
+    #         "../Data/Streets/streets.shp")
+    #     d_streets.to_crs(epsg=3857, inplace=True)
+    #
+    #     fig, ax = plt.subplots(figsize=(20, 15))
+    #
+    #     d_streets.plot(ax=ax,
+    #                    alpha=0.4,
+    #                    color="dimgrey",
+    #                    zorder=2,
+    #                    label="Streets")
+    #
+    #     gpd_ans.plot(
+    #         ax=ax,
+    #         markersize=10,
+    #         color='red',
+    #         marker='o',
+    #         zorder=3,
+    #         label="Joined Incidents"
+    #     )
+    #
+    #     handles = [
+    #         Line2D([], [],
+    #                marker='o',
+    #                color='red',
+    #                label='Joined Incidents',
+    #                linestyle='None'),
+    #     ]
+    #
+    #     plt.legend(loc="best",
+    #                bbox_to_anchor=(0.1, 0.7),
+    #                frameon=False,
+    #                fontsize=13.5,
+    #                handles=handles)
+    #
+    #     legends = ax.get_legend()
+    #     for text in legends.get_texts():
+    #         text.set_color('white')
+    #
+    #         hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
+    #         misses = gpd.GeoDataFrame(join_[join_['Hit'] == 0])
+    #         if not hits.empty:
+    #             hits.plot(ax=ax, marker='x', markersize=0.25, color='lime',
+    #                       label="Hits")
+    #         if not misses.empty:
+    #             misses.plot(ax=ax, marker='x', markersize=0.25, color='r',
+    #                         label="Misses")
+    #
+    #     ax.set_axis_off()
+    #     fig.set_facecolor('black')
+    #     plt.show()
+    #     plt.close()
 
 
 class ProMap:
@@ -2152,8 +2152,8 @@ class ProMap:
 
         self.create_grid()
 
-        # points = np.array([self.xx.flatten(), self.yy.flatten()])
-        # self.cells_in_map = af.checked_points_pm(points)  # 141337
+        points = np.array([self.xx.flatten(), self.yy.flatten()])
+        self.cells_in_map = af.checked_points_pm(points)  # 141337
 
     def predict(self, X, y):
 
@@ -2432,15 +2432,16 @@ class ProMap:
 
 class Model:
     def __init__(self):
+        self.models = []
         self.stkde = None
         self.promap = None
         self.rfr = None
         self.pp = None
 
     def preprocessing(self):
-        models = [m for m in [self.stkde, self.promap, self.rfr]
+        self.models = [m for m in [self.stkde, self.promap, self.rfr]
                   if m is not None]
-        self.pp = dp.PreProcessing(models=models)
+        self.pp = dp.PreProcessing(self.models)
 
     def print_parameters(self):
         """
@@ -2514,13 +2515,16 @@ class Model:
         int
           ji
         """
-        pass
+        for m in self.models:
+            m.validate(c)
 
     def detected_incidences(self):
-        pass
+        for m in self.models:
+            print(f"{m.name}: {m.d_incidents}")
 
     def hotspot_area(self):
-        pass
+        for m in self.models:
+            print(f"{m.name}: {m.h_area}")
 
     def plot_hr(self):
         pass
