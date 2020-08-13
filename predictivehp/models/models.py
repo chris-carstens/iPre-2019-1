@@ -2335,7 +2335,6 @@ class ProMap:
 
     def heatmap(self, c=0, show_score=True, incidences=False,
                 savefig=False, fname='', **kwargs):
-
         """
         Mostrar un heatmap de una matriz de riesgo.
 

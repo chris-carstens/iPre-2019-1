@@ -52,7 +52,8 @@ class Plotter:
         """
         pass
 
-    def set_paramaters(self):
+    @staticmethod
+    def set_paramaters():
         """
 
         Returns
@@ -109,7 +110,7 @@ class Plotter:
         """
         for m in self.models:
             m.heatmap(c=c, show_score=show_score, incidences=incidences,
-                      savefig=savefig, fname='', **kwargs)
+                      savefig=savefig, fname=fname, **kwargs)
 
     def hr(self):
         # print("\nPlotting Hit Rates:", end="")
