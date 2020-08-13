@@ -20,6 +20,7 @@ pm.set_parameters(bw = bw)
 pp.models = [pm]
 pp.define_models()
 
+
 pm.fit()
 pm.predict(*pp.prepare_promap())
 pm.heatmap(incidents=True)
