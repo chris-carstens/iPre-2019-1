@@ -305,3 +305,5 @@ predictivehp/stkde_grid.py
 .virtual_documents/*
 
 InformeHotspots.docx
+
+predictivehp/data/prediction.npy
