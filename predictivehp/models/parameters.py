@@ -1,6 +1,7 @@
 # STKDE
 
 import numpy as np
+import matplotlib as mpl
 from calendar import monthrange
 from datetime import date
 
@@ -20,6 +21,39 @@ d_colors = {
     "13": "crimson",
     "14": "thistle"
 }
+
+# MATPLOTLIB RC
+
+mpl.rcdefaults()
+rc = {
+    'figure.facecolor': 'black',
+    'figure.figsize': (6.75, 4),  # Values for Jup. Lab // (6.0, 4.0) default
+
+    'xtick.color': 'white',
+    'xtick.major.size': 3,
+    'xtick.top': False,
+    'xtick.bottom': True,
+
+    'ytick.color': 'white',
+    'ytick.major.size': 3,
+    'ytick.left': True,
+    'ytick.right': False,
+
+    'axes.facecolor': '#100000',
+    'axes.edgecolor': 'black',
+    'axes.labelcolor': 'white',
+    'axes.grid': True,
+    'axes.axisbelow': True,
+
+    'text.color': 'white',
+
+    'legend.shadow': True,
+    'legend.framealpha': 1.0,
+
+    'grid.color': '#250000',
+}
+mpl.rcParams.update(rc)
+f_size = mpl.rcParams.get('figure.figsize')
 
 # Optimal Bandwidths
 
