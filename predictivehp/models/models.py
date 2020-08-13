@@ -185,7 +185,8 @@ class STKDE:
         t_training = pd.Series(
             self.X_train["y_day"]).tolist()
 
-        #predicted = stkde.resample(len(x_training), self.shps["councils"])
+        self.predicted_sim = stkde.resample(len(pd.Series(
+            self.X_test["x"]).tolist()), self.shps["councils"])
 
         x, y, t = np.mgrid[
                       np.array(x_training).min():
@@ -238,7 +239,7 @@ class STKDE:
         # print(f"STKDE pdf score: {score_pdf}\n")
         return score_pdf
 
-    def heatmap(self, c=0, bins=100, ti=100):
+    def heatmap(self, c=0, validate_incidents=False, bins=100, ti=100):
         """
         Parameters
         ----------
@@ -285,6 +286,8 @@ class STKDE:
         cbar.solids.set(alpha=1)
         #ax.set_axis_off()
         plt.show()
+
+    
 
     def data_barplot(self, pdf: bool = False):
         """
@@ -335,6 +338,7 @@ class STKDE:
         pdf: True si se desea guardar el plot en formato pdf
         """
 
+        self.predict()
         print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
 
         print("\tReading shapefiles...", end=" ")
@@ -396,6 +400,24 @@ class STKDE:
 
         print("finished!")
 
+        geometry = [Point(xy) for xy in zip(self.predicted_sim[0],
+            self.predicted_sim[1])
+                    ]
+        geo_df = gpd.GeoDataFrame(self.X_test,
+                                  crs=dallas.crs,
+                                  geometry=geometry)
+
+        print("\tPlotting Sim...", end=" ")
+
+        geo_df.plot(ax=ax,
+                    markersize=17.5,
+                    color='blue',
+                    marker='o',
+                    zorder=3,
+                    label="Simulated Incidents")
+
+        print("finished!")
+
         plt.title(f"Dallas Incidents - Spatial Pattern\n",
                   fontdict={'fontsize': 20},
                   pad=25)
@@ -406,10 +428,6 @@ class STKDE:
                    handles=handles)
 
         #ax.set_axis_off()
-        plt.show()
-
-        if pdf:
-            plt.savefig("output/spatial_pattern.pdf", format='pdf')
         plt.show()
 
     def contour_plot(self, bins: int, ti: int, pdf: bool = False):
@@ -918,8 +936,11 @@ class STKDE:
         return self.pai, self.hr, self.ap
 
     def validate(self, c=0):
-        z = self.f_delitos[self.f_delitos > c]
-        print("Detected incidents: ", z.size)
+        hits = self.f_delitos[self.f_delitos > c]
+        self.d_incidents = hits.size
+
+    def detected_incidents(self):
+        pass
 
 
 class RForestRegressor(object):
