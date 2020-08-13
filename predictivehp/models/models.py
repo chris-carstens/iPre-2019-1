@@ -173,7 +173,7 @@ class STKDE:
           Diccionario con los valores de la función densidad evaluada en
           la malla original con llave el grupo
         """
-        if self.f_delitos:
+        if self.f_delitos is not None:
             return self.f_delitos, self.f_nodos
         stkde = self.kde
 
