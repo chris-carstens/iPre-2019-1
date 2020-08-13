@@ -1486,7 +1486,7 @@ class RForestRegressor(object):
             norm = mpl.colors.Normalize(vmin=0, vmax=1)
             cmap = mpl.cm.jet
             mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-            divider = make_axes_locatable(ax)
+            # divider = make_axes_locatable(ax)
             c_bar = fig.colorbar(mappable, ax=ax,
                                  fraction=0.15,
                                  shrink=0.5,
@@ -2333,8 +2333,8 @@ class ProMap:
             else float(self.hr[i]) / float(self.ap[i])
             for i in range(len(self.ap))]
 
-    def heatmap(self, c=0,
-                incidents=False):
+    def heatmap(self, c=0, show_score=True, incidences=False,
+                savefig=False, fname='', **kwargs):
 
         """
         Mostrar un heatmap de una matriz de riesgo.
@@ -2358,7 +2358,7 @@ class ProMap:
         dallas.crs = 2276
         dallas.to_crs(epsg=3857, inplace=True)
 
-        fig, ax = plt.subplots(figsize=(15, 12))
+        fig, ax = plt.subplots(figsize=[prm.f_size[0]] * 2)
         ax.set_facecolor('xkcd:black')
 
         plt.title(self.name)
@@ -2368,11 +2368,9 @@ class ProMap:
                    # vmin=0, vmax=1
                    )
 
-        dallas.plot(ax=ax,
-                    alpha=.3,  # Ancho de las calles
-                    color="gray")
+        dallas.plot(ax=ax, alpha=.3, color="gray")
 
-        if incidents:
+        if incidences:
             geometry = [Point(xy) for xy in zip(
                 np.array(self.y[['x_point']]),
                 np.array(self.y[['y_point']]))
@@ -2387,8 +2385,25 @@ class ProMap:
                         zorder=3,
                         label="Incidents")
 
-        plt.colorbar()
+        ax.set_axis_off()
+        plt.title('ProMap')
+        plt.legend()
+
+        if show_score:
+            norm = mpl.colors.Normalize(vmin=0, vmax=1)
+            cmap = mpl.cm.jet
+            mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+            c_bar = fig.colorbar(mappable, ax=ax,
+                                 fraction=0.15,
+                                 shrink=0.5,
+                                 aspect=21.5)
+            c_bar.ax.set_ylabel('Danger Score')
+
+        plt.tight_layout()
+        if savefig:
+            plt.savefig(fname, **kwargs)
         plt.show()
+
 
     def plot_incident(self, matriz, nombre_grafico):
 
