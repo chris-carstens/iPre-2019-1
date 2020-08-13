@@ -10,4 +10,3 @@ Pontifical Catholic University of Chile
 
 if __name__ == '__main__':
     pass
-
