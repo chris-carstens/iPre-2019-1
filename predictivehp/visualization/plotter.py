@@ -1,3 +1,4 @@
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 # from mpl_toolkits.mplot3d import Axes3D
 # from matplotlib import cm
@@ -48,6 +49,44 @@ class Plotter:
 
         """
         pass
+
+    def set_paramaters(self):
+        """
+
+        Returns
+        -------
+
+        """
+        mpl.rcdefaults()
+        rc = {
+            'figure.facecolor': 'black',
+            'figure.figsize': (6.75, 4),
+            # Values for Jup. Lab // (6.0, 4.0) default
+
+            'xtick.color': 'white',
+            'xtick.major.size': 3,
+            'xtick.top': False,
+            'xtick.bottom': True,
+
+            'ytick.color': 'white',
+            'ytick.major.size': 3,
+            'ytick.left': True,
+            'ytick.right': False,
+
+            'axes.facecolor': '#100000',
+            'axes.edgecolor': 'black',
+            'axes.labelcolor': 'white',
+            'axes.grid': True,
+            'axes.axisbelow': True,
+
+            'text.color': 'white',
+
+            'legend.shadow': True,
+            'legend.framealpha': 1.0,
+
+            'grid.color': '#250000',
+        }
+        mpl.rcParams.update(rc)
 
     def predict(self):
         """
