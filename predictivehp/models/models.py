@@ -62,8 +62,7 @@ class MyKDEMultivariate(kd.KDEMultivariate):
 
 class STKDE:
     def __init__(self,
-                 shps=None,
-                 year="2017", bw=None, sample_number=3600,
+                 shps=None, bw=None, sample_number=3600,
                  start_prediction=date(2017, 11, 1),
                  window_days=7, name="STKDE"):
         """
@@ -255,7 +254,6 @@ class STKDE:
         dallas = self.shps['streets']
 
         fig, ax = plt.subplots(figsize=[prm.f_size[0]] * 2)
-        ax.set_facecolor('xkcd:black')
         dallas.plot(ax=ax, alpha=.4, color="gray", zorder=1)
 
         x, y = np.mgrid[
@@ -282,15 +280,20 @@ class STKDE:
                                  cmap='jet',
                                  zorder=2,
                                  )
-        ax.set_facecolor('xkcd:black')
-        #   plt.title(f"Dallas Incidents - Heatmap\n",
-        #        fontdict={'fontsize': 20}, pad=20)
+
+        ax.set_axis_off()
+        plt.title('STKDE')
+        plt.legend()
+
         if show_score:
-            cbar = plt.colorbar(heatmap,
-                                ax=ax,
-                                shrink=.5,
-                                aspect=10)
-            cbar.solids.set(alpha=1)
+            norm = mpl.colors.Normalize(vmin=0, vmax=1)
+            cmap = mpl.cm.jet
+            mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+            c_bar = fig.colorbar(mappable, ax=ax,
+                                 fraction=0.15,
+                                 shrink=0.5,
+                                 aspect=21.5)
+            c_bar.ax.set_ylabel('Danger Score')
 
         if incidences:
             # print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
@@ -316,7 +319,7 @@ class STKDE:
 
             print("finished!")
 
-        # ax.set_axis_off()
+        ax.set_axis_off()
         plt.tight_layout()
         if savefig:
             plt.savefig(fname, **kwargs)
@@ -2507,10 +2510,11 @@ class Model:
         if self.stkde:
             self.stkde.fit(*self.pp.preparing_data('STKDE'))
         if self.rfr:
-            self.rfr.fit(*self.pp.preparing_data(
-                'RForestRegressor', mode='train', label='default'
-            )
-                         )
+            if not self.rfr.read_data and not self.rfr.read_X:
+                self.rfr.fit(*self.pp.preparing_data(
+                    'RForestRegressor', mode='train', label='default'
+                )
+                             )
         if self.promap:
             self.promap.fit()
 
@@ -2608,7 +2612,8 @@ def create_model(data=None, shps=None,
     """
     m = Model()
     m.stkde = STKDE(shps=shps, start_prediction=start_prediction,
-                    length_prediction=length_prediction) if use_stkde else m.stkde
+                    window_days=length_prediction) \
+        if use_stkde else m.stkde
     if use_promap:
         m.promap = ProMap(shps=shps, start_prediction=start_prediction)
     if use_rfr:
