@@ -2563,7 +2563,8 @@ def create_model(data=None, shps=None,
     Model
     """
     m = Model()
-    m.stkde = STKDE() if use_stkde else m.stkde
+    m.stkde = STKDE(shps=shps, start_prediction=start_prediction,
+                    length_prediction=length_prediction) if use_stkde else m.stkde
     if use_promap:
         m.promap = ProMap(shps=shps, start_prediction=start_prediction)
     if use_rfr:
