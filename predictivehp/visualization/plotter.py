@@ -23,6 +23,8 @@ class Plotter:
         self.c_arr = np.linspace(0, 1, n)
         self.models = [] if not models else models
 
+        self.set_paramaters()
+
     def add_model(self, model):
         """
 
@@ -97,7 +99,8 @@ class Plotter:
         """
         pass
 
-    def heatmap(self, c=0, **kwargs):
+    def heatmap(self, c=0, show_score=True, incidences=False,
+                savefig=False, fname='', **kwargs):
         """
 
         Returns
@@ -105,7 +108,8 @@ class Plotter:
 
         """
         for m in self.models:
-            m.heatmap(c=c, **kwargs)
+            m.heatmap(c=c, show_score=show_score, incidences=incidences,
+                      savefig=savefig, fname='', **kwargs)
 
     def hr(self):
         # print("\nPlotting Hit Rates:", end="")

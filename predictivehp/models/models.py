@@ -4,8 +4,6 @@ from datetime import date, timedelta, datetime
 import geopandas as gpd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -65,7 +63,8 @@ class MyKDEMultivariate(kd.KDEMultivariate):
 class STKDE:
     def __init__(self,
                  shps=None,
-                 year="2017", bw=None, sample_number=3600, start_prediction=date(2017, 11, 1),
+                 year="2017", bw=None, sample_number=3600,
+                 start_prediction=date(2017, 11, 1),
                  window_days=7, name="STKDE"):
         """
         Parameters
@@ -208,7 +207,8 @@ class STKDE:
             np.array(self.X_test['y_day'])
         ti = np.repeat(max(t_training), x.size)
         f_delitos = stkde.pdf(af.checked_points(
-            np.array([x.flatten(), y.flatten(), ti.flatten()]), self.shps["councils"]))
+            np.array([x.flatten(), y.flatten(), ti.flatten()]),
+            self.shps["councils"]))
 
         f_max = max([f_nodos.max(), f_delitos.max()])
 
@@ -1319,7 +1319,7 @@ class RForestRegressor(object):
         hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
 
         d_incidents = hits.shape[0]
-        h_area = d_cells.shape[0]*self.xc_size*self.yc_size * (10**-6)
+        h_area = d_cells.shape[0] * self.xc_size * self.yc_size * (10 ** -6)
 
         self.d_incidents = d_incidents
         self.h_area = h_area
@@ -2397,7 +2397,6 @@ class ProMap:
             plt.savefig(fname, **kwargs)
         plt.show()
 
-
     def plot_incident(self, matriz, nombre_grafico):
 
         """
@@ -2460,7 +2459,7 @@ class Model:
 
     def preprocessing(self):
         self.models = [m for m in [self.stkde, self.promap, self.rfr]
-                  if m is not None]
+                       if m is not None]
         self.pp = dp.PreProcessing(self.models)
 
     def print_parameters(self):
@@ -2498,25 +2497,27 @@ class Model:
             )
             self.rfr.predict(X_test)
 
-    def plot_heatmap(self, c=0, incidences=False):
-        """
-
-        Parameters
-        ----------
-        c : {int, float, list}
-          Si un solo elemento es especificado, luego celdas con un
-          score superior a c son consideradas parte del hotspot. El
-          resto quedan de color transparente.
-
-          Si es una lista, tenemos hotpots con scores entre c[0] y c[1],
-          el resto de las celdas quedan transparentes.
-        incidences : bool
-          Determina si se plotean o no los incidentes en el heatmap.
-
-          Green marker para hits, Red marker para misses.
-        """
-        if self.rfr:
-            pass
+    # def plot_heatmap(self, c=0, show_score=True, incidences=False,
+    #                  savefig=False, fname='', **kwargs):
+    #     """
+    #
+    #     Parameters
+    #     ----------
+    #     c : {int, float, list}
+    #       Si un solo elemento es especificado, luego celdas con un
+    #       score superior a c son consideradas parte del hotspot. El
+    #       resto quedan de color transparente.
+    #
+    #       Si es una lista, tenemos hotpots con scores entre c[0] y c[1],
+    #       el resto de las celdas quedan transparentes.
+    #     incidences : bool
+    #       Determina si se plotean o no los incidentes en el heatmap.
+    #
+    #       Green marker para hits, Red marker para misses.
+    #     """
+    #     for m in self.models:
+    #         m.heatmap(c=c, show_score=show_score, incidences=incidences,
+    #                   savefig=savefig, fname=fname, **kwargs)
 
     def validate(self, c=None):
         """
@@ -2544,6 +2545,8 @@ class Model:
 
     def hotspot_area(self):
         for m in self.models:
+            if m.name == 'STKDE':
+                continue
             print(f"{m.name}: {m.h_area}")
 
     def plot_hr(self):
