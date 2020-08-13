@@ -1949,7 +1949,6 @@ class ProMap:
         self.bw_x, self.bw_y, self.bw_t = bw_x, bw_y, bw_t
         self.x_min, self.y_min, self.x_max, self.y_max = self.shps[
             'streets'].total_bounds
-        self.radio = radio
         self.bins_x = int(round(abs(self.x_max - self.x_min) / self.hx))
         self.bins_y = int(round(abs(self.y_max - self.y_min) / self.hy))
 
@@ -2011,6 +2010,8 @@ class ProMap:
 
         """
 
+
+
         delta_x = self.hx / 2
         delta_y = self.hy / 2
 
@@ -2058,12 +2059,9 @@ class ProMap:
             # print(
             #     f'\tNº de datos para testear el modelo: {len(self.y)}')
 
-            if not self.radio:
-                ancho_x = af.radio_pintar(self.hx, self.bw_x)
-                ancho_y = af.radio_pintar(self.hy, self.bw_y)
-            else:
-                ancho_x = af.radio_pintar(self.hx, self.radio)
-                ancho_y = af.radio_pintar(self.hy, self.radio)
+
+            ancho_x = af.radio_pintar(self.hx, self.bw_x)
+            ancho_y = af.radio_pintar(self.hy, self.bw_y)
 
             for k in range(len(self.X)):
                 x, y, t = self.X['x_point'][k], self.X['y_point'][k], \
@@ -2204,7 +2202,8 @@ class ProMap:
             for i in range(len(self.ap))]
 
     def heatmap(self, c=0,
-                nombre_grafico='Predictive Crime Map - Dallas (Method: Promap)'):
+                nombre_grafico='Predictive Crime Map - Dallas (Method: '
+                               'Promap)'):
 
         """
         Mostrar un heatmap de una matriz de riesgo.
@@ -2215,6 +2214,8 @@ class ProMap:
             Representa el valor desde donde quiero ver los scores en el mapa
         nombre_grafico: str
             nombre del gráfico
+        incidentes: bool
+            True para mostrar cuntos incidentes se han capturado
         -------
 
         """
@@ -2239,6 +2240,8 @@ class ProMap:
         dallas.plot(ax=ax,
                     alpha=.3,  # Ancho de las calles
                     color="gray")
+
+
 
         plt.colorbar()
         plt.show()
@@ -2287,6 +2290,14 @@ class ProMap:
         """
         return self.prediction
 
+    def validate(self, c):
+        self.load_test_matrix(self.ventana_dias)
+        hits = np.sum((self.prediction >= c) * self.testing_matrix)
+        n_delitos_testing = np.sum(self.testing_matrix)
+        print(f'{hits} incidents captured!')
+        print(f'{n_delitos_testing} total incidents')
+        return {'ht': hits, 'total':n_delitos_testing}
+
 
 class Model:
     def __init__(self):
@@ -2321,6 +2332,8 @@ class Model:
                 'RForestRegressor', mode='train', label='default'
             )
                          )
+        if self.promap:
+            self.promap.fit()
 
     def predict(self):
         if self.stkde:

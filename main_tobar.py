@@ -1,35 +1,45 @@
 # %%
-from predictivehp.models.models import STKDE, RForestRegressor, ProMap
+from predictivehp.models.models import ProMap
 from predictivehp.models.parameters import *
-from predictivehp.processing.data_processing import get_data, PreProcessing, shps_proccesing
+import predictivehp.processing.data_processing as dp
 from predictivehp.visualization.plotter import Plotter
 
 # %% Data
+b_path = 'predictivehp/data'
+s_shp_p = f'{b_path}/streets.shp'
+c_shp_p = f'{b_path}/councils.shp'
+cl_shp_p = f'{b_path}/citylimit.shp'
 
-b_path = 'predictivehp/data/'
-s_shp_p = b_path + 'streets.shp'
-c_shp_p = b_path + 'councils.shp'
-cl_shp_p = b_path + 'citylimit.shp'
-
-
-shps = shps_proccesing(s_shp_p, c_shp_p, cl_shp_p)
-
-
-pm = ProMap(bw=bw, shps=shps, read_density=True)
-pp = PreProcessing(pm)
-pm.predict(*pp.preparing_data())
-
-#################
+pp = dp.PreProcessing()
+shps = pp.shps_processing(s_shp_p, c_shp_p, cl_shp_p)
 
 
-# Plotter
+# %% PROMAP
+pm = ProMap(shps=shps)
+pm.set_parameters(bw = bw)
+pp.models = [pm]
+pp.define_models()
+
+pm.fit()
+pm.predict(*pp.prepare_promap())
+pm.heatmap(c=0.5)
+pm.validate(c=0.5)
+
+
 pltr = Plotter(models=[
-    pm
+     pm,
 ])
-
 pltr.hr()
 pltr.pai()
-pltr.heatmap()
+
+# %% Plotter
+# pltr = Plotter(models=[
+#      pm,
+# ])
+# pltr.hr()
+# pltr.pai()
+# pm.heatmap()
+# pltr.heatmap()
 
 if __name__ == '__main__':
     pass
