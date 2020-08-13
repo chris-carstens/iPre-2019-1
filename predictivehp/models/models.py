@@ -1116,7 +1116,7 @@ class RForestRegressor(object):
         X_cols = pd.MultiIndex.from_product(
             [[f"Incidents_{i}" for i in range(self.n_layers + 1)], self.weeks]
         )
-        self.X = pd.DataFrame(columns=X_cols)
+        X = pd.DataFrame(columns=X_cols)
 
         # Creación de los parámetros para el cálculo de los índices
         print("\tFilling data...")
@@ -1162,21 +1162,23 @@ class RForestRegressor(object):
 
             # Actualización del pandas dataframe
             for i in range(self.n_layers + 1):
-                self.X.loc[:, (f"Incidents_{i}", f"{week}")] = \
+                X.loc[:, (f"Incidents_{i}", f"{week}")] = \
                     af.to_df_col(D) if i == 0 \
                         else af.to_df_col(af.il_neighbors(D, i))
             print('finished!')
 
         # Adición de las columnas 'geometry' e 'in_dallas' al data
         print("\tPreparing data for filtering...")
-        self.X[('geometry', '')] = [Point(i) for i in
+        X[('geometry', '')] = [Point(i) for i in
                                     zip(x[:-1, :-1].flatten(),
                                         y[:-1, :-1].flatten())]
-        self.X[('in_dallas', '')] = 0
+        X[('in_dallas', '')] = 0
 
         # Filtrado de celdas (llenado de la columna 'in_dallas')
-        self.X = af.filter_cells(df=self.X, shp=self.shps['councils'])
-        self.X.drop(columns=[('in_dallas', '')], inplace=True)
+        X = af.filter_cells(df=X, shp=self.shps['councils'])
+        X.drop(columns=[('in_dallas', '')], inplace=True)
+
+        self.X = X
 
     def to_pickle(self, file_name):
         """Genera un pickle de self.data o self.data dependiendo el nombre
@@ -1232,6 +1234,7 @@ class RForestRegressor(object):
 
         # Dejamos la asociación inc-cell en el index de self.data
         self.data.set_index('Cell', drop=True, inplace=True)
+        self.data.to_pickle('predictivehp/data/data.pkl')
 
     def fit(self, X, y):
         """Entrena el modelo
@@ -1251,6 +1254,7 @@ class RForestRegressor(object):
         self.rfr.fit(X, y.to_numpy().ravel())
         # Sirven para determinar celdas con TP/FN
         self.X[('Dangerous', '')] = y
+        self.X.to_pickle('predictivehp/data/X.pkl')
         return self
 
     def predict(self, X):
@@ -2510,7 +2514,7 @@ class Model:
         if self.stkde:
             self.stkde.fit(*self.pp.preparing_data('STKDE'))
         if self.rfr:
-            if not self.rfr.read_data and not self.rfr.read_X:
+            if not self.rfr.read_X:
                 self.rfr.fit(*self.pp.preparing_data(
                     'RForestRegressor', mode='train', label='default'
                 )
