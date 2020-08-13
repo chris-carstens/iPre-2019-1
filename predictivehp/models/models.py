@@ -2,8 +2,10 @@ from calendar import month_name
 from datetime import date, timedelta, datetime
 
 import geopandas as gpd
-import matplotlib.patches as mpatches
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -24,7 +26,7 @@ settings = kd.EstimatorSettings(efficient=True, n_jobs=8)
 
 
 class MyKDEMultivariate(kd.KDEMultivariate):
-    def resample(self, size, shp):
+    def resample(self, size: int):
         """
 
         Parameters
@@ -47,7 +49,7 @@ class MyKDEMultivariate(kd.KDEMultivariate):
 
         # simulated and checked points
         s_points = np.transpose(means + norm)
-        c_points = af.checked_points(s_points, shp)
+        c_points = af.checked_points(s_points)
 
         # print(f"\n{size - c_points.shape[1]} invalid points found")
 
@@ -55,15 +57,17 @@ class MyKDEMultivariate(kd.KDEMultivariate):
             # print("\nfinished!")
             return s_points
 
-        a_points = self.resample(size - c_points.shape[1], shp)
+        a_points = self.resample(size - c_points.shape[1])
 
         return np.hstack((c_points, a_points))
 
 
 class STKDE:
     def __init__(self,
-                 shps=None,
-                 bw=None, sample_number=3600, start_prediction=date(2017, 11, 1),
+                 shps=None, month_division=10,
+                 year="2017",
+                 bw=None, sample_number=3600,
+                 number_of_groups=1, start_prediction=date(2017, 11, 1),
                  window_days=7, name="STKDE"):
         """
         Parameters
@@ -87,13 +91,15 @@ class STKDE:
           GeoDataFrame que contiene información sobre la ciudad de Dallas
         """
 
-        self.name, self.sn, self.bw = name, sample_number, bw
+        self.name, self.sn, self.year, self.bw = name, sample_number, year, bw
+        self.md = month_division
         self.shps = shps
         self.start_prediction = start_prediction
-        self.wd = window_days
+        self.ng, self.wd = number_of_groups, window_days
 
         self.hr, self.ap, self.pai = None, None, None
-        self.f_delitos, self.f_nodos = None, None
+        self.hr_by_group, self.ap_by_group, self.pai_by_group = None, None, None
+        self.f_delitos_by_group, self.f_nodos_by_group = None, None
         self.df = None
 
         # training data 3000
@@ -137,7 +143,7 @@ class STKDE:
             print(
                 "No bandwith set. The model will automatically calculate bandwith after fit.\n")
 
-    def fit(self, X, X_t):
+    def fit(self, X, X_t, predict_groups):
         """
         Parameters
         ----------
@@ -149,7 +155,7 @@ class STKDE:
           Lista con los datos separados por grupos y sus correspondientes
           ventanas.
         """
-        self.X_train, self.X_test = X, X_t
+        self.X_train, self.X_test, self.pg = X, X_t, predict_groups
 
         # print("\nBuilding KDE...")
         self.kde = MyKDEMultivariate(
@@ -171,21 +177,59 @@ class STKDE:
           Diccionario con los valores de la función densidad evaluada en
           la malla original con llave el grupo
         """
-        if self.f_delitos:
-            return self.f_delitos, self.f_nodos
-        stkde = self.kde
+        if self.f_delitos_by_group:
+            return self.f_delitos_by_group, self.f_nodos_by_group
+        f_nodos_by_group, f_delitos_by_group = {}, {}
+        for i in range(1, self.ng + 1):
+            x, y, t = \
+                np.array(self.pg[f'group_{i}']['t2_data']['x']), \
+                np.array(self.pg[f'group_{i}']['t2_data']['y']), \
+                np.array(self.pg[f'group_{i}']['t2_data']['y_day'])
 
-        # Data base, para primer grupo
-        x_training = pd.Series(
-            self.X_train["x"]).tolist()
-        y_training = pd.Series(
-            self.X_train["y"]).tolist()
-        t_training = pd.Series(
-            self.X_train["y_day"]).tolist()
+            if i == 1:
+                # Data base, para primer grupo
+                x_training = pd.Series(
+                    self.X_train["x"]).tolist() + pd.Series(
+                    self.pg[f'group_{i}']['t1_data']['x']).tolist()
+                y_training = pd.Series(
+                    self.X_train["y"]).tolist() + pd.Series(
+                    self.pg[f'group_{i}']['t1_data']['y']).tolist()
+                t_training = pd.Series(
+                    self.X_train["y_day"]).tolist() + pd.Series(
+                    self.pg[f'group_{i}']['t1_data'][
+                        'y_day']).tolist()
 
-        #predicted = stkde.resample(len(x_training), self.shps["councils"])
+            else:
+                # Data agregada del grupo anterior, para re-entrenamiento
+                for j in range(1, i):
+                    x_training += pd.Series(
+                        self.pg[f'group_{j}']['t2_data'][
+                            'x']).tolist()
+                    y_training += pd.Series(
+                        self.pg[f'group_{j}']['t2_data'][
+                            'y']).tolist()
+                    t_training += pd.Series(
+                        self.pg[f'group_{j}']['t2_data'][
+                            'y_day']).tolist()
 
-        x, y, t = np.mgrid[
+            if i > 1:
+                # re-entrenamos modelo
+                stkde = MyKDEMultivariate(
+                    [np.array(x_training),
+                     np.array(y_training),
+                     np.array(t_training)],
+                    'ccc', bw=self.bw)
+
+            else:
+                stkde = self.kde
+
+            # Prediction
+            stkde.resample(len(x_training))
+
+            m = np.repeat(max(t_training), x.size)
+            f_delitos = stkde.pdf(af.checked_points(
+                np.array([x.flatten(), y.flatten(), m.flatten()])))
+            x, y, t = np.mgrid[
                       np.array(x_training).min():
                       np.array(x_training).max():100 * 1j,
                       np.array(y_training).min():
@@ -194,28 +238,19 @@ class STKDE:
                       np.array(t_training).max():1 * 1j
                       ]
 
-        # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
-        f_nodos = stkde.pdf(af.checked_points(
-            np.array([x.flatten(), y.flatten(), t.flatten()]),
-            self.shps['councils']))
+            # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
+            f_nodos = stkde.pdf(af.checked_points(
+                np.array([x.flatten(), y.flatten(), t.flatten()]),
+                self.shps['councils']
+            ))
+            f_max = max([f_nodos.max(), f_delitos.max()])
+            # normalizar
+            f_delitos = f_delitos / f_max
+            f_nodos = f_nodos / f_max
 
-        x, y, t = \
-            np.array(self.X_test['x']), \
-            np.array(self.X_test['y']), \
-            np.array(self.X_test['y_day'])
-        ti = np.repeat(max(t_training), x.size)
-        f_delitos = stkde.pdf(af.checked_points(
-                np.array([x.flatten(), y.flatten(), ti.flatten()]), self.shps["councils"]))
-
-
-        f_max = max([f_nodos.max(), f_delitos.max()])
-
-        # normalizar
-        f_delitos = f_delitos / f_max
-        f_nodos = f_nodos / f_max
-
-        self.f_delitos, self.f_nodos = f_delitos, f_nodos
-        return self.f_delitos, self.f_nodos
+            f_delitos_by_group[i], f_nodos_by_group[i] = f_delitos, f_nodos
+        self.f_delitos_by_group, self.f_nodos_by_group = f_delitos_by_group, f_nodos_by_group
+        return self.f_delitos_by_group, self.f_nodos_by_group
 
     def score(self, x, y, t):
         """
@@ -236,7 +271,7 @@ class STKDE:
         # print(f"STKDE pdf score: {score_pdf}\n")
         return score_pdf
 
-    def heatmap(self, c=0, bins=100, ti=100):
+    def heatmap(self, bins=100, ti=100):
         """
 
         Parameters
@@ -263,10 +298,9 @@ class STKDE:
         z = self.kde.pdf(np.vstack([x.flatten(),
                                     y.flatten(),
                                     ti * np.ones(x.size)]))
+
         # Normalizar
         z = z / z.max()
-
-        z = z[z > c]
 
         heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
                                  shading='gouraud',
@@ -282,7 +316,7 @@ class STKDE:
                             shrink=.5,
                             aspect=10)
         cbar.solids.set(alpha=1)
-        #ax.set_axis_off()
+        # ax.set_axis_off()
         plt.show()
 
     def data_barplot(self, pdf: bool = False):
@@ -882,16 +916,23 @@ class STKDE:
                     Lista con los valores del
                     Area Percentage para cada grupo
         """
-        if self.f_delitos is None:
+        if not self.f_delitos_by_group:
             self.predict()
-        f_delitos, f_nodos = self.f_delitos, self.f_nodos
-        # c = np.linspace(0, f_nodos.max(), 100)
-        hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
-        area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
-        HR = [i / len(f_delitos) for i in hits]
-        area_percentaje = [i / len(f_nodos) for i in area_h]
-        self.hr, self.ap = HR, area_percentaje
-        return self.hr, self.ap
+        hr_by_group, ap_by_group = [], []
+        for g in range(1, self.ng + 1):
+            f_delitos, f_nodos = self.f_delitos_by_group[g], \
+                                 self.f_nodos_by_group[g]
+            # c = np.linspace(0, f_nodos.max(), 100)
+            hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
+            area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
+            HR = [i / len(f_delitos) for i in hits]
+            area_percentaje = [i / len(f_nodos) for i in area_h]
+            if g == 1:
+                # caso base para el grupo 1 (o cuando se utiliza solo un grupo), sirve para función plotter
+                self.hr, self.ap = HR, area_percentaje
+            hr_by_group.append(HR), ap_by_group.append(area_percentaje)
+        self.hr_by_group, self.ap_by_group = hr_by_group, ap_by_group
+        return self.hr_by_group, self.ap_by_group
 
     def calculate_pai(self, c=None):
         """
@@ -914,12 +955,18 @@ class STKDE:
                     Lista con los valores del
                     Area Percentage para cada grupo
         """
-        if not self.hr:
+        pai_by_group = []
+        if not self.hr_by_group:
             self.calculate_hr(c)
-        PAI = [float(self.hr[i]) / float(self.ap[i]) if
-               self.ap[i] else 0 for i in range(len(self.hr))]
-        self.pai = PAI
-        return self.pai, self.hr, self.ap
+        for g in range(1, self.ng + 1):
+            PAI = [float(self.hr_by_group[g - 1][i]) / float(
+                self.ap_by_group[g - 1][i]) if
+                   self.ap_by_group[g - 1][i] else 0 for i in
+                   range(len(self.hr_by_group[g - 1]))]
+            pai_by_group.append(PAI)
+            if g == 1:
+                self.pai = PAI
+        return self.pai_by_group, self.hr_by_group, self.ap_by_group
 
 
 class RForestRegressor(object):
@@ -1266,10 +1313,39 @@ class RForestRegressor(object):
         -------
 
         """
-        d_inc = 0
-        h_area = 0
+        cells = self.X[[('geometry', ''), ('Dangerous_pred', '')]]
+        cells = gpd.GeoDataFrame(cells)
 
-        self.d_incidents = d_inc
+        if type(c) == list or type(c) == tuple:
+            d_cells = cells[
+                (c <= cells[('Dangerous_pred', '')]) &
+                (cells[('Dangerous_pred', '')] <= c)
+                ]
+            cells['Hit'] = np.where(
+                (c[0] <= cells[('Dangerous_pred', '')])
+                & (cells[('Dangerous_pred', '')] <= c[1]),
+                1, 0)
+
+        else:
+            d_cells = cells[c <= cells[('Dangerous_pred', '')]]
+            cells['Hit'] = np.where(
+                cells[('Dangerous_pred', '')] >= c, 1, 0
+            )
+
+        data_nov = pd.DataFrame(self.data[
+                                    (date(2017, 11, 1) <= self.data.date) &
+                                    (self.data.date <= date(2017, 11, 7))
+                                    ])
+        data_nov.columns = pd.MultiIndex.from_product([data_nov.columns, ['']])
+        cells.drop(columns='geometry', inplace=True)
+        join_ = data_nov.join(cells)
+
+        hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
+
+        d_incidents = hits.shape[0]
+        h_area = d_cells.shape[0]  # *(100**2) pero el print dejarlo en m2
+
+        self.d_incidents = d_incidents
         self.h_area = h_area
 
     def calculate_hr(self, c=0.9):
@@ -1354,29 +1430,89 @@ class RForestRegressor(object):
             self.ap = np.array(ap_l)
             self.pai = np.array(pai_l)
 
-    def heatmap(self, c=0):
+    def heatmap(self, c=0, show_score=False, incidences=False,
+                savefig=False, fname='', **kwargs):
         """
 
         Parameters
         ----------
-        c : float
-          Threshold a partir del cual se consideran los
-            incidentes
+        c : {int, list, tuple}
+        show_score
+        incidences
+        savefig
+        fname
+        kwargs
+
+        Returns
+        -------
+
         """
-        # Datos Oct luego de aplicar el rfr
-        ans = self.X[[('geometry', ''), ('Dangerous_pred', '')]]
-        ans = gpd.GeoDataFrame(ans)
-        ans = ans[ans[('Dangerous_pred', '')] >= c]
+        cells = self.X[[('geometry', ''), ('Dangerous_pred', '')]]
+        cells = gpd.GeoDataFrame(cells)
         d_streets = self.shps['streets']
 
-        # print("\tRendering Plot...")
-        fig, ax = plt.subplots(figsize=(20, 15))
-        d_streets.plot(ax=ax, alpha=0.4, color="dimgrey", label="Streets")
-        ans.plot(ax=ax, column=('Dangerous_pred', ''), cmap='jet')
+        fig, ax = plt.subplots(figsize=[prm.f_size[0]] * 2)
+        #     fig.dpi = 300
+        d_streets.plot(ax=ax, alpha=0.2, lw=0.3, color="w", label="Streets")
 
-        # Background
+        if type(c) == list or type(c) == tuple:
+            d_cells = cells[
+                (cells[('Dangerous_pred', '')] <= c[1]) &
+                (c[0] <= cells[('Dangerous_pred')])
+                ]
+            cells['Hit'] = np.where(
+                (c[0] <= cells[('Dangerous_pred', '')]) &
+                (cells[('Dangerous_pred', '')] <= c[1]),
+                1, 0)
+        else:
+            d_cells = cells[cells[('Dangerous_pred', '')] >= c]
+            cells['Hit'] = np.where(
+                cells[('Dangerous_pred', '')] >= c, 1, 0
+            )
+
+        if show_score:
+            d_cells.plot(ax=ax, column=('Dangerous_pred', ''), cmap='jet',
+                         marker=',', markersize=0.1)
+        else:
+            d_cells.plot(ax=ax, marker=',', markersize=0.5, color='darkblue',
+                         label='Hotspot')
+
+        if incidences:  # Se plotean los incidentes
+            data_nov = pd.DataFrame(self.data[
+                                        (date(2017, 11, 1) <= self.data.date) &
+                                        (self.data.date <= date(2017, 11, 7))])
+            data_nov.columns = pd.MultiIndex.from_product(
+                [data_nov.columns, ['']])
+            cells.drop(columns='geometry', inplace=True)
+            join_ = data_nov.join(cells)
+
+            hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
+            misses = gpd.GeoDataFrame(join_[join_['Hit'] == 0])
+            if not hits.empty:
+                hits.plot(ax=ax, marker='x', markersize=0.25, color='lime',
+                          label="Hits")
+            if not misses.empty:
+                misses.plot(ax=ax, marker='x', markersize=0.25, color='r',
+                            label="Misses")
+
         ax.set_axis_off()
-        fig.set_facecolor('black')
+        plt.title('RForestRegressor')
+        plt.legend()
+
+        if show_score:
+            norm = mpl.colors.Normalize(vmin=0, vmax=1)
+            cmap = mpl.cm.jet
+            mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+            divider = make_axes_locatable(ax)
+            c_bar = fig.colorbar(mappable, ax=ax,
+                                 fraction=0.15,
+                                 shrink=0.5,
+                                 aspect=21.5)
+            c_bar.ax.set_ylabel('Danger Score')
+
+        plt.tight_layout()
+        if savefig:
+            plt.savefig(fname, **kwargs)
         plt.show()
 
     def plot_statistics(self, n=500):
@@ -1594,7 +1730,15 @@ class RForestRegressor(object):
         for text in legends.get_texts():
             text.set_color('white')
 
-        # Background
+            hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
+            misses = gpd.GeoDataFrame(join_[join_['Hit'] == 0])
+            if not hits.empty:
+                hits.plot(ax=ax, marker='x', markersize=0.25, color='lime',
+                          label="Hits")
+            if not misses.empty:
+                misses.plot(ax=ax, marker='x', markersize=0.25, color='r',
+                            label="Misses")
+
         ax.set_axis_off()
         fig.set_facecolor('black')
         plt.show()
@@ -1892,7 +2036,15 @@ class RForestRegressor(object):
         for text in legends.get_texts():
             text.set_color('white')
 
-        # Background
+            hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
+            misses = gpd.GeoDataFrame(join_[join_['Hit'] == 0])
+            if not hits.empty:
+                hits.plot(ax=ax, marker='x', markersize=0.25, color='lime',
+                          label="Hits")
+            if not misses.empty:
+                misses.plot(ax=ax, marker='x', markersize=0.25, color='r',
+                            label="Misses")
+
         ax.set_axis_off()
         fig.set_facecolor('black')
         plt.show()

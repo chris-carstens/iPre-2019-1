@@ -156,7 +156,17 @@ class PreProcessing:
             self.rfr = model if model.name == 'RForestRegressor' else self.rfr
 
     def preparing_data(self, model, **kwargs):
-        if model.name not in [m.name for m in self.models]:
+        """
+
+        Parameters
+        ----------
+        model : str
+        kwargs
+
+        Returns
+        -------
+        """
+        if model not in [m.name for m in self.models]:
             print("Model not found!\n")
             return None
         if "STKDE" in model:
