@@ -26,20 +26,13 @@ pm.heatmap(incidents=True)
 
 
 #
-# pltr = Plotter(models=[
-#      pm,
-# ])
-# pltr.hr()
-# pltr.pai()
+pltr = Plotter(models=[
+     pm,
+])
+pltr.hr()
+pltr.pai()
 
-# %% Plotter
-# pltr = Plotter(models=[
-#      pm,
-# ])
-# pltr.hr()
-# pltr.pai()
-# pm.heatmap()
-# pltr.heatmap()
+
 
 if __name__ == '__main__':
     pass

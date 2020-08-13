@@ -234,6 +234,8 @@ class PreProcessing:
 
         X = df[df["date"] <= self.promap.start_prediction]
         y = df[df["date"] > self.promap.start_prediction]
+        y = y[y["date"]] < self.promap.start_prediction + datetime.timedelta(
+            days=self.promap.ventana_dias)
 
         return X, y
 
