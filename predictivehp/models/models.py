@@ -97,6 +97,8 @@ class STKDE:
         self.f_delitos, self.f_nodos = None, None
         self.df = None
 
+        self.x_min, self.y_min, self.x_max, self.y_max = self.shps[
+            'streets'].total_bounds
         # training data 3000
         # testing data  600
         # print('-' * 30)
@@ -257,18 +259,22 @@ class STKDE:
         dallas.plot(ax=ax, alpha=.4, color="gray", zorder=1)
 
         x, y = np.mgrid[
-               np.array(self.X_test[['x']]).min():
-               np.array(self.X_test[['x']]).max():bins * 1j,
-               np.array(self.X_test[['y']]).min():
-               np.array(self.X_test[['y']]).max():bins * 1j
+               self.x_min:
+               self.x_max:bins * 1j,
+               self.y_min:
+               self.y_max:bins * 1j
                ]
         z = self.kde.pdf(np.vstack([x.flatten(),
                                     y.flatten(),
                                     ti * np.ones(x.size)]))
         # Normalizar
         z = z / z.max()
-
-        z = z[z > c]
+        
+        if type(c) != list:        
+            z = z[z > c]
+        else:
+            z = z[z <= max(c)]
+            z = z[z >= min(c)]
 
         heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
                                  shading='gouraud',
@@ -938,11 +944,12 @@ class STKDE:
         return self.pai, self.hr, self.ap
 
     def validate(self, c=0):
-        hits = self.f_delitos[self.f_delitos > c]
+        if type(c != list):
+            hits = self.f_delitos[self.f_delitos > c]
+        else:
+            hits = self.f_delitos[self.f_delitos < max(c)]
+            hits = self.hits[hits > min(c)]
         self.d_incidents = hits.size
-
-    def detected_incidents(self):
-        pass
 
 
 class RForestRegressor(object):
