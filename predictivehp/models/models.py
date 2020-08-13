@@ -2157,8 +2157,8 @@ class ProMap:
 
         self.create_grid()
 
-        points = np.array([self.xx.flatten(), self.yy.flatten()])
-        self.cells_in_map = af.checked_points_pm(points)  # 141337
+        #points = np.array([self.xx.flatten(), self.yy.flatten()])
+        #self.cells_in_map = af.checked_points_pm(points)  # 141337
 
     def predict(self, X, y):
 
@@ -2328,8 +2328,7 @@ class ProMap:
             for i in range(len(self.ap))]
 
     def heatmap(self, c=0,
-                nombre_grafico='Predictive Crime Map - Dallas (Method: '
-                               'Promap)'):
+                 incidents = False):
 
         """
         Mostrar un heatmap de una matriz de riesgo.
@@ -2356,7 +2355,7 @@ class ProMap:
         fig, ax = plt.subplots(figsize=(15, 12))
         ax.set_facecolor('xkcd:black')
 
-        plt.title(nombre_grafico)
+        plt.title(self.name)
         plt.imshow(np.flipud(matriz.T),
                    extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                    cmap='jet',
@@ -2366,6 +2365,21 @@ class ProMap:
         dallas.plot(ax=ax,
                     alpha=.3,  # Ancho de las calles
                     color="gray")
+
+        if incidents:
+            geometry = [Point(xy) for xy in zip(
+                np.array(self.y[['x_point']]),
+                np.array(self.y[['y_point']]))
+                        ]
+            geo_df = gpd.GeoDataFrame(self.y,
+                                      crs=dallas.crs,
+                                      geometry=geometry)
+            geo_df.plot(ax=ax,
+                        markersize=17.5,
+                        color='red',
+                        marker='o',
+                        zorder=3,
+                        label="Incidents")
 
 
 
@@ -2416,13 +2430,12 @@ class ProMap:
         """
         return self.prediction
 
-    def validate(self, c):
+    def validate(self, c=0):
         self.load_test_matrix(self.ventana_dias)
-        hits = np.sum((self.prediction >= c) * self.testing_matrix)
+        self.d_incidents = np.sum((self.prediction >= c) * self.testing_matrix)
         n_delitos_testing = np.sum(self.testing_matrix)
-        print(f'{hits} incidents captured!')
-        print(f'{n_delitos_testing} total incidents')
-        return {'ht': hits, 'total':n_delitos_testing}
+        self.h_area = np.count_nonzero(self.prediction >= c) * self.hx * \
+                      self.hy / 10**-6 #km^2
 
 
 class Model:
