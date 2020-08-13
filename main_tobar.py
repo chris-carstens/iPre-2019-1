@@ -22,15 +22,15 @@ pp.define_models()
 
 pm.fit()
 pm.predict(*pp.prepare_promap())
-pm.heatmap(c=0.5)
-pm.validate(c=0.5)
+pm.heatmap(incidents=True)
 
 
-pltr = Plotter(models=[
-     pm,
-])
-pltr.hr()
-pltr.pai()
+#
+# pltr = Plotter(models=[
+#      pm,
+# ])
+# pltr.hr()
+# pltr.pai()
 
 # %% Plotter
 # pltr = Plotter(models=[

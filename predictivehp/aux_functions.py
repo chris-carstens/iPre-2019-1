@@ -457,6 +457,7 @@ def print_mes(m_train, m_predict, dias):
 
 
 def checked_points_pm(points):
+    print("Filtering points...")
     # 'predictivehp/data/councils.shp'
     dallas_shp = gpd.read_file('predictivehp/data/councils.shp')
     dallas_shp.crs = 2276
