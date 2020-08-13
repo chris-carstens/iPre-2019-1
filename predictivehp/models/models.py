@@ -337,9 +337,8 @@ class STKDE:
         print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
 
         print("\tReading shapefiles...", end=" ")
-        dallas_districts = gpd.GeoDataFrame.from_file(
-            "../Data/Councils/councils.shp")
-        dallas = gpd.read_file('../Data/shapefiles/streets.shp')
+        dallas_districts = self.shps['councils']
+        dallas = self.shps['streets']
         print("finished!")
 
         fig, ax = plt.subplots(figsize=(15, 15))
@@ -349,10 +348,10 @@ class STKDE:
         # print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")  # 2276
 
         geometry = [Point(xy) for xy in zip(
-            np.array(self.y[['x']]),
-            np.array(self.y[['y']]))
+            np.array(self.X_test[['x']]),
+            np.array(self.X_test[['y']]))
                     ]
-        geo_df = gpd.GeoDataFrame(self.y,
+        geo_df = gpd.GeoDataFrame(self.X_test,
                                   crs=dallas.crs,
                                   geometry=geometry)
 
@@ -360,13 +359,14 @@ class STKDE:
 
         handles = []
 
-        for district, data in dallas_districts.groupby('DISTRICT'):
-            data.plot(ax=ax,
-                      color=prm.d_colors[district],
-                      linewidth=2.5,
-                      edgecolor="black")
-            handles.append(mpatches.Patch(color=prm.d_colors[district],
-                                          label=f"Dallas District {district}"))
+        #for district, data in dallas_districts.groupby('DISTRICT'):
+       # for district, data in dallas_districts.groupby('DISTRICT'):
+        #    data.plot(ax=ax,
+         #             color=prm.d_colors[district],
+          #            linewidth=2.5,
+        #          edgecolor="black")
+         #   handles.append(mpatches.Patch(color=prm.d_colors[district],
+            #                              label=f"Dallas District {district}"))
 
         handles.sort(key=lambda x: int(x._label.split(' ')[2]))
         handles = [Line2D([], [], marker='o', color='red', label='Incident',
@@ -395,8 +395,7 @@ class STKDE:
 
         print("finished!")
 
-        plt.title(f"Dallas Incidents - Spatial Pattern\n"
-                  f"{self.year}",
+        plt.title(f"Dallas Incidents - Spatial Pattern\n",
                   fontdict={'fontsize': 20},
                   pad=25)
 
@@ -405,7 +404,7 @@ class STKDE:
                    fontsize=13.5,
                    handles=handles)
 
-        ax.set_axis_off()
+        #ax.set_axis_off()
         plt.show()
 
         if pdf:
@@ -920,6 +919,10 @@ class STKDE:
                self.ap[i] else 0 for i in range(len(self.hr))]
         self.pai = PAI
         return self.pai, self.hr, self.ap
+
+    def validate(self, c=0):
+        z = self.f_delitos[self.f_delitos > c]
+        print("Detected incidents: ", z.size)
 
 
 class RForestRegressor(object):

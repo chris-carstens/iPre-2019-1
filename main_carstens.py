@@ -12,7 +12,6 @@ cl_shp_p = f'{b_path}/citylimit.shp'
 
 pp = dp.PreProcessing()
 shps = pp.shps_processing(s_shp_p, c_shp_p, cl_shp_p)
-df = pp.get_data(year=2017, n=150000)
 
 # %% STKDE
 stkde = STKDE(shps=shps, bw=bw)
@@ -20,6 +19,8 @@ pp.models = [stkde]
 pp.define_models()
 
 stkde.fit(*pp.prepare_stkde())
+stkde.spatial_pattern()
+
 stkde.heatmap()
 
 # %% Plotter
