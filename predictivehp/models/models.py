@@ -1022,7 +1022,8 @@ class RForestRegressor(object):
         self.weeks.append(start_prediction)
 
         self.data_0 = data_0
-        self.data, self.X = [None] * 2
+        self.data = self.data_0
+        self.X = None
         self.read_data, self.read_X = read_data, read_X
         self.w_data, self.w_X = w_data, w_X
         self.X = None
@@ -1454,13 +1455,18 @@ class RForestRegressor(object):
                 (c[0] <= cells[('Dangerous_pred', '')]) &
                 (cells[('Dangerous_pred', '')] <= c[1]),
                 1, 0)
+        elif c is not None and c >= 0:
+            d_cells = cells[cells[('Dangerous_pred', '')] >= c]
+            cells['Hit'] = np.where(
+                cells[('Dangerous_pred', '')] >= c, 1, 0
+            )
         else:
             d_cells = cells[cells[('Dangerous_pred', '')] >= c]
             cells['Hit'] = np.where(
                 cells[('Dangerous_pred', '')] >= c, 1, 0
             )
 
-        if show_score:
+        if c is None:
             d_cells.plot(ax=ax, column=('Dangerous_pred', ''), cmap='jet',
                          marker=',', markersize=0.1)
         else:
@@ -1503,6 +1509,7 @@ class RForestRegressor(object):
         plt.tight_layout()
         if savefig:
             plt.savefig(fname, **kwargs)
+        print('hihi')
         plt.show()
 
     def plot_statistics(self, n=500):
@@ -2514,11 +2521,15 @@ class Model:
         if self.stkde:
             self.stkde.fit(*self.pp.preparing_data('STKDE'))
         if self.rfr:
-            if not self.rfr.read_X:
-                self.rfr.fit(*self.pp.preparing_data(
-                    'RForestRegressor', mode='train', label='default'
-                )
-                             )
+            if self.rfr.read_X:
+                self.rfr.X = pd.read_pickle('predictivehp/data/X.pkl')
+            if self.rfr.read_data:
+                self.rfr.data = pd.read_pickle('predictivehp/data/data.pkl')
+
+            self.rfr.fit(*self.pp.preparing_data(
+                'RForestRegressor', mode='train', label='default'
+            )
+                         )
         if self.promap:
             self.promap.fit()
 
