@@ -302,8 +302,7 @@ ParaView-v5.7.1.tar.xz
 
 predictivehp/stkde_grid.vts
 predictivehp/stkde_grid.py
-.virtual_documents/*
-
-InformeHotspots.docx
-
 predictivehp/data/prediction.npy
+.virtual_documents/*
+.ipynb_checkpoints/*
+InformeHotspots.docx
