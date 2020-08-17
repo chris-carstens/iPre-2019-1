@@ -91,16 +91,8 @@ class Plotter:
         }
         mpl.rcParams.update(rc)
 
-    def predict(self):
-        """
 
-        Returns
-        -------
-
-        """
-        pass
-
-    def heatmap(self, c=[0.2, 0.8, 1.2, 0.8, -2, 0.5], show_score=True, incidences=True,
+    def heatmap(self, c=0, show_score=True, incidences=False,
                 savefig=False, fname='', **kwargs):
         """
 

@@ -259,11 +259,9 @@ class PreProcessing:
         # suma ponderada de las columnas (considerar division por número
         # de celdas en las capas [o distancia])
         # [('Incidents_i', self.model.weeks[-2])] for i in range(8)
-        if self.rfr.X is None:
+        if self.rfr.X is None:  # Sin las labels generadas
             self.rfr.generate_X()
-        else:
-            self.rfr.data = pd.read_pickle('predictivehp/data/data.pkl')
-            self.rfr.X = pd.read_pickle('predictivehp/data/X.pkl')
+
         if mode == 'train':
             # print("\nPreparing Training Data for RFR...")
             # First three weeks of October
