@@ -100,7 +100,7 @@ class Plotter:
         """
         pass
 
-    def heatmap(self, c=0, show_score=True, incidences=False,
+    def heatmap(self, c=[0.2, 0.8, 1.2, 0.8, -2, 0.5], show_score=True, incidences=True,
                 savefig=False, fname='', **kwargs):
         """
 

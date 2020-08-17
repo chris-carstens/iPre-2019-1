@@ -21,16 +21,16 @@ pp.define_models()
 stkde.fit(*pp.prepare_stkde())
 #stkde.spatial_pattern()
 
-stkde.heatmap(incidences=True)
+#stkde.heatmap(incidences=True, c=0.1)
 
 # %% Plotter
 pltr = Plotter(models=[
      stkde,
 ])
-pltr.hr()
-pltr.pai()
-# stkde.heatmap()
-# pltr.heatmap()
+#pltr.hr()
+#pltr.pai()
+#stkde.heatmap()
+pltr.heatmap()
 
 if __name__ == '__main__':
     pass
