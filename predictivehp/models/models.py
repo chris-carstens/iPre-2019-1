@@ -239,7 +239,7 @@ class STKDE:
         # print(f"STKDE pdf score: {score_pdf}\n")
         return score_pdf
 
-    def heatmap(self, c=0, show_score=True, incidences=False,
+    def heatmap(self, c=None, show_score=True, incidences=False,
                 savefig=False, fname='', bins=100, ti=100, **kwargs):
         """
         Parameters
@@ -262,44 +262,56 @@ class STKDE:
                self.y_min:
                self.y_max:bins * 1j
                ]
-        z = self.kde.pdf(np.vstack([x.flatten(),
-                                    y.flatten(),
+        x_f = x.flatten()
+        y_f = y.flatten()
+        z = self.kde.pdf(np.vstack([x_f, y_f,
                                     ti * np.ones(x.size)]))
+        #z.reshape(x_shape)
         # Normalizar
         z = z / z.max()
-        
-        if type(c) != list:        
-            z = z[z > c]
-        else:
-            z = z[z <= max(c)]
-            z = z[z >= min(c)]
 
-        heatmap = plt.pcolormesh(x, y, z.reshape(x.shape),
+        if c is None:
+            z_plot = z
+        elif type(c) == float or type(c) == int:
+            z_plot = z > c
+        elif type(c) == list or type(c) == np.ndarray:
+            c = np.array(c).flatten()
+            c = c[c > 0]
+            c = c[c < 1]
+            c = np.unique(c)
+            c = np.sort(c)
+            z_plot = np.zeros(z.size)
+            for i in c:
+                z_plot[z > i] += 1
+            z_plot = z_plot / np.max(z_plot)
+
+        heatmap = plt.pcolormesh(x, y,
+                                 z_plot.reshape(x.shape),
                                  shading='gouraud',
                                  alpha=.2,
                                  cmap='jet',
                                  zorder=2,
                                  )
 
-        ax.set_axis_off()
-        plt.title('STKDE')
-        plt.legend()
+        if not show_score:
+            cbar = plt.colorbar(heatmap,
+                                ax=ax,
+                                shrink=.5,
+                                aspect=10)
+            cbar.solids.set(alpha=1)
 
-        if show_score:
-            norm = mpl.colors.Normalize(vmin=0, vmax=1)
-            cmap = mpl.cm.jet
-            mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-            c_bar = fig.colorbar(mappable, ax=ax,
-                                 fraction=0.15,
-                                 shrink=0.5,
-                                 aspect=21.5)
-            c_bar.ax.set_ylabel('Danger Score')
+
+            #norm = mpl.colors.Normalize(vmin=0, vmax=1)
+            #cmap = mpl.cm.jet
+            #mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+            #c_bar = fig.colorbar(mappable, ax=ax,
+            #                     fraction=0.15,
+            #                     shrink=0.5,
+            #                     aspect=21.5)
+            #c_bar.ax.set_ylabel('Danger Score')
 
         if incidences:
             # print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
-
-            # US Survey Foot: 0.3048 m
-            # print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")  # 2276
 
             geometry = [Point(xy) for xy in zip(
                 np.array(self.X_test[['x']]),
@@ -308,7 +320,7 @@ class STKDE:
                                       crs=dallas.crs,
                                       geometry=geometry)
 
-            print("\tPlotting Incidents...", end=" ")
+            #print("\tPlotting Incidents...", end=" ")
 
             geo_df.plot(ax=ax,
                         markersize=17.5,
@@ -317,12 +329,17 @@ class STKDE:
                         zorder=3,
                         label="Incidents")
 
-            print("finished!")
+            #print("finished!")
+
+        plt.title('STKDE')
+        plt.legend()
 
         ax.set_axis_off()
         plt.tight_layout()
         if savefig:
             plt.savefig(fname, **kwargs)
+
+        print(z_plot)
         plt.show()
 
     def data_barplot(self, pdf: bool = False):
@@ -2501,7 +2518,7 @@ class Model:
 
     def preprocessing(self):
         self.models = [m for m in [self.stkde, self.promap, self.rfr]
-                       if m is not None]
+                        is not None]
         self.pp = dp.PreProcessing(self.models)
 
     def print_parameters(self):
