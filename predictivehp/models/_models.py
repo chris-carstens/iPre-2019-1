@@ -269,7 +269,7 @@ class STKDE:
 
         if c is None:
             z_plot = z
-        elif type(c) == float or type(c) == int:
+        elif type(c) == float:
             z_plot = z > c
         elif type(c) == list or type(c) == np.ndarray:
             c = np.array(c).flatten()
