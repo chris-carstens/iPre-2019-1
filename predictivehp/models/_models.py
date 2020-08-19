@@ -2506,7 +2506,7 @@ class ProMap:
 class Model:
     def __init__(self, models=None, data=None, shps=None):
         """Supraclase Model"""
-        self.models = models
+        self.models = [] if not models else models
         self.data = data
         self.shps = shps
 
