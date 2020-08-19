@@ -1,7 +1,7 @@
 import matplotlib as mpl
 
-from .utils.seed import set_seed
-from ._config import rc
+from .utils._seed import set_seed
+from ._config import rc, d_colors
 
 # Para reproducibilidad seteamos una semilla
 set_seed(seed=0)

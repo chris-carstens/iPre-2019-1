@@ -8,20 +8,19 @@ import predictivehp.utils._aux_functions as af
 
 
 class Plotter:
-    def __init__(self, models=None, n=100):
+    def __init__(self, model, n=100):
         """
 
         Parameters
         ----------
-        models : {None, list}
-          Lista con los modelos de los cuales se plotearán sus estadísticas
+        model : Model
+          Supraclase
         n : int
           Finitud del plot a realizar. Particiona en n elementos el
           segmento [1, 0].
         """
         self.c_arr = np.linspace(0, 1, n)
-        self.models = [] if not models else models
-
+        self.model = model
 
     def add_model(self, model):
         """
@@ -35,7 +34,7 @@ class Plotter:
 
         """
 
-        self.models.append(model)
+        self.model.append(model)
 
     def del_model(self, model):
         """
@@ -50,22 +49,15 @@ class Plotter:
         """
         pass
 
-
     def heatmap(self, c=0, show_score=True, incidences=False,
                 savefig=False, fname='', **kwargs):
-        """
-
-        Returns
-        -------
-
-        """
-        for m in self.models:
+        for m in self.model.models:
             m.heatmap(c=c, show_score=show_score, incidences=incidences,
                       savefig=savefig, fname=fname, **kwargs)
 
     def hr(self):
         # print("\nPlotting Hit Rates:", end="")
-        for m in self.models:
+        for m in self.model.models:
             # print(f"\t {m.name}")
             m.calculate_hr(c=self.c_arr)
             af.lineplot(x=m.ap, y=m.hr, label=m.name)
@@ -76,34 +68,10 @@ class Plotter:
         plt.show()
 
     def pai(self):
-        for m in self.models:
+        for m in self.model.models:
             m.calculate_pai(c=self.c_arr)
             af.lineplot(x=m.ap, y=m.pai, label=m.name)
 
-        plt.xlabel('Area Percentage')
-        plt.ylabel('PAI')
-        plt.legend()
-        plt.show()
-
-    def hr_groups(self):
-
-        for m in self.models:
-            m.calculate_hr(c=self.c_arr)
-            for i in range(1, m.ng + 1):
-                af.lineplot(x=m.ap_by_group[i], y=m.hr_by_group[i],
-                            label=m.name)
-        plt.xlabel('Area Percentage')
-        plt.ylabel('PAI')
-        plt.legend()
-        plt.show()
-
-    def pai_groups(self):
-
-        for m in self.models:
-            m.calculate_pai(c=self.c_arr)
-            for i in range(1, m.ng + 1):
-                af.lineplot(x=m.ap_by_group[i], y=m.pai_by_group[i],
-                            label=m.name)
         plt.xlabel('Area Percentage')
         plt.ylabel('PAI')
         plt.legend()
