@@ -20,6 +20,9 @@ from ._aux_functions import calcular_celdas
 from ._aux_functions import print_mes
 from ._aux_functions import checked_points_pm
 
+from ._aux_functions import get_data
+from ._aux_functions import shps_processing
+
 
 __all__ = [
     'timer',
@@ -43,6 +46,9 @@ __all__ = [
     'calcular_celdas',
     'print_mes',
     'checked_points_pm',
+
+    'get_data',
+    'shps_processing',
 ]
 
 

@@ -14,8 +14,7 @@ from shapely.geometry import Point
 from sklearn.ensemble import RandomForestRegressor
 
 import predictivehp.utils._aux_functions as af
-import predictivehp._credentials as cre
-from sodapy import Socrata
+
 
 settings = kd.EstimatorSettings(efficient=True, n_jobs=8)
 
@@ -2507,107 +2506,6 @@ class Model:
     def __init__(self, models=None):
         """Supraclase Model"""
         self.models = []
-
-    @staticmethod
-    def get_data(year=2017, n=150000):
-        # print("\nRequesting data...")
-        with Socrata(cre.socrata_domain,
-                     cre.API_KEY_S,
-                     username=cre.USERNAME_S,
-                     password=cre.PASSWORD_S) as client:
-            query = \
-                f"""
-                    select
-                        incidentnum,
-                        year1,
-                        date1,
-                        month1,
-                        time1,
-                        x_coordinate,
-                        y_cordinate,
-                        offincident
-                    where
-                        year1 = {year}
-                        and date1 is not null
-                        and time1 is not null
-                        and x_coordinate is not null
-                        and y_cordinate is not null
-                        and offincident = 'BURGLARY OF HABITATION - FORCED ENTRY'
-                    order by date1
-                    limit
-                        {n}
-                    """
-
-            results = client.get(cre.socrata_dataset_identifier,
-                                 query=query,
-                                 content_type='json')
-            df = pd.DataFrame.from_records(results)
-            # print("\n"
-            #       f"\tn = {n} incidents requested  Year = {year}"
-            #       "\n"
-            #       f"\t{data.shape[0]} incidents successfully retrieved!")
-
-            # DB Cleaning & Formatting
-            for col in ['x_coordinate', 'y_cordinate']:
-                df.loc[:, col] = df[col].apply(
-                    lambda x: float(x))
-            df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
-                lambda x: float(x))
-            df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
-                lambda x: float(x))
-            df.loc[:, 'date1'] = df['date1'].apply(  # OJO AL SEPARADOR ' '
-                lambda x: datetime.datetime.strptime(
-                    x.split(' ')[0], '%Y-%m-%d')
-            )
-            df.loc[:, 'date1'] = df["date1"].apply(lambda x: x.date())
-
-            df = df[['x_coordinate', 'y_cordinate', 'date1', 'month1']]
-            df.loc[:, 'y_day'] = df["date1"].apply(
-                lambda x: x.timetuple().tm_yday
-            )
-            df.rename(columns={'x_coordinate': 'x',
-                               'y_cordinate': 'y',
-                               'date1': 'date'},
-                      inplace=True)
-
-            df.sort_values(by=['date'], inplace=True)
-            df.reset_index(drop=True, inplace=True)
-
-            return df
-
-    @staticmethod
-    def shps_processing(s_shp='', c_shp='', cl_shp=''):
-        """
-
-        Parameters
-        ----------
-        s_shp
-        c_shp
-        cl_shp
-
-        Returns
-        -------
-
-        """
-        streets, councils, c_limits = [None, ] * 3
-        shps = {}
-        if s_shp:
-            streets = gpd.read_file(filename=s_shp)
-            streets.crs = 2276
-            streets.to_crs(epsg=3857, inplace=True)
-        if c_shp:
-            councils = gpd.read_file(filename=c_shp)
-            councils.crs = 2276
-            councils.to_crs(epsg=3857, inplace=True)
-        if cl_shp:
-            c_limits = gpd.read_file(filename=cl_shp)
-            c_limits.crs = 2276
-            c_limits.to_crs(epsg=3857, inplace=True)
-
-        shps['streets'], shps['councils'], shps['c_limits'] = \
-            streets, councils, c_limits
-
-        return shps
 
     def prepare_stkde(self):
         """
