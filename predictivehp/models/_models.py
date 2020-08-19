@@ -289,8 +289,6 @@ class STKDE:
 
         if show_score:
             norm = mpl.colors.Normalize(vmin=0, vmax=1)
-            print(norm)
-            mpl.cm.set_array(np.ndarray(c))
             cmap = mpl.cm.jet
             mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
             c_bar = fig.colorbar(mappable, ax=ax,
@@ -2188,7 +2186,7 @@ class ProMap:
 
         # points = np.array([self.xx.flatten(), self.yy.flatten()])
         # self.cells_in_map = af.checked_points_pm(points)  # 141337
-        self.cells_in_map = 100_000
+        self.cells_in_map = 1170337
 
     def predict(self):
 
@@ -2435,40 +2433,6 @@ class ProMap:
             plt.savefig(fname, **kwargs)
         plt.show()
 
-    def plot_incident(self, matriz, nombre_grafico):
-
-        """
-        Parameters
-        ----------
-        matriz: np.mgrid
-            Matriz donde cada celda representa un punto del mapa.
-            Los valores representan los Nº de delitos en ese punto.
-        nombre_grafico: str
-            nombre del grafico
-        -------
-        """
-
-        dallas = gpd.read_file('predictivehp/data/streets.shp')
-        dallas.crs = 2276
-        dallas.to_crs(epsg=3857, inplace=True)
-
-        fig, ax = plt.subplots(figsize=(15, 12))
-        ax.set_facecolor('xkcd:black')
-
-        plt.title(nombre_grafico)
-        plt.imshow(np.flipud(matriz.T),
-                   extent=[self.x_min, self.x_max, self.y_min, self.y_max],
-                   cmap='gist_heat',
-                   # vmin=0, vmax=1
-                   )
-
-        dallas.plot(ax=ax,
-                    alpha=.1,  # Ancho de las calles
-                    # color="gray")
-                    )
-
-        plt.colorbar()
-        plt.show()
 
     def score(self):
 
@@ -2693,7 +2657,7 @@ class Model:
 
         """
         for m in self.models:
-            m.print_paremeters()
+            m.print_parameters()
 
     def fit(self, data_p):
         for m in self.models:

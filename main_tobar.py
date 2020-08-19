@@ -26,9 +26,11 @@ modelos.predict()
 pltr = Plotter(modelos)
 #pltr.hr()
 #pltr.pai()
-pltr.heatmap(incidences=True)
-pltr.heatmap(c = 0.2, incidences=True)
-pltr.heatmap(c =[0.1, 0.2], incidences=True)
+
+pltr.heatmap(c=None, incidences=True, show_score=True,
+                savefig=False, fname='hm_example.png')
+# pltr.heatmap(c = 0.2, incidences=True)
+# pltr.heatmap(c =[0.1, 0.2], incidences=True)
 
 
 if __name__ == '__main__':
