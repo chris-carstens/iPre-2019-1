@@ -267,6 +267,8 @@ class STKDE:
         # Normalizar
         z = z / z.max()
 
+        print(z)
+
         if c is None:
             z_plot = z
         elif type(c) == float or type(c) == int:
@@ -290,21 +292,21 @@ class STKDE:
                                  zorder=2,
                                  )
 
-        if not show_score:
+        if show_score:
             cbar = plt.colorbar(heatmap,
                                 ax=ax,
                                 shrink=.5,
                                 aspect=10)
             cbar.solids.set(alpha=1)
 
-            # norm = mpl.colors.Normalize(vmin=0, vmax=1)
-            # cmap = mpl.cm.jet
-            # mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-            # c_bar = fig.colorbar(mappable, ax=ax,
-            #                     fraction=0.15,
-            #                     shrink=0.5,
-            #                     aspect=21.5)
-            # c_bar.ax.set_ylabel('Danger Score')
+            norm = mpl.colors.Normalize(vmin=0, vmax=1)
+            cmap = mpl.cm.jet
+            mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+            c_bar = fig.colorbar(mappable, ax=ax,
+                                fraction=0.15,
+                                shrink=0.5,
+                                aspect=21.5)
+            c_bar.ax.set_ylabel('Danger Score')
 
         if incidences:
             # print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
@@ -2517,7 +2519,7 @@ class Model:
         -------
 
         """
-        stkde = [m for m in self.models if m.name == "STKDE"][0]
+        stkde = list(filter(lambda m: m.name == "STKDE", self.models))[0]
 
         data = self.data
         geometry = [Point(xy) for xy in zip(np.array(data[['x']]),
@@ -2536,7 +2538,7 @@ class Model:
         X_train = data[data["date"] <= stkde.start_prediction]
         X_test = data[data["date"] > stkde.start_prediction]
         X_test = X_test[
-            X_test["date"] < stkde.start_prediction + datetime.timedelta(
+            X_test["date"] < stkde.start_prediction + timedelta(
                 days=stkde.lp)]
 
         return X_train, X_test

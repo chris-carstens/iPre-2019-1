@@ -49,7 +49,7 @@ class Plotter:
         """
         pass
 
-    def heatmap(self, c=0, show_score=True, incidences=False,
+    def heatmap(self, c=None, show_score=True, incidences=False,
                 savefig=False, fname='', **kwargs):
         for m in self.model.models:
             m.heatmap(c=c, show_score=show_score, incidences=incidences,
