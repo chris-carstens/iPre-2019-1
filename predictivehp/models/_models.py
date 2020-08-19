@@ -1,5 +1,6 @@
 from calendar import month_name
 from datetime import date, timedelta, datetime
+from functools import reduce
 
 import geopandas as gpd
 import matplotlib as mpl
@@ -14,6 +15,7 @@ from shapely.geometry import Point
 from sklearn.ensemble import RandomForestRegressor
 
 import predictivehp.utils._aux_functions as af
+from predictivehp import d_colors
 
 settings = kd.EstimatorSettings(efficient=True, n_jobs=8)
 
@@ -248,7 +250,7 @@ class STKDE:
 
         dallas = self.shps['streets']
 
-        fig, ax = plt.subplots(figsize=[prm.f_size[0]] * 2)
+        fig, ax = plt.subplots(figsize=[6.75] * 2)  # Sacar de _config.py
         dallas.plot(ax=ax, alpha=.4, color="gray", zorder=1)
 
         x, y = np.mgrid[
@@ -1453,7 +1455,7 @@ class RForestRegressor(object):
         cells = gpd.GeoDataFrame(cells)
         d_streets = self.shps['streets']
 
-        fig, ax = plt.subplots(figsize=[prm.f_size[0]] * 2)
+        fig, ax = plt.subplots(figsize=[6.75] * 2)
         #     fig.dpi = 300
         d_streets.plot(ax=ax, alpha=0.2, lw=0.3, color="w", label="Streets")
 
@@ -1947,7 +1949,7 @@ class RForestRegressor(object):
 
         for district, data in d_districts.groupby('DISTRICT'):
             data.plot(ax=ax,
-                      color=prm.d_colors[district],
+                      color=d_colors[district],
                       linewidth=2.5,
                       edgecolor="black")
 
@@ -2393,7 +2395,7 @@ class ProMap:
         dallas.crs = 2276
         dallas.to_crs(epsg=3857, inplace=True)
 
-        fig, ax = plt.subplots(figsize=[prm.f_size[0]] * 2)
+        fig, ax = plt.subplots(figsize=[6.75] * 2)
         ax.set_facecolor('xkcd:black')
 
         plt.title(self.name)
@@ -2502,9 +2504,11 @@ class ProMap:
 
 
 class Model:
-    def __init__(self, models=None):
+    def __init__(self, models=None, data=None, shps=None):
         """Supraclase Model"""
-        self.models = []
+        self.models = models
+        self.data = data
+        self.shps = shps
 
     def prepare_stkde(self):
         """
@@ -2653,8 +2657,13 @@ class Model:
             y = y[('Dangerous', '')]
         return X, y
 
-    def prepare_data(self):
-        pass
+    def prepare_data(self, ):
+        dict_ = {m.name:
+                     self.prepare_stkde() if m.name == 'STKDE' else
+                     self.prepare_promap() if m.name == 'ProMap' else
+                     self.prepare_rfr()
+                 for m in self.models}
+        return dict_
 
     def add_model(self, m):
         """Añade el modelo a self.models
@@ -2664,6 +2673,27 @@ class Model:
         m : {STKDE, RForestRegressor, ProMap}
         """
         self.models.append(m)
+
+    def set_parameters(self, m_name='', **kwargs):
+        if not m_name:  # Se setean todos los hyperparameters
+            for m in self.models:
+                if m.name == 'STKDE':
+                    m.set_parameters(bw=[1900, 2500, 38])
+                if m.name == 'ProMap':
+                    m.set_parameters(bw=[1500, 1100, 35], hx=100,
+                                     hy=100,
+                                     read_density=False)
+                if m.name == 'RForestRegressor':
+                    m.set_parameters(t_history=4,
+                                     xc_size=100, yc_size=100, n_layers=7,
+                                     label_weights=None,
+                                     read_data=False, read_X=True,
+                                     w_data=True, w_X=True)
+        else:
+            for m in self.models:
+                if m.name == m_name:
+                    m.set_parameters(**kwargs)
+                    break
 
     def print_parameters(self):
         """
@@ -2678,32 +2708,23 @@ class Model:
         if self.rfr:
             self.rfr.print_parameters()
 
-    def fit(self):
-        if self.stkde:
-            self.stkde.fit(*self.pp.preparing_data('STKDE'))
-        if self.rfr:
-            if self.rfr.read_X:
-                self.rfr.X = pd.read_pickle('predictivehp/data/X.pkl')
-            if self.rfr.read_data:
-                self.rfr.data = pd.read_pickle('predictivehp/data/data.pkl')
-
-            self.rfr.fit(*self.pp.preparing_data(
-                'RForestRegressor', mode='train', label='default'
-            )
-                         )
-        if self.promap:
-            self.promap.fit()
+    def fit(self, data_p):
+        for m in self.models:
+            if m.name == 'RForestRegressor':
+                if m.read_X:
+                    m.X = pd.read_pickle('predictivehp/data/X.pkl')
+                if m.read_data:
+                    m.data = pd.read_pickle('predictivehp/data/data.pkl')
+                    continue
+            m.fit(*data_p[m.name])
 
     def predict(self):
-        if self.stkde:
-            self.stkde.predict()
-        if self.promap:
-            self.promap.predict(*self.pp.preparing_data('ProMap'))
-        if self.rfr:
-            X_test, _ = self.pp.preparing_data(
-                'RForestRegressor', mode='test', label='default'
-            )
-            self.rfr.predict(X_test)
+        for m in self.models:
+            if m.name == 'RForestRegressor':
+                X_test = self.prepare_rfr(mode='test', label='default')[0]
+                m.predict(X_test)
+                continue
+            m.predict()
 
     def validate(self, c=None):
         """
@@ -2787,6 +2808,9 @@ def create_model(data=None, shps=None,
     Model
     """
     m = Model()
+    m.data = data
+    m.shps = shps
+
     if use_stkde:
         stkde = STKDE(shps=shps, start_prediction=start_prediction,
                       length_prediction=length_prediction)

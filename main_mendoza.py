@@ -1,36 +1,28 @@
 # %%
-
-import predictivehp.processing.data_processing as dp
-from predictivehp.models._models import RForestRegressor
-
-from predictivehp.visualization._plotter import Plotter
-
-# %% Data
+from datetime import date
+from predictivehp.models import RForestRegressor as RFR, create_model
+import predictivehp.utils as ut
 
 b_path = 'predictivehp/data'
 s_shp_p = f'{b_path}/streets.shp'
 c_shp_p = f'{b_path}/councils.shp'
 cl_shp_p = f'{b_path}/citylimit.shp'
 
-pp = dp.PreProcessing()
-shps = pp.shps_processing(s_shp_p, c_shp_p, cl_shp_p)
-df = pp.get_data(year=2017, n=150000)
+shps = ut.shps_processing(s_shp_p, c_shp_p, cl_shp_p)
+data = ut.get_data(year=2017, n=150000)
 
 # %% Random Forest Regressor
-rfr = RForestRegressor(data_0=df, shps=shps,
-                       xc_size=100, yc_size=100, n_layers=7,
-                       read_data=False, read_X=False)
-pp = dp.PreProcessing([rfr])
-X_train, y_train = pp.prepare_rfr('train', 'default')
-X_test, y_test = pp.prepare_rfr('test', 'default')
+rfr = RFR(data_0=data, shps=shps,
+          xc_size=100, yc_size=100, n_layers=7,
+          read_data=False, read_X=False)
 
-rfr.fit(X_train, y_train)
-rfr.predict(X_test)
-
-# %%
-pltr = Plotter(models=[rfr])
-pltr.hr()
-
+m = create_model(
+    data=data, shps=shps,
+    start_prediction=date(2017, 11, 1), length_prediction=7,
+    use_stkde=True, use_promap=True, use_rfr=True,
+)
+m.fit()
+m.predict()
 
 if __name__ == '__main__':
     pass
