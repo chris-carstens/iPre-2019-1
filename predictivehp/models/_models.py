@@ -263,7 +263,6 @@ class STKDE:
         y_f = y.flatten()
         z = self.kde.pdf(np.vstack([x_f, y_f,
                                     ti * np.ones(x.size)]))
-        # z.reshape(x_shape)
         # Normalizar
         z = z / z.max()
 
@@ -282,22 +281,16 @@ class STKDE:
                 z_plot[z > i] += 1
             z_plot = z_plot / np.max(z_plot)
 
-        heatmap = plt.pcolormesh(x, y,
-                                 z_plot.reshape(x.shape),
-                                 shading='gouraud',
-                                 alpha=.2,
-                                 cmap='jet',
-                                 zorder=2,
-                                 )
+        plt.pcolormesh(x, y, z_plot.reshape(x.shape),
+                            shading='gouraud',
+                            alpha=.2,
+                            zorder=2,
+                            )
 
         if show_score:
-            cbar = plt.colorbar(heatmap,
-                                ax=ax,
-                                shrink=.5,
-                                aspect=10)
-            cbar.solids.set(alpha=1)
-
             norm = mpl.colors.Normalize(vmin=0, vmax=1)
+            print(norm)
+            mpl.cm.set_array(np.ndarray(c))
             cmap = mpl.cm.jet
             mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
             c_bar = fig.colorbar(mappable, ax=ax,
@@ -308,7 +301,6 @@ class STKDE:
 
         if incidences:
             # print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
-
             geometry = [Point(xy) for xy in zip(
                 np.array(self.X_test[['x']]),
                 np.array(self.X_test[['y']]))]
@@ -319,7 +311,7 @@ class STKDE:
             # print("\tPlotting Incidents...", end=" ")
 
             geo_df.plot(ax=ax,
-                        markersize=17.5,
+                        markersize=10,
                         color='red',
                         marker='o',
                         zorder=3,

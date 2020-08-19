@@ -27,7 +27,7 @@ pltr = Plotter(m)
 #pltr.hr()
 #pltr.pai()
 #stkde.heatmap()
-pltr.heatmap()
+pltr.heatmap(c=[0.2, 0.8], incidences=True)
 
 if __name__ == '__main__':
     pass
