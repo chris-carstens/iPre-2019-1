@@ -289,8 +289,6 @@ class STKDE:
 
         if show_score:
             norm = mpl.colors.Normalize(vmin=0, vmax=1)
-            print(norm)
-            mpl.cm.set_array(np.ndarray(c))
             cmap = mpl.cm.jet
             mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
             c_bar = fig.colorbar(mappable, ax=ax,
