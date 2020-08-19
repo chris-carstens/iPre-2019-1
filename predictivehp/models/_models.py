@@ -17,9 +17,6 @@ import predictivehp.utils._aux_functions as af
 import predictivehp._credentials as cre
 from sodapy import Socrata
 
-pd.set_option('display.max_columns', None)
-pd.set_option('display.max_rows', None)
-pd.set_option('display.width', 1000)
 settings = kd.EstimatorSettings(efficient=True, n_jobs=8)
 
 
@@ -2507,7 +2504,8 @@ class ProMap:
 
 
 class Model:
-    def __init__(self):
+    def __init__(self, models=None):
+        """Supraclase Model"""
         self.models = []
 
     @staticmethod
@@ -2634,7 +2632,9 @@ class Model:
         # División en training data (X_train) y testing data (y)
         X_train = data[data["date"] <= self.stkde.start_prediction]
         X_test = data[data["date"] > self.stkde.start_prediction]
-        X_test = X_test[X_test["date"] < self.stkde.start_prediction + datetime.timedelta(days=self.stkde.wd)]
+        X_test = X_test[
+            X_test["date"] < self.stkde.start_prediction + datetime.timedelta(
+                days=self.stkde.wd)]
 
         return X_train, X_test
 
@@ -2670,7 +2670,8 @@ class Model:
 
         X = df[df["date"] <= self.promap.start_prediction]
         y = df[df["date"] > self.promap.start_prediction]
-        y = y[y["date"] < self.promap.start_prediction + datetime.timedelta(days=self.promap.ventana_dias)]
+        y = y[y["date"] < self.promap.start_prediction + datetime.timedelta(
+            days=self.promap.ventana_dias)]
 
         return X, y
 
@@ -2807,28 +2808,6 @@ class Model:
             )
             self.rfr.predict(X_test)
 
-    # def plot_heatmap(self, c=0, show_score=True, incidences=False,
-    #                  savefig=False, fname='', **kwargs):
-    #     """
-    #
-    #     Parameters
-    #     ----------
-    #     c : {int, float, list}
-    #       Si un solo elemento es especificado, luego celdas con un
-    #       score superior a c son consideradas parte del hotspot. El
-    #       resto quedan de color transparente.
-    #
-    #       Si es una lista, tenemos hotpots con scores entre c[0] y c[1],
-    #       el resto de las celdas quedan transparentes.
-    #     incidences : bool
-    #       Determina si se plotean o no los incidentes en el heatmap.
-    #
-    #       Green marker para hits, Red marker para misses.
-    #     """
-    #     for m in self.models:
-    #         m.heatmap(c=c, show_score=show_score, incidences=incidences,
-    #                   savefig=savefig, fname=fname, **kwargs)
-
     def validate(self, c=None):
         """
         Calcula la cantidad de incidentes detectados para los hotspots
@@ -2868,6 +2847,27 @@ class Model:
     def store(self, file_name='model.data'):
         pass
 
+    # def plot_heatmap(self, c=0, show_score=True, incidences=False,
+    #                  savefig=False, fname='', **kwargs):
+    #     """
+    #
+    #     Parameters
+    #     ----------
+    #     c : {int, float, list}
+    #       Si un solo elemento es especificado, luego celdas con un
+    #       score superior a c son consideradas parte del hotspot. El
+    #       resto quedan de color transparente.
+    #
+    #       Si es una lista, tenemos hotpots con scores entre c[0] y c[1],
+    #       el resto de las celdas quedan transparentes.
+    #     incidences : bool
+    #       Determina si se plotean o no los incidentes en el heatmap.
+    #
+    #       Green marker para hits, Red marker para misses.
+    #     """
+    #     for m in self.models:
+    #         m.heatmap(c=c, show_score=show_score, incidences=incidences,
+    #                   savefig=savefig, fname=fname, **kwargs)
 
 def create_model(data=None, shps=None,
                  start_prediction=date(2017, 11, 1), length_prediction=7,
