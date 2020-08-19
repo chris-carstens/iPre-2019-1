@@ -1436,7 +1436,7 @@ class RForestRegressor(object):
             self.ap = np.array(ap_l)
             self.pai = np.array(pai_l)
 
-    def heatmap(self, c=0, show_score=True, incidences=False,
+    def heatmap(self, c=None, show_score=True, incidences=False,
                 savefig=False, fname='', **kwargs):
         """
 
@@ -1458,7 +1458,6 @@ class RForestRegressor(object):
         d_streets = self.shps['streets']
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)
-        #     fig.dpi = 300
         d_streets.plot(ax=ax, alpha=0.2, lw=0.3, color="w", label="Streets")
 
         if type(c) == list or type(c) == tuple:
@@ -1470,15 +1469,15 @@ class RForestRegressor(object):
                 (c[0] <= cells[('Dangerous_pred', '')]) &
                 (cells[('Dangerous_pred', '')] <= c[1]),
                 1, 0)
-        elif c is not None and c >= 0:
+        elif c is not None and c >= 0.0:
             d_cells = cells[cells[('Dangerous_pred', '')] >= c]
             cells['Hit'] = np.where(
                 cells[('Dangerous_pred', '')] >= c, 1, 0
             )
         else:
-            d_cells = cells[cells[('Dangerous_pred', '')] >= c]
+            d_cells = cells[cells[('Dangerous_pred', '')] >= 0]
             cells['Hit'] = np.where(
-                cells[('Dangerous_pred', '')] >= c, 1, 0
+                cells[('Dangerous_pred', '')] >= 0, 1, 0
             )
 
         if c is None:
@@ -1524,7 +1523,6 @@ class RForestRegressor(object):
         plt.tight_layout()
         if savefig:
             plt.savefig(fname, **kwargs)
-        print('hihi')
         plt.show()
 
     def plot_statistics(self, n=500):
@@ -2512,6 +2510,8 @@ class Model:
         self.data = data
         self.shps = shps
 
+        self.set_parameters()
+
     def prepare_stkde(self):
         """
 
@@ -2544,7 +2544,6 @@ class Model:
         return X_train, X_test
 
     def prepare_promap(self):
-
         df = self.data
 
         if len(df) >= self.promap.n:
@@ -2663,11 +2662,12 @@ class Model:
         return X, y
 
     def prepare_data(self):
-        dict_ = {m.name:
-                     self.prepare_stkde() if m.name == 'STKDE' else
-                     self.prepare_promap() if m.name == 'ProMap' else
-                     self.prepare_rfr()
-                 for m in self.models}
+        dict_ = {
+            m.name:
+                self.prepare_stkde() if m.name == 'STKDE' else
+                self.prepare_promap() if m.name == 'ProMap' else
+                self.prepare_rfr()
+            for m in self.models}
         return dict_
 
     def add_model(self, m):
