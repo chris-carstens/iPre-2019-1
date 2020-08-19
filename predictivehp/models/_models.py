@@ -2597,67 +2597,68 @@ class Model:
         # suma ponderada de las columnas (considerar division por número
         # de celdas en las capas [o distancia])
         # [('Incidents_i', self.model.weeks[-2])] for i in range(8)
-        if self.rfr.X is None:  # Sin las labels generadas
-            self.rfr.generate_X()
+        rfr = [m for m in self.models if m.name == 'RForestRegressor'][0]
+        if rfr.X is None:  # Sin las labels generadas
+            rfr.generate_X()
 
         if mode == 'train':
             # print("\nPreparing Training Data for RFR...")
             # First three weeks of October
-            X = self.rfr.X.loc[
+            X = rfr.X.loc[
                 :,
                 reduce(lambda a, b: a + b,
                        [[(f'Incidents_{i}', week)]
-                        for i in range(self.rfr.n_layers)
-                        for week in self.rfr.weeks[:-2]]
+                        for i in range(rfr.n_layers)
+                        for week in rfr.weeks[:-2]]
                        )
                 ]
             # Last week of October
             # y = self.model.X_train.loc[:, [('Incidents_0', self.model.weeks[-2])]]
-            y = self.rfr.X.loc[
-                :, [(f'Incidents_{i}', self.rfr.weeks[-2])
-                    for i in range(self.rfr.n_layers)]
+            y = rfr.X.loc[
+                :, [(f'Incidents_{i}', rfr.weeks[-2])
+                    for i in range(rfr.n_layers)]
                 ]
             if label == 'default':
                 # Cualquier valor != 0 en la fila produce que la celda sea
                 # 'Dangerous' = 1
                 y[('Dangerous', '')] = y.T.any().astype(int)
             else:
-                if self.rfr.l_weights is not None:
-                    w = self.rfr.l_weights
+                if rfr.l_weights is not None:
+                    w = rfr.l_weights
                 else:
                     w = np.array([1 / (l + 1)
-                                  for l in range(self.rfr.n_layers)])
+                                  for l in range(rfr.n_layers)])
                 y[('Dangerous', '')] = y.dot(w)  # Ponderación con los pesos
             y = y[('Dangerous', '')]  # Hace el .drop() del resto de las cols
 
         else:
             # print("Preparing Testing Data for RFR...")
             # Nos movemos una semana adelante
-            X = self.rfr.X.loc[
+            X = rfr.X.loc[
                 :,
                 reduce(lambda a, b: a + b,
                        [[(f'Incidents_{i}', week)]
-                        for i in range(self.rfr.n_layers)
-                        for week in self.rfr.weeks[1:-1]]
+                        for i in range(rfr.n_layers)
+                        for week in rfr.weeks[1:-1]]
                        )
                 ]
-            y = self.rfr.X.loc[
-                :, [(f'Incidents_{i}', self.rfr.weeks[-1])
-                    for i in range(self.rfr.n_layers)]
+            y = rfr.X.loc[
+                :, [(f'Incidents_{i}', rfr.weeks[-1])
+                    for i in range(rfr.n_layers)]
                 ]
             if label == 'default':
                 y[('Dangerous', '')] = y.T.any().astype(int)
             else:
-                if self.rfr.l_weights is not None:
-                    w = self.rfr.l_weights
+                if rfr.l_weights is not None:
+                    w = rfr.l_weights
                 else:
                     w = np.array([1 / (l + 1)
-                                  for l in range(self.rfr.n_layers)])
+                                  for l in range(rfr.n_layers)])
                 y[('Dangerous', '')] = y.dot(w)
             y = y[('Dangerous', '')]
         return X, y
 
-    def prepare_data(self, ):
+    def prepare_data(self):
         dict_ = {m.name:
                      self.prepare_stkde() if m.name == 'STKDE' else
                      self.prepare_promap() if m.name == 'ProMap' else
