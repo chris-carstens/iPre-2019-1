@@ -2166,6 +2166,7 @@ class ProMap:
 
     def fit(self, X, y):
 
+
         """
         Se encarga de generar la malla en base a los datos del modelo.
         También se encarga de filtrar los puntos que no están dentro de dallas.
@@ -2177,7 +2178,7 @@ class ProMap:
             Son los datos para el testeo (x_point, y_point)
         """
 
-        # print('Fitting...')
+        #print('Fitting Promap...')
 
         self.create_grid()
         self.X = X
@@ -2501,10 +2502,9 @@ class Model:
         return X_train, X_test
 
     def prepare_promap(self):
+
+        promap = list(filter(lambda m: m.name == "ProMap", self.models))[0]
         df = self.data
-
-        promap = [m for m in self.models if m.name == "ProMap"][0]
-
         # print("\nGenerando dataframe...")
 
         geometry = [Point(xy) for xy in zip(
@@ -2762,14 +2762,14 @@ def create_model(data=None, shps=None,
     m.data = data
     m.shps = shps
 
-    if use_stkde:
-        stkde = STKDE(shps=shps, start_prediction=start_prediction,
-                      length_prediction=length_prediction)
-        m.add_model(stkde)
     if use_promap:
         promap = ProMap(shps=shps, start_prediction=start_prediction,
                         length_prediction=length_prediction)
         m.add_model(promap)
+    if use_stkde:
+        stkde = STKDE(shps=shps, start_prediction=start_prediction,
+                      length_prediction=length_prediction)
+        m.add_model(stkde)
     if use_rfr:
         rfr = RForestRegressor(data_0=data, shps=shps,
                                start_prediction=start_prediction)

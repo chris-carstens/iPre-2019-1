@@ -1,5 +1,5 @@
 # %%
-from predictivehp.models._models import ProMap, create_model
+from predictivehp.models._models import create_model
 import predictivehp.utils as ut
 from predictivehp.visualization import Plotter
 
@@ -16,16 +16,21 @@ data = ut.get_data(2017, 150_000)
 
 # %% PROMAP
 
-modelos = create_model(data,shps, use_promap=True)
+modelos = create_model(data,shps, use_promap=True, use_stkde=True)
 modelos.set_parameters('ProMap', read_density=True)
+
 data_prepared = modelos.prepare_data()
+
 modelos.fit(data_prepared)
+
+promap = [m for m in modelos.models if m.name == "ProMap"][0]
+
 modelos.predict()
 
 #
 pltr = Plotter(modelos)
-#pltr.hr()
-#pltr.pai()
+pltr.hr()
+pltr.pai()
 
 pltr.heatmap(c=None, incidences=True, show_score=True,
                 savefig=False, fname='hm_example.png')
