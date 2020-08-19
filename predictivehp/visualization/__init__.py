@@ -1,13 +1,5 @@
-"""
-__init__.py
-Python Version: 3.8.1
+from ._plotter import Plotter
 
-iPre - Big Data para Criminología
-Created by Mauro S. Mendoza Elguera at 03-05-20
-Pontifical Catholic University of Chile
-
-"""
-
-if __name__ == '__main__':
-    pass
-
+__all__ = [
+    'Plotter',
+]

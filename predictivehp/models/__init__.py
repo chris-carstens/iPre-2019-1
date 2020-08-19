@@ -1,12 +1,15 @@
-"""
-__init__.py
-Python Version: 3.8.1
+from ._models import STKDE
+from ._models import RForestRegressor
+from ._models import ProMap
 
-iPre - Big Data para Criminología
-Created by Mauro S. Mendoza Elguera at 03-05-20
-Pontifical Catholic University of Chile
+from ._models import Model
 
-"""
+from ._models import create_model
 
-if __name__ == '__main__':
-    pass
+__all__ = [
+    'STKDE',
+    'RForestRegressor',
+    'ProMap',
+    'Model',
+    'create_model',
+]

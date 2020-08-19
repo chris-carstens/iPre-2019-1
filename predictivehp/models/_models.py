@@ -13,9 +13,9 @@ from pyevtk.hl import gridToVTK
 from shapely.geometry import Point
 from sklearn.ensemble import RandomForestRegressor
 
-import predictivehp.aux_functions as af
-import predictivehp.models.parameters as prm
-import predictivehp.processing.data_processing as dp
+import predictivehp.utils._aux_functions as af
+import predictivehp._credentials as cre
+from sodapy import Socrata
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -266,7 +266,7 @@ class STKDE:
         y_f = y.flatten()
         z = self.kde.pdf(np.vstack([x_f, y_f,
                                     ti * np.ones(x.size)]))
-        #z.reshape(x_shape)
+        # z.reshape(x_shape)
         # Normalizar
         z = z / z.max()
 
@@ -300,15 +300,14 @@ class STKDE:
                                 aspect=10)
             cbar.solids.set(alpha=1)
 
-
-            #norm = mpl.colors.Normalize(vmin=0, vmax=1)
-            #cmap = mpl.cm.jet
-            #mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-            #c_bar = fig.colorbar(mappable, ax=ax,
+            # norm = mpl.colors.Normalize(vmin=0, vmax=1)
+            # cmap = mpl.cm.jet
+            # mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+            # c_bar = fig.colorbar(mappable, ax=ax,
             #                     fraction=0.15,
             #                     shrink=0.5,
             #                     aspect=21.5)
-            #c_bar.ax.set_ylabel('Danger Score')
+            # c_bar.ax.set_ylabel('Danger Score')
 
         if incidences:
             # print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
@@ -320,7 +319,7 @@ class STKDE:
                                       crs=dallas.crs,
                                       geometry=geometry)
 
-            #print("\tPlotting Incidents...", end=" ")
+            # print("\tPlotting Incidents...", end=" ")
 
             geo_df.plot(ax=ax,
                         markersize=17.5,
@@ -329,7 +328,7 @@ class STKDE:
                         zorder=3,
                         label="Incidents")
 
-            #print("finished!")
+            # print("finished!")
 
         plt.title('STKDE')
         plt.legend()
@@ -1188,8 +1187,8 @@ class RForestRegressor(object):
         # Adición de las columnas 'geometry' e 'in_dallas' al data
         print("\tPreparing data for filtering...")
         X[('geometry', '')] = [Point(i) for i in
-                                    zip(x[:-1, :-1].flatten(),
-                                        y[:-1, :-1].flatten())]
+                               zip(x[:-1, :-1].flatten(),
+                                   y[:-1, :-1].flatten())]
         X[('in_dallas', '')] = 0
 
         # Filtrado de celdas (llenado de la columna 'in_dallas')
@@ -2109,7 +2108,6 @@ class ProMap:
         self.X, self.y = None, None
         self.shps = shps
         self.read_density = read_density
-        
 
         # MAP
         self.hx, self.hy, self.km2 = hx, hy, km2
@@ -2130,11 +2128,9 @@ class ProMap:
         # print('-' * 100)
         # print('\t\t', self.name)
 
-
-
         # print('-' * 100)
 
-    def set_parameters(self, bw, hx=100, hy=100, read_density = False):
+    def set_parameters(self, bw, hx=100, hy=100, read_density=False):
         """
         Setea los hiperparámetros del modelo Promap
         Parameters
@@ -2500,10 +2496,12 @@ class ProMap:
             aux = self.prediction[self.prediction >= c1]
             aux = aux <= c2
             self.d_incidents = np.sum(aux * self.testing_matrix)
-            self.h_area = np.count_nonzero(aux) * self.hx * self.hy / 10 ** -6  # km^2
+            self.h_area = np.count_nonzero(
+                aux) * self.hx * self.hy / 10 ** -6  # km^2
 
         else:
-            self.d_incidents = np.sum((self.prediction >= c) * self.testing_matrix)
+            self.d_incidents = np.sum(
+                (self.prediction >= c) * self.testing_matrix)
             self.h_area = np.count_nonzero(self.prediction >= c) * self.hx * \
                           self.hy / 10 ** -6  # km^2
 
@@ -2511,15 +2509,263 @@ class ProMap:
 class Model:
     def __init__(self):
         self.models = []
-        self.stkde = None
-        self.promap = None
-        self.rfr = None
-        self.pp = None
 
-    def preprocessing(self):
-        self.models = [m for m in [self.stkde, self.promap, self.rfr]
-                        is not None]
-        self.pp = dp.PreProcessing(self.models)
+    @staticmethod
+    def get_data(year=2017, n=150000):
+        # print("\nRequesting data...")
+        with Socrata(cre.socrata_domain,
+                     cre.API_KEY_S,
+                     username=cre.USERNAME_S,
+                     password=cre.PASSWORD_S) as client:
+            query = \
+                f"""
+                    select
+                        incidentnum,
+                        year1,
+                        date1,
+                        month1,
+                        time1,
+                        x_coordinate,
+                        y_cordinate,
+                        offincident
+                    where
+                        year1 = {year}
+                        and date1 is not null
+                        and time1 is not null
+                        and x_coordinate is not null
+                        and y_cordinate is not null
+                        and offincident = 'BURGLARY OF HABITATION - FORCED ENTRY'
+                    order by date1
+                    limit
+                        {n}
+                    """
+
+            results = client.get(cre.socrata_dataset_identifier,
+                                 query=query,
+                                 content_type='json')
+            df = pd.DataFrame.from_records(results)
+            # print("\n"
+            #       f"\tn = {n} incidents requested  Year = {year}"
+            #       "\n"
+            #       f"\t{data.shape[0]} incidents successfully retrieved!")
+
+            # DB Cleaning & Formatting
+            for col in ['x_coordinate', 'y_cordinate']:
+                df.loc[:, col] = df[col].apply(
+                    lambda x: float(x))
+            df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
+                lambda x: float(x))
+            df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
+                lambda x: float(x))
+            df.loc[:, 'date1'] = df['date1'].apply(  # OJO AL SEPARADOR ' '
+                lambda x: datetime.datetime.strptime(
+                    x.split(' ')[0], '%Y-%m-%d')
+            )
+            df.loc[:, 'date1'] = df["date1"].apply(lambda x: x.date())
+
+            df = df[['x_coordinate', 'y_cordinate', 'date1', 'month1']]
+            df.loc[:, 'y_day'] = df["date1"].apply(
+                lambda x: x.timetuple().tm_yday
+            )
+            df.rename(columns={'x_coordinate': 'x',
+                               'y_cordinate': 'y',
+                               'date1': 'date'},
+                      inplace=True)
+
+            df.sort_values(by=['date'], inplace=True)
+            df.reset_index(drop=True, inplace=True)
+
+            return df
+
+    @staticmethod
+    def shps_processing(s_shp='', c_shp='', cl_shp=''):
+        """
+
+        Parameters
+        ----------
+        s_shp
+        c_shp
+        cl_shp
+
+        Returns
+        -------
+
+        """
+        streets, councils, c_limits = [None, ] * 3
+        shps = {}
+        if s_shp:
+            streets = gpd.read_file(filename=s_shp)
+            streets.crs = 2276
+            streets.to_crs(epsg=3857, inplace=True)
+        if c_shp:
+            councils = gpd.read_file(filename=c_shp)
+            councils.crs = 2276
+            councils.to_crs(epsg=3857, inplace=True)
+        if cl_shp:
+            c_limits = gpd.read_file(filename=cl_shp)
+            c_limits.crs = 2276
+            c_limits.to_crs(epsg=3857, inplace=True)
+
+        shps['streets'], shps['councils'], shps['c_limits'] = \
+            streets, councils, c_limits
+
+        return shps
+
+    def prepare_stkde(self):
+        """
+
+        Returns
+        -------
+
+        """
+        data = self.data
+        geometry = [Point(xy) for xy in zip(np.array(data[['x']]),
+                                            np.array(data[['y']]))]
+        data = gpd.GeoDataFrame(data, crs=2276, geometry=geometry)
+        data.to_crs(epsg=3857, inplace=True)
+
+        data['x'] = data['geometry'].apply(lambda x: x.x)
+        data['y'] = data['geometry'].apply(lambda x: x.y)
+
+        data = data.sample(n=self.stkde.sn, replace=False, random_state=0)
+        data.sort_values(by=['date'], inplace=True)
+        data.reset_index(drop=True, inplace=True)
+
+        # División en training data (X_train) y testing data (y)
+        X_train = data[data["date"] <= self.stkde.start_prediction]
+        X_test = data[data["date"] > self.stkde.start_prediction]
+        X_test = X_test[X_test["date"] < self.stkde.start_prediction + datetime.timedelta(days=self.stkde.wd)]
+
+        return X_train, X_test
+
+    def prepare_promap(self):
+
+        df = self.data
+
+        if len(df) >= self.promap.n:
+            # print(f'\nEligiendo {self.promap.n} datos...')
+            df = df.sample(n=self.promap.n,
+                           replace=False,
+                           random_state=250499)
+            df.sort_values(by=['date'], inplace=True)
+            df.reset_index(drop=True, inplace=True)
+
+        # print("\nGenerando dataframe...")
+
+        geometry = [Point(xy) for xy in zip(
+            np.array(df[['x']]),
+            np.array(df[['y']]))
+                    ]
+
+        geo_data = gpd.GeoDataFrame(df,  # gdf de incidentes
+                                    crs=2276,
+                                    geometry=geometry)
+
+        geo_data.to_crs(epsg=3857, inplace=True)
+
+        df['x_point'] = geo_data['geometry'].x
+        df['y_point'] = geo_data['geometry'].y
+
+        # División en training y testing data
+
+        X = df[df["date"] <= self.promap.start_prediction]
+        y = df[df["date"] > self.promap.start_prediction]
+        y = y[y["date"] < self.promap.start_prediction + datetime.timedelta(days=self.promap.ventana_dias)]
+
+        return X, y
+
+    def prepare_rfr(self, mode='train', label='default'):
+        """Prepara el set de datos correspondiente para entrenar RFR y
+        predecir para un set dado
+
+        Parameters
+        ----------
+        mode : str
+            Tipo de X, y a retornar. Elegir entre {'train', 'test'}
+        label : str
+            Establece la forma en la que se generará la label:
+            {'default', 'weighted'}. En el caso de 'weighted', se usa
+            el atributo .l_weights de la clase para ponderar las
+            labels asociadas
+        Returns
+        -------
+        (pd.DataFrame, pd.DataFrame)
+        """
+        # y en 'label_weights' es una sola columna que corresponde a la
+        # suma ponderada de las columnas (considerar division por número
+        # de celdas en las capas [o distancia])
+        # [('Incidents_i', self.model.weeks[-2])] for i in range(8)
+        if self.rfr.X is None:  # Sin las labels generadas
+            self.rfr.generate_X()
+
+        if mode == 'train':
+            # print("\nPreparing Training Data for RFR...")
+            # First three weeks of October
+            X = self.rfr.X.loc[
+                :,
+                reduce(lambda a, b: a + b,
+                       [[(f'Incidents_{i}', week)]
+                        for i in range(self.rfr.n_layers)
+                        for week in self.rfr.weeks[:-2]]
+                       )
+                ]
+            # Last week of October
+            # y = self.model.X_train.loc[:, [('Incidents_0', self.model.weeks[-2])]]
+            y = self.rfr.X.loc[
+                :, [(f'Incidents_{i}', self.rfr.weeks[-2])
+                    for i in range(self.rfr.n_layers)]
+                ]
+            if label == 'default':
+                # Cualquier valor != 0 en la fila produce que la celda sea
+                # 'Dangerous' = 1
+                y[('Dangerous', '')] = y.T.any().astype(int)
+            else:
+                if self.rfr.l_weights is not None:
+                    w = self.rfr.l_weights
+                else:
+                    w = np.array([1 / (l + 1)
+                                  for l in range(self.rfr.n_layers)])
+                y[('Dangerous', '')] = y.dot(w)  # Ponderación con los pesos
+            y = y[('Dangerous', '')]  # Hace el .drop() del resto de las cols
+
+        else:
+            # print("Preparing Testing Data for RFR...")
+            # Nos movemos una semana adelante
+            X = self.rfr.X.loc[
+                :,
+                reduce(lambda a, b: a + b,
+                       [[(f'Incidents_{i}', week)]
+                        for i in range(self.rfr.n_layers)
+                        for week in self.rfr.weeks[1:-1]]
+                       )
+                ]
+            y = self.rfr.X.loc[
+                :, [(f'Incidents_{i}', self.rfr.weeks[-1])
+                    for i in range(self.rfr.n_layers)]
+                ]
+            if label == 'default':
+                y[('Dangerous', '')] = y.T.any().astype(int)
+            else:
+                if self.rfr.l_weights is not None:
+                    w = self.rfr.l_weights
+                else:
+                    w = np.array([1 / (l + 1)
+                                  for l in range(self.rfr.n_layers)])
+                y[('Dangerous', '')] = y.dot(w)
+            y = y[('Dangerous', '')]
+        return X, y
+
+    def prepare_data(self):
+        pass
+
+    def add_model(self, m):
+        """Añade el modelo a self.models
+
+        Parameters
+        ----------
+        m : {STKDE, RForestRegressor, ProMap}
+        """
+        self.models.append(m)
 
     def print_parameters(self):
         """

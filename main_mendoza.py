@@ -1,9 +1,9 @@
 # %%
 
 import predictivehp.processing.data_processing as dp
-from predictivehp.models.models import RForestRegressor
+from predictivehp.models._models import RForestRegressor
 
-from predictivehp.visualization.plotter import Plotter
+from predictivehp.visualization._plotter import Plotter
 
 # %% Data
 

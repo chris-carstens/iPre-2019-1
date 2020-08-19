@@ -1,13 +1,10 @@
-"""
-__init__.py
-Python Version: 3.8.1
+import matplotlib as mpl
 
-iPre - Big Data para Criminología
-Created by Mauro S. Mendoza Elguera at 03-05-20
-Pontifical Catholic University of Chile
+from .utils.seed import set_seed
+from ._config import rc
 
-"""
+# Para reproducibilidad seteamos una semilla
+set_seed(seed=0)
 
-if __name__ == '__main__':
-    pass
-
+# Actualizamos parámetros de runtime context de Matplotlib
+mpl.rcParams.update(rc)

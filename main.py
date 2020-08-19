@@ -1,8 +1,8 @@
 # %%
-from predictivehp.models.models import STKDE, RForestRegressor, ProMap
+from predictivehp.models._models import STKDE, RForestRegressor, ProMap
 from predictivehp.models.parameters import *
 from predictivehp.processing.data_processing import get_data
-from predictivehp.visualization.plotter import Plotter
+from predictivehp.visualization._plotter import Plotter
 
 # %% Data
 

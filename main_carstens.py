@@ -1,8 +1,8 @@
 # %%
-from predictivehp.models.models import STKDE
+from predictivehp.models._models import STKDE
 from predictivehp.models.parameters import *
 import predictivehp.processing.data_processing as dp
-from predictivehp.visualization.plotter import Plotter
+from predictivehp.visualization._plotter import Plotter
 
 # %% Data
 b_path = 'predictivehp/data'

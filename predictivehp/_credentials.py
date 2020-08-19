@@ -1,8 +1,6 @@
 """
-credentials.py:
+credentials.py
 """
-
-# Socrata
 
 socrata_domain = 'www.dallasopendata.com'
 socrata_dataset_identifier = '9s22-2qus'

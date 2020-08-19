@@ -2,7 +2,7 @@
 
 import shutil
 from predictivehp.models import parameters
-import predictivehp.aux_functions as aux
+import predictivehp.utils._aux_functions as aux
 from collections import defaultdict
 from predictivehp.processing.data_processing import *
 

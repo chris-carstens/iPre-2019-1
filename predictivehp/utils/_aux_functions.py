@@ -1,13 +1,3 @@
-"""
-aux_functions.py
-Python Version: 3.8.1
-
-iPre - Big Data para Criminología
-Created by Mauro S. Mendoza Elguera at 01-05-20
-Pontifical Catholic University of Chile
-
-"""
-
 from math import floor, sqrt, ceil
 from time import time
 
@@ -33,43 +23,44 @@ def timer(fn):
 
 # Plots
 
-def lineplot(x, y, x_label=None, y_label=None, title=None, label=None):
-    """Lineplot modificado"""
-    mpl.rcdefaults()
-    rc = {
-        'figure.facecolor': 'black',
-        'figure.figsize': (6.75, 4),  # Values for JLab - (6.0, 4.0) default
+def lineplot(x, y, c='r', ls='-', lw=1,
+              label='', x_label='', y_label='', title='',
+              savefig=False, fname='line_plot', **kwargs):
+    """
+    Forma compacta de realizar un lineplot
 
-        'xtick.color': 'white',
-        'xtick.major.size': 3,
-        'xtick.top': False,
-        'xtick.bottom': True,
+    Parameters
+    ----------
+    x
+    y
+    c : str
+    ls :str
+    lw : atr
+    label
+    x_label : str
+    y_label : str
+    title : str
+    savefig : bool
+    fname : str
 
-        'ytick.color': 'white',
-        'ytick.major.size': 3,
-        'ytick.left': True,
-        'ytick.right': False,
+    Returns
+    -------
 
-        'axes.facecolor': '#100000',
-        'axes.edgecolor': 'black',
-        'axes.labelcolor': 'white',
-        'axes.grid': True,
-        'axes.axisbelow': True,
+    """
+    if label:
+        plt.plot(x, y, c=c, ls=ls, lw=lw, label=label, **kwargs)
+        plt.legend(loc='best')
+    else:
+        plt.plot(x, y, c=c, ls=ls, lw=lw, **kwargs)
 
-        'text.color': 'white',
-
-        # 'label.shadow': True,
-        # 'label.framealpha': 1.0,
-
-        'grid.color': '#250000',
-    }
-    mpl.rcParams.update(rc)
-
-    plt.plot(x, y, label=label)
-
-    plt.xlabel(x_label) if x_label else None
-    plt.ylabel(y_label) if y_label else None
-    plt.title(title) if title else None
+    if x_label:
+        plt.xlabel(x_label, **kwargs)
+    if y_label:
+        plt.ylabel(y_label, **kwargs)
+    if title:
+        plt.title(title, pad=15, **kwargs)
+    if savefig:
+        plt.savefig(fname, dpi=200, bbox_inches='tight', **kwargs)
 
 
 # STKDE
