@@ -2127,7 +2127,7 @@ class ProMap:
 
         # print('-' * 100)
 
-    def set_parameters(self, bw, hx=100, hy=100, read_density=False):
+    def set_parameters(self, bw=None, hx=None, hy=None, read_density=False):
         """
         Setea los hiperparámetros del modelo Promap
         Parameters
@@ -2141,8 +2141,10 @@ class ProMap:
         -------
         """
 
-        self.bw_x, self.bw_y, self.bw_t = bw
-        self.hx, self.hy = hx, hy
+        if bw:
+            self.bw_x, self.bw_y, self.bw_t = bw
+        if hx and hy:
+            self.hx, self.hy = hx, hy
         self.read_density = read_density
         # se debe actualizar la malla
 
@@ -2467,7 +2469,8 @@ class ProMap:
         plt.imshow(np.flipud(matriz.T),
                    extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                    cmap='gist_heat',
-                   vmin=0, vmax=1)
+                   #vmin=0, vmax=1
+                   )
 
         dallas.plot(ax=ax,
                     alpha=.1,  # Ancho de las calles
@@ -2547,13 +2550,7 @@ class Model:
 
         df = self.data
 
-        if len(df) >= self.promap.n:
-            # print(f'\nEligiendo {self.promap.n} datos...')
-            df = df.sample(n=self.promap.n,
-                           replace=False,
-                           random_state=250499)
-            df.sort_values(by=['date'], inplace=True)
-            df.reset_index(drop=True, inplace=True)
+        promap = [m for m in self.models if m.name == "ProMap"][0]
 
         # print("\nGenerando dataframe...")
 
@@ -2573,10 +2570,9 @@ class Model:
 
         # División en training y testing data
 
-        X = df[df["date"] <= self.promap.start_prediction]
-        y = df[df["date"] > self.promap.start_prediction]
-        y = y[y["date"] < self.promap.start_prediction + datetime.timedelta(
-            days=self.promap.lp)]
+        X = df[df["date"] <= promap.start_prediction]
+        y = df[df["date"] > promap.start_prediction]
+        y = y[y["date"] < promap.start_prediction + timedelta(days=promap.lp)]
 
         return X, y
 
