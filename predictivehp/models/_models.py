@@ -267,11 +267,9 @@ class STKDE:
         # Normalizar
         z = z / z.max()
 
-        print(z)
-
         if c is None:
             z_plot = z
-        elif type(c) == float or type(c) == int:
+        elif type(c) == float:
             z_plot = z > c
         elif type(c) == list or type(c) == np.ndarray:
             c = np.array(c).flatten()
@@ -336,8 +334,6 @@ class STKDE:
         plt.tight_layout()
         if savefig:
             plt.savefig(fname, **kwargs)
-
-        print(z_plot)
         plt.show()
 
     def data_barplot(self, pdf: bool = False):
