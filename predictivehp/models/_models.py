@@ -2174,25 +2174,11 @@ class ProMap:
                            self.y_min + delta_y:self.y_max - delta_y:self.bins_y * 1j
                            ]
 
-    def fit(self):
+    def fit(self, X, y):
 
         """
         Se encarga de generar la malla en base a los datos del modelo.
         También se encarga de filtrar los puntos que no están dentro de dallas.
-        """
-
-        # print('Fitting...')
-
-        self.create_grid()
-
-        # points = np.array([self.xx.flatten(), self.yy.flatten()])
-        # self.cells_in_map = af.checked_points_pm(points)  # 141337
-        self.cells_in_map = 100_000
-
-    def predict(self, X, y):
-
-        """
-        Calula el score en cada celda de la malla de densidades.
         Parameters
         ----------
         X: pd.dataframe
@@ -2201,9 +2187,25 @@ class ProMap:
             Son los datos para el testeo (x_point, y_point)
         """
 
+        # print('Fitting...')
+
+        self.create_grid()
         self.X = X
         self.y = y
         self.dias_train = self.X['y_day'].max()
+
+        # points = np.array([self.xx.flatten(), self.yy.flatten()])
+        # self.cells_in_map = af.checked_points_pm(points)  # 141337
+        self.cells_in_map = 100_000
+
+    def predict(self):
+
+        """
+        Calula el score en cada celda de la malla de densidades.
+        Parameters
+        ----------
+
+        """
 
         if self.read_density:
             self.prediction = np.load(
