@@ -282,10 +282,10 @@ class STKDE:
             z_plot = z_plot / np.max(z_plot)
 
         plt.pcolormesh(x, y, z_plot.reshape(x.shape),
-                            shading='gouraud',
-                            alpha=.2,
-                            zorder=2,
-                            )
+                       shading='gouraud',
+                       alpha=.2,
+                       zorder=2,
+                       )
 
         if show_score:
             norm = mpl.colors.Normalize(vmin=0, vmax=1)
@@ -294,9 +294,9 @@ class STKDE:
             cmap = mpl.cm.jet
             mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
             c_bar = fig.colorbar(mappable, ax=ax,
-                                fraction=0.15,
-                                shrink=0.5,
-                                aspect=21.5)
+                                 fraction=0.15,
+                                 shrink=0.5,
+                                 aspect=21.5)
             c_bar.ax.set_ylabel('Danger Score')
 
         if incidences:
@@ -2354,7 +2354,7 @@ class ProMap:
             else float(self.hr[i]) / float(self.ap[i])
             for i in range(len(self.ap))]
 
-    def heatmap(self, c=0, show_score=True, incidences=False,
+    def heatmap(self, c=None, show_score=True, incidences=False,
                 savefig=False, fname='', **kwargs):
         """
         Mostrar un heatmap de una matriz de riesgo.
@@ -2370,27 +2370,28 @@ class ProMap:
         -------
 
         """
-
-        if type(c) == list or type(c) == tuple:
-            c1 = min(c)
-            c2 = max(c)
-            matriz = np.where(self.prediction >= c1,
-                              self.prediction, 0)
-            matriz = np.where(matriz <= c2, matriz, 0)
-
-        else:
-
-            matriz = np.where(self.prediction >= c,
-                              self.prediction, 0)
-
-        dallas = gpd.read_file('predictivehp/data/streets.shp')
-        dallas.crs = 2276
-        dallas.to_crs(epsg=3857, inplace=True)
+        dallas = self.shps['streets']
+        # dallas.crs = 2276
+        # dallas.to_crs(epsg=3857, inplace=True)
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)
-        ax.set_facecolor('xkcd:black')
 
-        plt.title(self.name)
+        if c is None:
+            matriz = self.prediction
+
+        elif type(c) == float:
+            matriz = np.where(self.prediction >= c, 1, 0)
+        elif type(c) == list or type(c) == np.ndarray:
+            c = np.array(c).flatten()
+            c = c[c > 0]
+            c = c[c < 1]
+            c = np.unique(c)
+            c = np.sort(c)
+            matriz = np.zeros((self.bins_x, self.bins_y))
+            for i in c:
+                matriz[self.prediction > i] += 1
+            matriz = matriz / np.max(matriz)
+
         plt.imshow(np.flipud(matriz.T),
                    extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                    cmap='jet',
@@ -2398,6 +2399,17 @@ class ProMap:
                    )
 
         dallas.plot(ax=ax, alpha=.3, color="gray")
+
+        if show_score:
+            norm = mpl.colors.Normalize(vmin=0, vmax=1)
+            #mpl.cm.set_array(np.ndarray(c))
+            cmap = mpl.cm.jet
+            mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+            c_bar = fig.colorbar(mappable, ax=ax,
+                                 fraction=0.15,
+                                 shrink=0.5,
+                                 aspect=21.5)
+            c_bar.ax.set_ylabel('Danger Score')
 
         if incidences:
             geometry = [Point(xy) for xy in zip(
@@ -2408,26 +2420,16 @@ class ProMap:
                                       crs=dallas.crs,
                                       geometry=geometry)
             geo_df.plot(ax=ax,
-                        markersize=17.5,
+                        markersize=10,
                         color='red',
                         marker='o',
                         zorder=3,
                         label="Incidents")
 
-        ax.set_axis_off()
         plt.title('ProMap')
         plt.legend()
 
-        if show_score:
-            norm = mpl.colors.Normalize(vmin=0, vmax=1)
-            cmap = mpl.cm.jet
-            mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-            c_bar = fig.colorbar(mappable, ax=ax,
-                                 fraction=0.15,
-                                 shrink=0.5,
-                                 aspect=21.5)
-            c_bar.ax.set_ylabel('Danger Score')
-
+        ax.set_axis_off()
         plt.tight_layout()
         if savefig:
             plt.savefig(fname, **kwargs)
@@ -2457,7 +2459,7 @@ class ProMap:
         plt.imshow(np.flipud(matriz.T),
                    extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                    cmap='gist_heat',
-                   #vmin=0, vmax=1
+                   # vmin=0, vmax=1
                    )
 
         dallas.plot(ax=ax,
@@ -2480,20 +2482,18 @@ class ProMap:
 
     def validate(self, c=0):
         self.load_test_matrix(self.lp)
-        if type(c) == list or type(c) == tuple:
-            c1 = min(c)
-            c2 = max(c)
-            aux = self.prediction[self.prediction >= c1]
-            aux = aux <= c2
-            self.d_incidents = np.sum(aux * self.testing_matrix)
-            self.h_area = np.count_nonzero(
-                aux) * self.hx * self.hy / 10 ** -6  # km^2
+
+        if type(c) != list:
+            hits = np.sum(
+                (self.prediction >= c) * self.testing_matrix)
 
         else:
-            self.d_incidents = np.sum(
-                (self.prediction >= c) * self.testing_matrix)
-            self.h_area = np.count_nonzero(self.prediction >= c) * self.hx * \
-                          self.hy / 10 ** -6  # km^2
+            c1, c2 = min(c), max(c)
+            aux = self.prediction[self.prediction > c1]
+            aux = aux < c2
+            hits = np.sum(aux * self.testing_matrix)
+
+        self.d_incidents = hits
 
 
 class Model:

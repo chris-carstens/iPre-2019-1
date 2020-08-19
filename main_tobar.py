@@ -17,18 +17,19 @@ data = ut.get_data(2017, 150_000)
 # %% PROMAP
 
 modelos = create_model(data,shps, use_promap=True)
-modelos.set_parameters()
 modelos.set_parameters('ProMap', read_density=True)
 data_prepared = modelos.prepare_data()
 modelos.fit(data_prepared)
 modelos.predict()
 
-
 #
 pltr = Plotter(modelos)
-pltr.hr()
-pltr.pai()
+#pltr.hr()
+#pltr.pai()
 pltr.heatmap(incidences=True)
+pltr.heatmap(c = 0.2, incidences=True)
+pltr.heatmap(c =[0.1, 0.2], incidences=True)
+
 
 if __name__ == '__main__':
     pass
