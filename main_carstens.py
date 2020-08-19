@@ -15,8 +15,9 @@ data = ut.get_data()
 m = create_model(data, shps, use_stkde=True)
 
 # %% STKDE
+pp = m.prepare_data()
+m.fit(pp)
 
-m.fit(*m.prepare_stkde())
 #stkde.spatial_pattern()
 
 #stkde.heatmap(incidences=True, c=0.1)
