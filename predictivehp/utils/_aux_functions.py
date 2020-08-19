@@ -1,5 +1,6 @@
 from math import floor, sqrt, ceil
 from time import time
+from datetime import datetime
 
 import geopandas as gpd
 import matplotlib as mpl
@@ -71,7 +72,7 @@ def get_data(year=2017, n=150000):
         df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
             lambda x: float(x))
         df.loc[:, 'date1'] = df['date1'].apply(  # OJO AL SEPARADOR ' '
-            lambda x: datetime.datetime.strptime(
+            lambda x: datetime.strptime(
                 x.split(' ')[0], '%Y-%m-%d')
         )
         df.loc[:, 'date1'] = df["date1"].apply(lambda x: x.date())

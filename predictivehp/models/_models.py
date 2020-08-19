@@ -15,7 +15,6 @@ from sklearn.ensemble import RandomForestRegressor
 
 import predictivehp.utils._aux_functions as af
 
-
 settings = kd.EstimatorSettings(efficient=True, n_jobs=8)
 
 
@@ -60,7 +59,7 @@ class STKDE:
     def __init__(self,
                  shps=None, bw=None, sample_number=3600,
                  start_prediction=date(2017, 11, 1),
-                 window_days=7, name="STKDE"):
+                 length_prediction=7, name="STKDE"):
         """
         Parameters
         ----------
@@ -75,7 +74,7 @@ class STKDE:
           Si no se desea dividir en grupos, por defecto es 1.
         start_prediction : date
           Fecha de comienzo en la ventana temporal a predecir
-        window_days : int
+        length_prediction : int
           Número de días de ventana a predecir
         name : str
           Nombre predeterminado del modelo
@@ -86,7 +85,7 @@ class STKDE:
         self.name, self.sn, self.bw = name, sample_number, bw
         self.shps = shps
         self.start_prediction = start_prediction
-        self.wd = window_days
+        self.lp = length_prediction
 
         self.hr, self.ap, self.pai = None, None, None
         self.f_delitos, self.f_nodos = None, None
@@ -2063,7 +2062,7 @@ class RForestRegressor(object):
 class ProMap:
     def __init__(self, n_datos=3600, read_density=False,
                  hx=100, hy=100,
-                 bw_x=400, bw_y=400, bw_t=7, ventana_dias=7,
+                 bw_x=400, bw_y=400, bw_t=7, length_prediction=7,
                  tiempo_entrenamiento=None,
                  start_prediction=date(2017, 11, 1),
                  km2=1_000, name='ProMap', shps=None):
@@ -2086,7 +2085,7 @@ class ProMap:
             Ancho de banda en y
         bw_t: float
             Ancho de banda en t
-        ventana_dias: int
+        length_prediction: int
             Número de días que se quiere predecir
         tiempo_entrenamiento: int
             Número de días que se quiern entrenar al modelo.
@@ -2115,7 +2114,7 @@ class ProMap:
 
         # MODEL
         self.name = name
-        self.ventana_dias = ventana_dias
+        self.lp = length_prediction
         self.prediction = np.zeros((self.bins_x, self.bins_y))
         self.training_matrix = np.zeros((self.bins_x, self.bins_y))
         self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
@@ -2304,7 +2303,7 @@ class ProMap:
         """
 
         self.load_train_matrix()
-        self.load_test_matrix(self.ventana_dias)
+        self.load_test_matrix(self.lp)
 
         # 1. Solo considera las celdas que son mayor a un K
         #     Esto me entrega una matriz con True/False (Matriz A)
@@ -2485,7 +2484,7 @@ class ProMap:
         return self.prediction
 
     def validate(self, c=0):
-        self.load_test_matrix(self.ventana_dias)
+        self.load_test_matrix(self.lp)
         if type(c) == list or type(c) == tuple:
             c1 = min(c)
             c2 = max(c)
@@ -2532,7 +2531,7 @@ class Model:
         X_test = data[data["date"] > self.stkde.start_prediction]
         X_test = X_test[
             X_test["date"] < self.stkde.start_prediction + datetime.timedelta(
-                days=self.stkde.wd)]
+                days=self.stkde.lp)]
 
         return X_train, X_test
 
@@ -2569,7 +2568,7 @@ class Model:
         X = df[df["date"] <= self.promap.start_prediction]
         y = df[df["date"] > self.promap.start_prediction]
         y = y[y["date"] < self.promap.start_prediction + datetime.timedelta(
-            days=self.promap.ventana_dias)]
+            days=self.promap.lp)]
 
         return X, y
 
@@ -2767,6 +2766,7 @@ class Model:
     #         m.heatmap(c=c, show_score=show_score, incidences=incidences,
     #                   savefig=savefig, fname=fname, **kwargs)
 
+
 def create_model(data=None, shps=None,
                  start_prediction=date(2017, 11, 1), length_prediction=7,
                  use_stkde=False, use_promap=False, use_rfr=False):
@@ -2787,14 +2787,18 @@ def create_model(data=None, shps=None,
     Model
     """
     m = Model()
-    m.stkde = STKDE(shps=shps, start_prediction=start_prediction,
-                    window_days=length_prediction) \
-        if use_stkde else m.stkde
+    if use_stkde:
+        stkde = STKDE(shps=shps, start_prediction=start_prediction,
+                      length_prediction=length_prediction)
+        m.add_model(stkde)
     if use_promap:
-        m.promap = ProMap(shps=shps, start_prediction=start_prediction)
+        promap = ProMap(shps=shps, start_prediction=start_prediction,
+                        length_prediction=length_prediction)
+        m.add_model(promap)
     if use_rfr:
-        m.rfr = RForestRegressor(data_0=data, shps=shps,
-                                 start_prediction=start_prediction)
+        rfr = RForestRegressor(data_0=data, shps=shps,
+                               start_prediction=start_prediction)
+        m.add_model(rfr)
     return m
 
 
