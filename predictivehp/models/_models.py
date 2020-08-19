@@ -2186,7 +2186,7 @@ class ProMap:
 
         # points = np.array([self.xx.flatten(), self.yy.flatten()])
         # self.cells_in_map = af.checked_points_pm(points)  # 141337
-        self.cells_in_map = 1170337
+        self.cells_in_map = 117337
 
     def predict(self):
 
