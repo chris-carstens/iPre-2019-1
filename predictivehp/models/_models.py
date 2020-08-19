@@ -2517,6 +2517,8 @@ class Model:
         -------
 
         """
+        stkde = [m for m in self.models if m.name == "STKDE"][0]
+
         data = self.data
         geometry = [Point(xy) for xy in zip(np.array(data[['x']]),
                                             np.array(data[['y']]))]
@@ -2526,16 +2528,16 @@ class Model:
         data['x'] = data['geometry'].apply(lambda x: x.x)
         data['y'] = data['geometry'].apply(lambda x: x.y)
 
-        data = data.sample(n=self.stkde.sn, replace=False, random_state=0)
+        data = data.sample(n=stkde.sn, replace=False, random_state=0)
         data.sort_values(by=['date'], inplace=True)
         data.reset_index(drop=True, inplace=True)
 
         # División en training data (X_train) y testing data (y)
-        X_train = data[data["date"] <= self.stkde.start_prediction]
-        X_test = data[data["date"] > self.stkde.start_prediction]
+        X_train = data[data["date"] <= stkde.start_prediction]
+        X_test = data[data["date"] > stkde.start_prediction]
         X_test = X_test[
-            X_test["date"] < self.stkde.start_prediction + datetime.timedelta(
-                days=self.stkde.lp)]
+            X_test["date"] < stkde.start_prediction + datetime.timedelta(
+                days=stkde.lp)]
 
         return X_train, X_test
 
@@ -2702,12 +2704,8 @@ class Model:
         en self.stkde, self.promap, self.rfr
 
         """
-        if self.stkde:
-            self.stkde.print_parameters()
-        if self.promap:
-            self.promap.print_parameters()
-        if self.rfr:
-            self.rfr.print_parameters()
+        for m in self.models:
+            m.print_paremeters()
 
     def fit(self, data_p):
         for m in self.models:
