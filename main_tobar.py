@@ -17,7 +17,7 @@ shps = pp.shps_processing(s_shp_p, c_shp_p, cl_shp_p)
 # %% PROMAP
 pm = ProMap(shps=shps)
 pm.set_parameters(bw = bw)
-pp.models = [pm]
+pp.model = [pm]
 pp.define_models()
 
 
