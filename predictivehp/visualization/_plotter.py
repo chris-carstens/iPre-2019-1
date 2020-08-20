@@ -53,15 +53,11 @@ class Plotter:
                       savefig=savefig, fname=fname, **kwargs)
 
     def hr(self):
-        # print("\nPlotting Hit Rates:", end="")
-
-        nm = len(self.model.models)
         cmap = plt.get_cmap('jet')
-        # n_cmap = ut.truncate_cmap(cmap=cmap, n=nm)
         for idx, m in enumerate(self.model.models):
             # print(f"\t {m.name}")
             m.calculate_hr(c=self.c_arr)
-            ut.lineplot(x=m.ap, y=m.hr, c=cmap(idx * 80), label=m.name)
+            ut.lineplot(x=m.ap, y=m.hr, c=cmap((idx+1) * 80), label=m.name)
 
         plt.xlabel('Area Percentage')
         plt.ylabel('Hit Rate')
@@ -69,9 +65,10 @@ class Plotter:
         plt.show()
 
     def pai(self):
-        for m in self.model.models:
+        cmap = plt.get_cmap('jet')
+        for idx, m in enumerate(self.model.models):
             m.calculate_pai(c=self.c_arr)
-            ut.lineplot(x=m.ap, y=m.pai, label=m.name)
+            ut.lineplot(x=m.ap, y=m.pai, c=cmap((idx+1) * 80), label=m.name)
 
         plt.xlabel('Area Percentage')
         plt.ylabel('PAI')
