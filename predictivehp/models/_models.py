@@ -87,6 +87,7 @@ class STKDE:
         self.hr, self.ap, self.pai = None, None, None
         self.f_delitos, self.f_nodos = None, None
         self.df = None
+        self.f_max = None
 
         self.x_min, self.y_min, self.x_max, self.y_max = self.shps[
             'streets'].total_bounds
@@ -204,8 +205,13 @@ class STKDE:
         f_delitos = f_delitos / f_max
         f_nodos = f_nodos / f_max
 
+        self.f_max = f_max
+
         self.f_delitos, self.f_nodos = f_delitos, f_nodos
         return self.f_delitos, self.f_nodos
+
+
+
 
     def score(self, x, y, t):
         """
@@ -222,7 +228,9 @@ class STKDE:
                     Valor de la función densidad de
                     la predicción evaluada en (x,y,t)
         """
-        score_pdf = self.kde.pdf(np.array([x, y, t]))
+        if self.f_max is None:
+            self.predict()
+        score_pdf = self.kde.pdf(np.array([x, y, t])) / self.f_max
         # print(f"STKDE pdf score: {score_pdf}\n")
         return score_pdf
 
@@ -488,12 +496,13 @@ class STKDE:
         self.pai = PAI
         return self.pai, self.hr, self.ap
 
-    def validate(self, c=0):
+    def validate(self, c=0, area=993):
         if type(c != list):
             hits = self.f_delitos[self.f_delitos > c]
         else:
             hits = self.f_delitos[self.f_delitos < max(c)]
             hits = self.hits[hits > min(c)]
+        self.h_area = np.sum(self.f_nodos >= c) * area / len(self.f_nodos)
         self.d_incidents = hits.size
 
 
@@ -2243,8 +2252,6 @@ class Model:
 
     def hotspot_area(self):
         for m in self.models:
-            if m.name == 'STKDE':
-                continue
             print(f"{m.name}: {m.h_area}")
 
     def store(self, file_name='model.data'):
