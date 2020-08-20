@@ -2018,8 +2018,7 @@ class Model:
         """
         stkde = list(filter(lambda m: m.name == "STKDE", self.models))[0]
 
-        data = self.data
-        print(data.head())
+        data = self.data.copy(deep=True)
         geometry = [Point(xy) for xy in zip(np.array(data[['x']]),
                                             np.array(data[['y']]))]
         data = gpd.GeoDataFrame(data, crs=2276, geometry=geometry)
@@ -2038,14 +2037,11 @@ class Model:
         X_test = X_test[
             X_test["date"] < stkde.start_prediction
             + timedelta(days=stkde.lp)]
-
         return X_train, X_test
 
     def prepare_promap(self):
-
         promap = list(filter(lambda m: m.name == "ProMap", self.models))[0]
-        df = self.data
-        print(df.head())
+        df = self.data.copy(deep=True)
         # print("\nGenerando dataframe...")
 
         geometry = [Point(xy) for xy in zip(
@@ -2150,12 +2146,20 @@ class Model:
         return X, y
 
     def prepare_data(self):
-        dict_ = {
-            m.name:
-                self.prepare_stkde() if m.name == 'STKDE' else
-                self.prepare_promap() if m.name == 'ProMap' else
-                self.prepare_rfr()
-            for m in self.models}
+        dict_ = {}
+        for m in self.models:
+            if m.name == 'STKDE':
+                dict_['STKDE'] = self.prepare_stkde()
+            elif m.name == 'ProMap':
+                dict_['ProMap'] = self.prepare_promap()
+            else:
+                dict_['RForestRegressor'] = self.prepare_rfr()
+        # dict_ = {
+        #     m.name:
+        #         self.prepare_stkde() if m.name == 'STKDE' else
+        #         self.prepare_promap() if m.name == 'ProMap' else
+        #         self.prepare_rfr()
+        #     for m in self.models}
         return dict_
 
     def add_model(self, m):
