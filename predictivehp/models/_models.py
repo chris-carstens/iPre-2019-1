@@ -563,8 +563,7 @@ class RForestRegressor(object):
         self.weeks.reverse()
         self.weeks.append(start_prediction)
 
-        self.data_0 = data_0
-        self.data = self.data_0
+        self.data = data_0
         self.X = None
         self.read_data, self.read_X = read_data, read_X
         self.w_data, self.w_X = w_data, w_X
@@ -674,7 +673,7 @@ class RForestRegressor(object):
             # en caso que no se tenga un data.pkl de antes, se recibe el
             # dado por la PreProcessing Class, mientras que self.X es llenado
             # al llamar self.generate_X dentro de self.fit()
-            self.data = self.data_0
+
             # Manejo de los puntos de incidentes para poder trabajar en (x, y)
             geometry = [Point(xy) for xy in zip(np.array(self.data[['x']]),
                                                 np.array(self.data[['y']]))]
@@ -772,7 +771,6 @@ class RForestRegressor(object):
 
         # Dejamos la asociación inc-cell en el index de self.data
         self.data.set_index('Cell', drop=True, inplace=True)
-        self.data.to_pickle('predictivehp/data/data.pkl')
 
     def fit(self, X, y):
         """Entrena el modelo
@@ -859,7 +857,8 @@ class RForestRegressor(object):
             cells['Hit'] = np.where(
                 cells[('Dangerous_pred', '')] >= c, 1, 0
             )
-
+        if self.read_data:
+            self.data = pd.read_pickle('predictivehp/data/data.pkl')
         data_nov = pd.DataFrame(self.data[
                                     (date(2017, 11, 1) <= self.data.date) &
                                     (self.data.date <= date(2017, 11, 7))
@@ -884,12 +883,15 @@ class RForestRegressor(object):
         c : {float, np.ndarray}
           Threshold de confianza para filtrar hotspots
         """
+        if self.read_data:
+            self.data = pd.read_pickle('predictivehp/data/data.pkl')
         if c.size == 1:
             data_nov = pd.DataFrame(
                 self.data[(date(2017, 11, 1) <= self.data.date) &
                           (self.data.date <= date(2017, 11, 7))]
             )  # 62 Incidentes
-            data_nov.drop(columns='geometry', inplace=True)
+            if 'geometry' in set(data_nov.columns):
+                data_nov.drop(columns='geometry', inplace=True)
             data_nov.columns = pd.MultiIndex.from_product(
                 [data_nov.columns, ['']]
             )
@@ -2153,6 +2155,8 @@ class Model:
             elif m.name == 'ProMap':
                 dict_['ProMap'] = self.prepare_promap()
             else:
+                if m.read_X:
+                    m.X = pd.read_pickle('predictivehp/data/X.pkl')
                 dict_['RForestRegressor'] = self.prepare_rfr()
         # dict_ = {
         #     m.name:
@@ -2203,12 +2207,6 @@ class Model:
 
     def fit(self, data_p):
         for m in self.models:
-            if m.name == 'RForestRegressor':
-                if m.read_X:
-                    m.X = pd.read_pickle('predictivehp/data/X.pkl')
-                if m.read_data:
-                    m.data = pd.read_pickle('predictivehp/data/data.pkl')
-                    continue
             m.fit(*data_p[m.name])
 
     def predict(self):
@@ -2248,12 +2246,6 @@ class Model:
             if m.name == 'STKDE':
                 continue
             print(f"{m.name}: {m.h_area}")
-
-    def plot_hr(self):
-        pass
-
-    def plot_pai(self):
-        pass
 
     def store(self, file_name='model.data'):
         pass
