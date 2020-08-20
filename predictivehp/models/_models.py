@@ -10,7 +10,6 @@ import pandas as pd
 import seaborn as sns
 import statsmodels.nonparametric.kernel_density as kd
 from matplotlib.lines import Line2D
-from pyevtk.hl import gridToVTK
 from shapely.geometry import Point
 from sklearn.ensemble import RandomForestRegressor
 
@@ -65,15 +64,10 @@ class STKDE:
         """
         Parameters
         ----------
-        year: string
-          Database year
         bw: np.array
           bandwidth for x, y, t
         sample_number: int
           Número de muestras de la base de datos
-        number_of_groups:
-          Número de grupos distintos a generar para predecir por separado.
-          Si no se desea dividir en grupos, por defecto es 1.
         start_prediction : date
           Fecha de comienzo en la ventana temporal a predecir
         length_prediction : int
@@ -84,6 +78,7 @@ class STKDE:
           GeoDataFrame que contiene información sobre la ciudad de Dallas
         """
 
+        self.hits = None
         self.name, self.sn, self.bw = name, sample_number, bw
         self.shps = shps
         self.start_prediction = start_prediction
@@ -118,7 +113,7 @@ class STKDE:
         self.bw = bw
         # Reentrenamos el modelo con nuevo bw
         if self.df is not None:
-            self.fit(self.df, self.X_train, self.y, self.pg)
+            self.fit(self.X_train, self.X_test)
 
     def print_parameters(self):
         """
@@ -144,9 +139,6 @@ class STKDE:
           Training data.
         X_t : pd.DataFrame
           Test data.
-        predict_groups: list
-          Lista con los datos separados por grupos y sus correspondientes
-          ventanas.
         """
         self.X_train, self.X_test = X, X_t
 
@@ -175,23 +167,21 @@ class STKDE:
         stkde = self.kde
 
         # Data base, para primer grupo
-        x_training = pd.Series(
-            self.X_train["x"]).tolist()
-        y_training = pd.Series(
-            self.X_train["y"]).tolist()
-        t_training = pd.Series(
-            self.X_train["y_day"]).tolist()
+        x_training = pd.Series(self.X_train["x"]).to_numpy()
+        y_training = pd.Series(self.X_train["y"]).to_numpy()
+        t_training = pd.Series(self.X_train["y_day"]).to_numpy()
 
         self.predicted_sim = stkde.resample(len(pd.Series(
             self.X_test["x"]).tolist()), self.shps["councils"])
 
+        # noinspection PyArgumentList
         x, y, t = np.mgrid[
-                  np.array(x_training).min():
-                  np.array(x_training).max():100 * 1j,
-                  np.array(y_training).min():
-                  np.array(y_training).max():100 * 1j,
-                  np.array(t_training).max():
-                  np.array(t_training).max():1 * 1j
+                  x_training.min():
+                  x_training.max():100 * 1j,
+                  y_training.min():
+                  y_training.max():100 * 1j,
+                  t_training.max():
+                  t_training.max():1 * 1j
                   ]
 
         # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
@@ -266,6 +256,7 @@ class STKDE:
         # Normalizar
         z = z / z.max()
 
+        z_plot = None
         if c is None:
             z_plot = z
         elif type(c) == float:
@@ -282,14 +273,17 @@ class STKDE:
             z_plot = z_plot / np.max(z_plot)
 
         plt.pcolormesh(x, y, z_plot.reshape(x.shape),
-                       shading='jet',
+                       shading='gouraud',
                        alpha=.2,
                        zorder=2,
                        )
 
         if show_score:
+            # noinspection PyUnresolvedReferences
             norm = mpl.colors.Normalize(vmin=0, vmax=1)
+            # noinspection PyUnresolvedReferences
             cmap = mpl.cm.jet
+            # noinspection PyUnresolvedReferences
             mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
             c_bar = fig.colorbar(mappable, ax=ax,
                                  fraction=0.15,
@@ -307,7 +301,6 @@ class STKDE:
                                       geometry=geometry)
 
             # print("\tPlotting Incidents...", end=" ")
-
             geo_df.plot(ax=ax,
                         markersize=3,
                         color='red',
@@ -320,580 +313,127 @@ class STKDE:
 
         plt.title('STKDE')
 
-
         ax.set_axis_off()
         plt.tight_layout()
         if savefig:
             plt.savefig(fname, **kwargs)
         plt.show()
 
-    def data_barplot(self, pdf: bool = False):
-        """
-        Bar Plot
-        pdf: True si se desea guardar el plot en formato pdf
-        """
-
-        print("\nPlotting Bar Plot...")
-
-        fig = plt.figure()
-        ax = fig.add_subplot()
-        ax.tick_params(axis='x', length=0)
-
-        for i in range(1, 13):
-            count = self.data[
-                (self.data["date"].apply(lambda x: x.month) == i)
-            ].shape[0]
-
-            plt.bar(x=i, height=count, width=0.25, color=["black"])
-            plt.text(x=i - 0.275, y=count + 5, s=str(count))
-
-        plt.xticks(
-            [i for i in range(1, 13)],
-            [datetime.datetime.strptime(str(i), "%m").strftime('%b')
-             for i in range(1, 13)])
-
-        sns.despine()
-
-        plt.xlabel("Month",
-                   fontdict={'fontsize': 12.5,
-                             'fontweight': 'bold'},
-                   labelpad=10
-                   )
-        plt.ylabel("Count",
-                   fontdict={'fontsize': 12.5,
-                             'fontweight': 'bold'},
-                   labelpad=7.5
-                   )
-
-        if pdf:
-            plt.savefig(f"output/barplot.pdf", format='pdf')
-
-        plt.show()
-
-    def spatial_pattern(self):
-        """
-        Spatial pattern of incidents
-        pdf: True si se desea guardar el plot en formato pdf
-        """
-
-        self.predict()
-        # print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
-
-        # print("\tReading shapefiles...", end=" ")
-        dallas = self.shps['streets']
-        # print("finished!")
-
-        fig, ax = plt.subplots(figsize=(15, 15))
-        ax.set_facecolor('xkcd:black')
-
-        # US Survey Foot: 0.3048 m
-        # print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")  # 2276
-
-        geometry = [Point(xy) for xy in zip(
-            np.array(self.X_test[['x']]),
-            np.array(self.X_test[['y']]))]
-        geo_df = gpd.GeoDataFrame(self.X_test, crs=dallas.crs,
-                                  geometry=geometry)
-
-        # print("\tPlotting Streets...", end=" ")
-        dallas.plot(ax=ax,
-                    alpha=0.4,
-                    color="steelblue",
-                    zorder=2,
-                    label="Streets")
-        # print("finished!")
-
-        # print("\tPlotting Incidents...", end=" ")
-
-        geo_df.plot(ax=ax,
-                    markersize=17.5,
-                    color='red',
-                    marker='o',
-                    zorder=3,
-                    label="Incidents")
-
-        # print("finished!")
-
-        geometry = [Point(xy) for xy in zip(self.predicted_sim[0],
-                                            self.predicted_sim[1])]
-
-        geo_df = gpd.GeoDataFrame(self.X_test,
-                                  crs=dallas.crs,
-                                  geometry=geometry)
-
-        # print("\tPlotting Simulated Incidents...", end=" ")
-
-        geo_df.plot(ax=ax,
-                    markersize=17.5,
-                    color='blue',
-                    marker='o',
-                    zorder=3,
-                    label="Simulated Incidents")
-
-        # print("finished!")
-
-        plt.title(f"Dallas Incidents - Spatial Pattern\n",
-                  fontdict={'fontsize': 20},
-                  pad=25)
-
-        plt.legend(loc="lower right",
-                   frameon=False,
-                   fontsize=13.5)
-
-        # ax.set_axis_off()
-        plt.show()
-
-    def contour_plot(self, bins: int, ti: int, pdf: bool = False):
-        """
-        Draw the contour lines
-        bins:
-        ti:
-        pdf: True si se desea guardar el plot en formato pdf
-        """
-
-        print("\nPlotting Contours...")
-
-        dallas = gpd.read_file('../Data/shapefiles/streets.shp')
-
-        fig, ax = plt.subplots(figsize=(15, 12))
-        ax.set_facecolor('xkcd:black')
-
-        dallas.plot(ax=ax,
-                    alpha=.4,
-                    color="gray",
-                    zorder=1)
-
-        x, y = np.mgrid[
-               np.array(self.y[['x']]).min():
-               np.array(self.y[['x']]).max():bins * 1j,
-               np.array(self.y[['y']]).min():
-               np.array(self.y[['y']]).max():bins * 1j
-               ]
-
-        z = self.kde.pdf(np.vstack([x.flatten(),
-                                    y.flatten(),
-                                    ti * np.ones(x.size)]))
-        # z_2 = z * 3000 * (10 ** 6) / (.304) # P. Elwin
-
-        contourplot = plt.contour(x, y, z.reshape(x.shape),
-                                  cmap='jet',
-                                  zorder=2)
-
-        plt.title(f"Dallas Incidents - Contourplot\n"
-                  f"n = {self.data.shape[0]}    Year = {self.year}",
-                  fontdict={'fontsize': 20},
-                  pad=20)
-        plt.colorbar(contourplot,
-                     ax=ax,
-                     shrink=.4,
-                     aspect=10)
-
-        if pdf:
-            plt.savefig("output/dallas_contourplot.pdf", format='pdf')
-        plt.show()
-
-    def generate_grid(self, bins: int = 100):
-        """
-        :return:
-        """
-        print("\nCreating 3D grid...")
-
-        x, y, t = np.mgrid[
-                  np.array(self.y[['x']]).min():
-                  np.array(self.y[['x']]).max():bins * 1j,
-                  np.array(self.y[['y']]).min():
-                  np.array(self.y[['y']]).max():bins * 1j,
-                  np.array(self.y[['y_day']]).min():
-                  np.array(self.y[['y_day']]).max():60 * 1j
-                  ]
-
-        print(x.shape)
-
-        print("\n\tEstimating densities...")
-
-        d = self.kde.pdf(
-            np.vstack([
-                x.flatten(),
-                y.flatten(),
-                t.flatten()
-            ])).reshape((100, 100, 60))
-
-        print("\nExporting 3D grid...")
-
-        gridToVTK("STKDE grid",
-                  x, y, t,
-                  pointData={"density": d,
-                             "y_day": t})
-
-    # @af.timer
-    # def plot_4d(self,
-    #             jpg: bool = False,
-    #             interactive: bool = False):
+    # def data_barplot(self, pdf: bool = False):
     #     """
-    #     Docstring
+    #     Bar Plot
+    #     pdf: True si se desea guardar el plot en formato pdf
     #     """
     #
-    #     print("\nCreating 4D plot...")
+    #     print("\nPlotting Bar Plot...")
     #
-    #     # get the material library
-    #     materialLibrary1 = GetMaterialLibrary()
+    #     fig = plt.figure()
+    #     ax = fig.add_subplot()
+    #     ax.tick_params(axis='x', length=0)
     #
-    #     # Create a new 'Render View'
-    #     renderView1 = CreateView('RenderView')
-    #     # renderView1.GetRenderWindow().SetFullScreen(True)
-    #     renderView1.ViewSize = [1080, 720]
-    #     renderView1.AxesGrid = 'GridAxes3DActor'
-    #     renderView1.CenterOfRotation = [2505251.4078454673, 6981929.658190809,
-    #                                     336000.0]
-    #     renderView1.StereoType = 0
-    #     renderView1.CameraPosition = [2672787.133709079, 6691303.18204621,
-    #                                   510212.0148339354]
-    #     renderView1.CameraFocalPoint = [2505211.707979299, 6981538.82059641,
-    #                                     335389.1971413433]
-    #     renderView1.CameraViewUp = [-0.23106610676072656, 0.40064135354217617,
-    #                                 0.8866199637603102]
-    #     renderView1.CameraParallelScale = 97832.66331727587
-    #     renderView1.Background = [0.0, 0.0, 0.0]
-    #     renderView1.OSPRayMaterialLibrary = materialLibrary1
+    #     for i in range(1, 13):
+    #         count = self.data[
+    #             (self.data["date"].apply(lambda x: x.month) == i)
+    #         ].shape[0]
     #
-    #     # init the 'GridAxes3DActor' selected for 'AxesGrid'
-    #     renderView1.AxesGrid.XTitle = 'X_train'
-    #     renderView1.AxesGrid.YTitle = 'Y'
-    #     renderView1.AxesGrid.ZTitle = 'T'
-    #     renderView1.AxesGrid.XTitleFontFile = ''
-    #     renderView1.AxesGrid.YTitleFontFile = ''
-    #     renderView1.AxesGrid.ZTitleFontFile = ''
-    #     renderView1.AxesGrid.XLabelFontFile = ''
-    #     renderView1.AxesGrid.YLabelFontFile = ''
-    #     renderView1.AxesGrid.ZLabelFontFile = ''
+    #         plt.bar(x=i, height=count, width=0.25, color=["black"])
+    #         plt.text(x=i - 0.275, y=count + 5, s=str(count))
     #
-    #     # ----------------------------------------------------------------
-    #     # restore active view
-    #     SetActiveView(renderView1)
-    #     # ----------------------------------------------------------------
+    #     plt.xticks(
+    #         [i for i in range(1, 13)],
+    #         [datetime.datetime.strptime(str(i), "%m").strftime('%b')
+    #          for i in range(1, 13)])
     #
-    #     # ----------------------------------------------------------------
-    #     # setup the data processing pipelines
-    #     # ----------------------------------------------------------------
+    #     sns.despine()
     #
-    #     # Si no existe STKDE_grid.vts, crear malla (INCOMPLETO)
+    #     plt.xlabel("Month",
+    #                fontdict={'fontsize': 12.5,
+    #                          'fontweight': 'bold'},
+    #                labelpad=10
+    #                )
+    #     plt.ylabel("Count",
+    #                fontdict={'fontsize': 12.5,
+    #                          'fontweight': 'bold'},
+    #                labelpad=7.5
+    #                )
     #
-    #     # create a new 'XML Structured Grid Reader'
+    #     if pdf:
+    #         plt.savefig(f"output/barplot.pdf", format='pdf')
     #
-    #     print("\n\tLoading 3D grid...", end=" ")
+    #     plt.show()
     #
-    #     densities = XMLStructuredGridReader(FileName=[
-    #         '/Users/msmendozaelguera/Desktop/iPre/Modeling/Python/STKDE '
-    #         'grid.vts'])
-    #     densities.PointArrayStatus = ['density', 'y_day']
+    # def spatial_pattern(self):
+    #     """
+    #     Spatial pattern of incidents
+    #     pdf: True si se desea guardar el plot en formato pdf
+    #     """
     #
-    #     print("finished!")
+    #     self.predict()
+    #     # print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
     #
-    #     # create a new 'GDAL Vector Reader'
-    #     print("\tLoading Dallas Street shapefile...", end=" ")
+    #     # print("\tReading shapefiles...", end=" ")
+    #     dallas = self.shps['streets']
+    #     # print("finished!")
     #
-    #     dallasMap = GDALVectorReader(
-    #         FileName='/Users/msmendozaelguera/Desktop/iPre/Modeling/Data'
-    #                  '/shapefiles'
-    #                  '/streets.shp')
+    #     fig, ax = plt.subplots(figsize=(15, 15))
+    #     ax.set_facecolor('xkcd:black')
     #
-    #     print("finished!")
+    #     # US Survey Foot: 0.3048 m
+    #     # print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")  # 2276
     #
-    #     print("\tPlotting Contours...", end=" ")
+    #     geometry = [Point(xy) for xy in zip(
+    #         np.array(self.X_test[['x']]),
+    #         np.array(self.X_test[['y']]))]
+    #     geo_df = gpd.GeoDataFrame(self.X_test, crs=dallas.crs,
+    #                               geometry=geometry)
     #
-    #     # create a new 'Contour'
-    #     aboveSurfaceContour = Contour(Input=densities)
-    #     aboveSurfaceContour.ContourBy = ['POINTS', 'y_day']
-    #     aboveSurfaceContour.Isosurfaces = [360.0]
-    #     aboveSurfaceContour.PointMergeMethod = 'Uniform Binning'
+    #     # print("\tPlotting Streets...", end=" ")
+    #     dallas.plot(ax=ax,
+    #                 alpha=0.4,
+    #                 color="steelblue",
+    #                 zorder=2,
+    #                 label="Streets")
+    #     # print("finished!")
     #
-    #     # create a new 'Contour'
-    #     aboveContour = Contour(Input=aboveSurfaceContour)
-    #     aboveContour.ContourBy = ['POINTS', 'density']
-    #     aboveContour.ComputeScalars = 1
-    #     aboveContour.Isosurfaces = [1.2217417871681798e-13]
-    #     aboveContour.PointMergeMethod = 'Uniform Binning'
+    #     # print("\tPlotting Incidents...", end=" ")
     #
-    #     # create a new 'Contour'
-    #     belowSurfaceContour = Contour(Input=densities)
-    #     belowSurfaceContour.ContourBy = ['POINTS', 'y_day']
-    #     belowSurfaceContour.Isosurfaces = [307.0]
-    #     belowSurfaceContour.PointMergeMethod = 'Uniform Binning'
+    #     geo_df.plot(ax=ax,
+    #                 markersize=17.5,
+    #                 color='red',
+    #                 marker='o',
+    #                 zorder=3,
+    #                 label="Incidents")
     #
-    #     # create a new 'Contour'
-    #     belowContour = Contour(Input=belowSurfaceContour)
-    #     belowContour.ContourBy = ['POINTS', 'density']
-    #     belowContour.ComputeScalars = 1
-    #     belowContour.Isosurfaces = [1.8379040711040815e-12]
-    #     belowContour.PointMergeMethod = 'Uniform Binning'
+    #     # print("finished!")
     #
-    #     print("finished!")
+    #     geometry = [Point(xy) for xy in zip(self.predicted_sim[0],
+    #                                         self.predicted_sim[1])]
     #
-    #     # ----------------------------------------------------------------
-    #     # setup the visualization in view 'renderView1'
-    #     # ----------------------------------------------------------------
+    #     geo_df = gpd.GeoDataFrame(self.X_test,
+    #                               crs=dallas.crs,
+    #                               geometry=geometry)
     #
-    #     print("\tRendering Volume...", end=" ")
+    #     # print("\tPlotting Simulated Incidents...", end=" ")
     #
-    #     # show data from densities
-    #     densitiesDisplay = Show(densities, renderView1)
+    #     geo_df.plot(ax=ax,
+    #                 markersize=17.5,
+    #                 color='blue',
+    #                 marker='o',
+    #                 zorder=3,
+    #                 label="Simulated Incidents")
     #
-    #     # get color transfer function/color map for 'density'
-    #     densityLUT = GetColorTransferFunction('density')
-    #     densityLUT.RGBPoints = [0.0, 0.278431372549, 0.278431372549,
-    #                             0.858823529412,
-    #                             5.418939399286293e-13, 0.0, 0.0,
-    #                             0.360784313725,
-    #                             1.0799984117458697e-12, 0.0, 1.0, 1.0,
-    #                             1.625681819785888e-12, 0.0, 0.501960784314,
-    #                             0.0,
-    #                             2.1637862916031283e-12, 1.0, 1.0, 0.0,
-    #                             2.7056802315317578e-12, 1.0, 0.380392156863,
-    #                             0.0,
-    #                             3.247574171460387e-12, 0.419607843137, 0.0,
-    #                             0.0,
-    #                             3.7894681113890166e-12, 0.878431372549,
-    #                             0.301960784314,
-    #                             0.301960784314]
-    #     densityLUT.ColorSpace = 'RGB'
-    #     densityLUT.ScalarRangeInitialized = 1.0
+    #     # print("finished!")
     #
-    #     # get opacity transfer function/opacity map for 'density'
-    #     densityPWF = GetOpacityTransferFunction('density')
-    #     densityPWF.Points = [0.0, 0.0, 0.5, 0.0, 3.7894681113890166e-12, 1.0,
-    #                          0.5, 0.0]
-    #     densityPWF.ScalarRangeInitialized = 1
+    #     plt.title(f"Dallas Incidents - Spatial Pattern\n",
+    #               fontdict={'fontsize': 20},
+    #               pad=25)
     #
-    #     # trace defaults for the display properties.
-    #     densitiesDisplay.Representation = 'Volume'
-    #     densitiesDisplay.ColorArrayName = ['POINTS', 'density']
-    #     densitiesDisplay.LookupTable = densityLUT
-    #     densitiesDisplay.Scale = [1.0, 1.0, 1000.0]
-    #     densitiesDisplay.OSPRayScaleArray = 'density'
-    #     densitiesDisplay.OSPRayScaleFunction = 'PiecewiseFunction'
-    #     densitiesDisplay.SelectOrientationVectors = 'None'
-    #     densitiesDisplay.ScaleFactor = 13997.517379119061
-    #     densitiesDisplay.SelectScaleArray = 'None'
-    #     densitiesDisplay.GlyphType = 'Arrow'
-    #     densitiesDisplay.GlyphTableIndexArray = 'None'
-    #     densitiesDisplay.GaussianRadius = 699.875868955953
-    #     densitiesDisplay.SetScaleArray = ['POINTS', 'density']
-    #     densitiesDisplay.ScaleTransferFunction = 'PiecewiseFunction'
-    #     densitiesDisplay.OpacityArray = ['POINTS', 'density']
-    #     densitiesDisplay.OpacityTransferFunction = 'PiecewiseFunction'
-    #     densitiesDisplay.DataAxesGrid = 'GridAxesRepresentation'
-    #     densitiesDisplay.SelectionCellLabelFontFile = ''
-    #     densitiesDisplay.SelectionPointLabelFontFile = ''
-    #     densitiesDisplay.PolarAxes = 'PolarAxesRepresentation'
-    #     densitiesDisplay.ScalarOpacityFunction = densityPWF
-    #     densitiesDisplay.ScalarOpacityUnitDistance = 2272.3875215933476
+    #     plt.legend(loc="lower right",
+    #                frameon=False,
+    #                fontsize=13.5)
     #
-    #     # init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
-    #     densitiesDisplay.DataAxesGrid.XTitleFontFile = ''
-    #     densitiesDisplay.DataAxesGrid.YTitleFontFile = ''
-    #     densitiesDisplay.DataAxesGrid.ZTitleFontFile = ''
-    #     densitiesDisplay.DataAxesGrid.XLabelFontFile = ''
-    #     densitiesDisplay.DataAxesGrid.YLabelFontFile = ''
-    #     densitiesDisplay.DataAxesGrid.ZLabelFontFile = ''
-    #
-    #     # init the 'PolarAxesRepresentation' selected for 'PolarAxes'
-    #     densitiesDisplay.PolarAxes.Scale = [1.0, 1.0, 1000.0]
-    #     densitiesDisplay.PolarAxes.PolarAxisTitleFontFile = ''
-    #     densitiesDisplay.PolarAxes.PolarAxisLabelFontFile = ''
-    #     densitiesDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
-    #     densitiesDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
-    #
-    #     print("finished!")
-    #
-    #     print("\tMaking some adjustments...", end=" ")
-    #
-    #     # show data from belowContour
-    #     belowContourDisplay = Show(belowContour, renderView1)
-    #
-    #     # trace defaults for the display properties.
-    #     belowContourDisplay.Representation = 'Wireframe'
-    #     belowContourDisplay.ColorArrayName = ['POINTS', 'density']
-    #     belowContourDisplay.LookupTable = densityLUT
-    #     belowContourDisplay.LineWidth = 2.0
-    #     belowContourDisplay.Scale = [1.0, 1.0, 1000.0]
-    #     belowContourDisplay.OSPRayScaleArray = 'Normals'
-    #     belowContourDisplay.OSPRayScaleFunction = 'PiecewiseFunction'
-    #     belowContourDisplay.SelectOrientationVectors = 'None'
-    #     belowContourDisplay.ScaleFactor = 7461.155641368963
-    #     belowContourDisplay.SelectScaleArray = 'None'
-    #     belowContourDisplay.GlyphType = 'Arrow'
-    #     belowContourDisplay.GlyphTableIndexArray = 'None'
-    #     belowContourDisplay.GaussianRadius = 373.05778206844815
-    #     belowContourDisplay.SetScaleArray = ['POINTS', 'Normals']
-    #     belowContourDisplay.ScaleTransferFunction = 'PiecewiseFunction'
-    #     belowContourDisplay.OpacityArray = ['POINTS', 'Normals']
-    #     belowContourDisplay.OpacityTransferFunction = 'PiecewiseFunction'
-    #     belowContourDisplay.DataAxesGrid = 'GridAxesRepresentation'
-    #     belowContourDisplay.SelectionCellLabelFontFile = ''
-    #     belowContourDisplay.SelectionPointLabelFontFile = ''
-    #     belowContourDisplay.PolarAxes = 'PolarAxesRepresentation'
-    #
-    #     # init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
-    #     belowContourDisplay.DataAxesGrid.XTitleFontFile = ''
-    #     belowContourDisplay.DataAxesGrid.YTitleFontFile = ''
-    #     belowContourDisplay.DataAxesGrid.ZTitleFontFile = ''
-    #     belowContourDisplay.DataAxesGrid.XLabelFontFile = ''
-    #     belowContourDisplay.DataAxesGrid.YLabelFontFile = ''
-    #     belowContourDisplay.DataAxesGrid.ZLabelFontFile = ''
-    #
-    #     # init the 'PolarAxesRepresentation' selected for 'PolarAxes'
-    #     belowContourDisplay.PolarAxes.Scale = [1.0, 1.0, 1000.0]
-    #     belowContourDisplay.PolarAxes.PolarAxisTitleFontFile = ''
-    #     belowContourDisplay.PolarAxes.PolarAxisLabelFontFile = ''
-    #     belowContourDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
-    #     belowContourDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
-    #
-    #     # show data from aboveContour
-    #     aboveContourDisplay = Show(aboveContour, renderView1)
-    #
-    #     # trace defaults for the display properties.
-    #     aboveContourDisplay.Representation = 'Wireframe'
-    #     aboveContourDisplay.ColorArrayName = ['POINTS', 'density']
-    #     aboveContourDisplay.LookupTable = densityLUT
-    #     aboveContourDisplay.LineWidth = 2.0
-    #     aboveContourDisplay.Scale = [1.0, 1.0, 1000.0]
-    #     aboveContourDisplay.OSPRayScaleArray = 'Normals'
-    #     aboveContourDisplay.OSPRayScaleFunction = 'PiecewiseFunction'
-    #     aboveContourDisplay.SelectOrientationVectors = 'None'
-    #     aboveContourDisplay.ScaleFactor = 12060.679544949253
-    #     aboveContourDisplay.SelectScaleArray = 'None'
-    #     aboveContourDisplay.GlyphType = 'Arrow'
-    #     aboveContourDisplay.GlyphTableIndexArray = 'None'
-    #     aboveContourDisplay.GaussianRadius = 603.0339772474626
-    #     aboveContourDisplay.SetScaleArray = ['POINTS', 'Normals']
-    #     aboveContourDisplay.ScaleTransferFunction = 'PiecewiseFunction'
-    #     aboveContourDisplay.OpacityArray = ['POINTS', 'Normals']
-    #     aboveContourDisplay.OpacityTransferFunction = 'PiecewiseFunction'
-    #     aboveContourDisplay.DataAxesGrid = 'GridAxesRepresentation'
-    #     aboveContourDisplay.SelectionCellLabelFontFile = ''
-    #     aboveContourDisplay.SelectionPointLabelFontFile = ''
-    #     aboveContourDisplay.PolarAxes = 'PolarAxesRepresentation'
-    #
-    #     # init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
-    #     aboveContourDisplay.DataAxesGrid.XTitleFontFile = ''
-    #     aboveContourDisplay.DataAxesGrid.YTitleFontFile = ''
-    #     aboveContourDisplay.DataAxesGrid.ZTitleFontFile = ''
-    #     aboveContourDisplay.DataAxesGrid.XLabelFontFile = ''
-    #     aboveContourDisplay.DataAxesGrid.YLabelFontFile = ''
-    #     aboveContourDisplay.DataAxesGrid.ZLabelFontFile = ''
-    #
-    #     # init the 'PolarAxesRepresentation' selected for 'PolarAxes'
-    #     aboveContourDisplay.PolarAxes.Scale = [1.0, 1.0, 1000.0]
-    #     aboveContourDisplay.PolarAxes.PolarAxisTitleFontFile = ''
-    #     aboveContourDisplay.PolarAxes.PolarAxisLabelFontFile = ''
-    #     aboveContourDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
-    #     aboveContourDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
-    #
-    #     # show data from dallasMap
-    #     dallasMapDisplay = Show(dallasMap, renderView1)
-    #
-    #     # trace defaults for the display properties.
-    #     dallasMapDisplay.Representation = 'Wireframe'
-    #     dallasMapDisplay.AmbientColor = [0.5019607843137255,
-    #                                      0.5019607843137255,
-    #                                      0.5019607843137255]
-    #     dallasMapDisplay.ColorArrayName = ['POINTS', '']
-    #     dallasMapDisplay.DiffuseColor = [0.7137254901960784,
-    #                                      0.7137254901960784,
-    #                                      0.7137254901960784]
-    #     dallasMapDisplay.MapScalars = 0
-    #     dallasMapDisplay.InterpolateScalarsBeforeMapping = 0
-    #     dallasMapDisplay.PointSize = 0.5
-    #     dallasMapDisplay.LineWidth = 0.5
-    #     dallasMapDisplay.Position = [0.0, 0.0, 305000.0]
-    #     dallasMapDisplay.Scale = [1.0, 1.0, 1000.0]
-    #     dallasMapDisplay.OSPRayScaleFunction = 'PiecewiseFunction'
-    #     dallasMapDisplay.SelectOrientationVectors = 'None'
-    #     dallasMapDisplay.ScaleFactor = 17341.236314833164
-    #     dallasMapDisplay.SelectScaleArray = 'None'
-    #     dallasMapDisplay.GlyphType = 'Arrow'
-    #     dallasMapDisplay.GlyphTableIndexArray = 'None'
-    #     dallasMapDisplay.GaussianRadius = 867.0618157416583
-    #     dallasMapDisplay.SetScaleArray = [None, '']
-    #     dallasMapDisplay.ScaleTransferFunction = 'PiecewiseFunction'
-    #     dallasMapDisplay.OpacityArray = [None, '']
-    #     dallasMapDisplay.OpacityTransferFunction = 'PiecewiseFunction'
-    #     dallasMapDisplay.DataAxesGrid = 'GridAxesRepresentation'
-    #     dallasMapDisplay.SelectionCellLabelFontFile = ''
-    #     dallasMapDisplay.SelectionPointLabelFontFile = ''
-    #     dallasMapDisplay.PolarAxes = 'PolarAxesRepresentation'
-    #
-    #     # init the 'GridAxesRepresentation' selected for 'DataAxesGrid'
-    #     dallasMapDisplay.DataAxesGrid.XTitleFontFile = ''
-    #     dallasMapDisplay.DataAxesGrid.YTitleFontFile = ''
-    #     dallasMapDisplay.DataAxesGrid.ZTitleFontFile = ''
-    #     dallasMapDisplay.DataAxesGrid.XLabelFontFile = ''
-    #     dallasMapDisplay.DataAxesGrid.YLabelFontFile = ''
-    #     dallasMapDisplay.DataAxesGrid.ZLabelFontFile = ''
-    #
-    #     # init the 'PolarAxesRepresentation' selected for 'PolarAxes'
-    #     dallasMapDisplay.PolarAxes.Translation = [0.0, 0.0, 305000.0]
-    #     dallasMapDisplay.PolarAxes.Scale = [1.0, 1.0, 1000.0]
-    #     dallasMapDisplay.PolarAxes.PolarAxisTitleFontFile = ''
-    #     dallasMapDisplay.PolarAxes.PolarAxisLabelFontFile = ''
-    #     dallasMapDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
-    #     dallasMapDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
-    #
-    #     # setup the color label parameters for each label in this view
-    #
-    #     # get color label/bar for densityLUT in view renderView1
-    #     densityLUTColorBar = GetScalarBar(densityLUT, renderView1)
-    #     densityLUTColorBar.WindowLocation = 'AnyLocation'
-    #     densityLUTColorBar.Position = [0.031037827352085365,
-    #                                    0.6636363636363637]
-    #     densityLUTColorBar.Title = 'density'
-    #     densityLUTColorBar.ComponentTitle = ''
-    #     densityLUTColorBar.TitleFontFile = ''
-    #     densityLUTColorBar.LabelFontFile = ''
-    #     densityLUTColorBar.ScalarBarLength = 0.3038636363636361
-    #
-    #     # set color bar visibility
-    #     densityLUTColorBar.Visibility = 1
-    #
-    #     # show color label
-    #     densitiesDisplay.SetScalarBarVisibility(renderView1, True)
-    #
-    #     # show color label
-    #     belowContourDisplay.SetScalarBarVisibility(renderView1, True)
-    #
-    #     # show color label
-    #     aboveContourDisplay.SetScalarBarVisibility(renderView1, True)
-    #
-    #     # ----------------------------------------------------------------
-    #     # setup color maps and opacity mapes used in the visualization
-    #     # note: the Get..() functions create a new object, if needed
-    #     # ----------------------------------------------------------------
-    #
-    #     # ----------------------------------------------------------------
-    #     # finally, restore active source
-    #     SetActiveSource(None)
-    #     # ----------------------------------------------------------------
-    #
-    #     print("finished!")
-    #
-    #     if jpg:
-    #         print("\tSaving .jpg file...", end=" ")
-    #
-    #         SaveScreenshot('STKDE_4D.jpg', ImageResolution=(1080, 720))
-    #
-    #         plt.subplots(figsize=(10.80, 7.2))
-    #
-    #         img = mpimg.imread('STKDE_4D.png')
-    #         plt.imshow(img)
-    #
-    #         plt.axis('off')
-    #         plt.show()
-    #
-    #         print("finished!")
-    #     if interactive:
-    #         print("\tInteractive Window Mode ON...", end=" ")
-    #         Interact()
-    #         print("finished!")
+    #     # ax.set_axis_off()
+    #     plt.show()
 
     def calculate_hr(self, c=None):
         """
@@ -1209,11 +749,6 @@ class RForestRegressor(object):
     def assign_cells(self):
         """Rellena la columna 'Cell' de self.data. Asigna el número de
         celda asociado a cada incidente.
-
-        Parameters
-        ----------
-        week : date
-          Día en el cual comienza el periodo de predicción
         """
         # print("\nAssigning cells...\n")
         x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
@@ -1467,12 +1002,12 @@ class RForestRegressor(object):
                 cells[('Dangerous_pred', '')] >= 0, 1, 0
             )
 
-        if c is None:
-            d_cells.plot(ax=ax, column=('Dangerous_pred', ''), cmap='jet',
-                         marker=',', markersize=0.1)
-        else:
-            d_cells.plot(ax=ax, marker=',', markersize=0.5, color='darkblue',
+        if c is not None:
+            d_cells.plot(ax=ax, marker=',', markersize=1, color='darkblue',
                          label='Hotspot')
+        elif c is None or c == 0.0:
+            d_cells.plot(ax=ax, column=('Dangerous_pred', ''), cmap='jet',
+                         marker=',', markersize=0.2)
 
         if incidences:  # Se plotean los incidentes
             data_nov = pd.DataFrame(self.data[
@@ -1497,8 +1032,11 @@ class RForestRegressor(object):
         plt.legend()
 
         if show_score:
+            # noinspection PyUnresolvedReferences
             norm = mpl.colors.Normalize(vmin=0, vmax=1)
+            # noinspection PyUnresolvedReferences
             cmap = mpl.cm.jet
+            # noinspection PyUnresolvedReferences
             mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
             # divider = make_axes_locatable(ax)
             c_bar = fig.colorbar(mappable, ax=ax,
@@ -2167,7 +1705,6 @@ class ProMap:
 
     def fit(self, X, y):
 
-
         """
         Se encarga de generar la malla en base a los datos del modelo.
         También se encarga de filtrar los puntos que no están dentro de dallas.
@@ -2179,7 +1716,7 @@ class ProMap:
             Son los datos para el testeo (x_point, y_point)
         """
 
-        #print('Fitting Promap...')
+        # print('Fitting Promap...')
 
         self.create_grid()
         self.X = X
@@ -2287,12 +1824,11 @@ class ProMap:
                 break
 
     def calculate_hr(self, c):
-
         """
         Calcula el hr (n/N)
         Parameters
         ----------
-        c: np.linespace(1, n, 100)
+        c: np.ndarray
             Vector que sirve para analizar el mapa en cada punto
         """
 
@@ -2342,7 +1878,7 @@ class ProMap:
         Calcula el PAI (n/N) / (a/A)
         Parameters
         ----------
-        c: np.linespace(1, n, 100)
+        c: np.ndarray
             Vector que sirve para analizar el mapa en cada punto
         """
 
@@ -2375,7 +1911,7 @@ class ProMap:
         # dallas.to_crs(epsg=3857, inplace=True)
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)
-
+        matriz = None
         if c is None:
             matriz = self.prediction
 
@@ -2401,9 +1937,12 @@ class ProMap:
         dallas.plot(ax=ax, alpha=.3, color="gray")
 
         if show_score:
+            # noinspection PyUnresolvedReferences
             norm = mpl.colors.Normalize(vmin=0, vmax=1)
-            #mpl.cm.set_array(np.ndarray(c))
+            # mpl.cm.set_array(np.ndarray(c))
+            # noinspection PyUnresolvedReferences
             cmap = mpl.cm.jet
+            # noinspection PyUnresolvedReferences
             mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
             c_bar = fig.colorbar(mappable, ax=ax,
                                  fraction=0.15,
@@ -2429,13 +1968,11 @@ class ProMap:
 
         plt.title('ProMap')
 
-
         ax.set_axis_off()
         plt.tight_layout()
         if savefig:
             plt.savefig(fname, **kwargs)
         plt.show()
-
 
     def score(self):
 
@@ -2499,8 +2036,8 @@ class Model:
         X_train = data[data["date"] <= stkde.start_prediction]
         X_test = data[data["date"] > stkde.start_prediction]
         X_test = X_test[
-            X_test["date"] < stkde.start_prediction + timedelta(
-                days=stkde.lp)]
+            X_test["date"] < stkde.start_prediction
+            + timedelta(days=stkde.lp)]
 
         return X_train, X_test
 
@@ -2516,10 +2053,7 @@ class Model:
             np.array(df[['y']]))
                     ]
 
-        geo_data = gpd.GeoDataFrame(df,  # gdf de incidentes
-                                    crs=2276,
-                                    geometry=geometry)
-
+        geo_data = gpd.GeoDataFrame(df, crs=2276, geometry=geometry)
         geo_data.to_crs(epsg=3857, inplace=True)
 
         df['x_point'] = geo_data['geometry'].x
@@ -2646,7 +2180,7 @@ class Model:
                     m.set_parameters(t_history=4,
                                      xc_size=100, yc_size=100, n_layers=7,
                                      label_weights=None,
-                                     read_data=False, read_X=True,
+                                     read_data=False, read_X=False,
                                      w_data=True, w_X=True)
         else:
             for m in self.models:

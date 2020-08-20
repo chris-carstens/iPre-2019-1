@@ -23,6 +23,8 @@ from ._aux_functions import checked_points_pm
 from ._aux_functions import get_data
 from ._aux_functions import shps_processing
 
+from ._cmaps import truncate_cmap
+
 
 __all__ = [
     'timer',
@@ -49,6 +51,8 @@ __all__ = [
 
     'get_data',
     'shps_processing',
+
+    'truncate_cmap'
 ]
 
 

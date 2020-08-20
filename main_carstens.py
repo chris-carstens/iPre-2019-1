@@ -1,9 +1,7 @@
-# %%
-from predictivehp.models import STKDE, create_model
 import predictivehp.utils as ut
+from predictivehp.models import create_model
 from predictivehp.visualization import Plotter
 
-# %% Data
 b_path = 'predictivehp/data'
 s_shp_p = f'{b_path}/streets.shp'
 c_shp_p = f'{b_path}/councils.shp'
@@ -17,17 +15,11 @@ m = create_model(data, shps, use_stkde=True)
 # %% STKDE
 pp = m.prepare_data()
 m.fit(pp)
-
-#stkde.spatial_pattern()
-
-#stkde.heatmap(incidences=True, c=0.1)
+# stkde.heatmap(incidences=True, c=0.1)
 
 # %% Plotter
 pltr = Plotter(m)
-#pltr.hr()
-#pltr.pai()
-#stkde.heatmap()
-pltr.heatmap(c=[0.2, 0.8], incidences=True)
-
-if __name__ == '__main__':
-    pass
+pltr.hr()
+# pltr.pai()
+# stkde.heatmap()
+# pltr.heatmap(c=[0.2, 0.8], incidences=True)

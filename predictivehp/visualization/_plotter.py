@@ -1,10 +1,7 @@
 import matplotlib.pyplot as plt
-# from mpl_toolkits.mplot3d import Axes3D
-# from matplotlib import cm
-# from matplotlib.ticker import LinearLocator
 import numpy as np
 
-import predictivehp.utils._aux_functions as af
+import predictivehp.utils as ut
 
 
 class Plotter:
@@ -57,10 +54,14 @@ class Plotter:
 
     def hr(self):
         # print("\nPlotting Hit Rates:", end="")
-        for m in self.model.models:
+
+        nm = len(self.model.models)
+        cmap = plt.get_cmap('jet')
+        # n_cmap = ut.truncate_cmap(cmap=cmap, n=nm)
+        for idx, m in enumerate(self.model.models):
             # print(f"\t {m.name}")
             m.calculate_hr(c=self.c_arr)
-            af.lineplot(x=m.ap, y=m.hr, label=m.name)
+            ut.lineplot(x=m.ap, y=m.hr, c=cmap(idx * 80), label=m.name)
 
         plt.xlabel('Area Percentage')
         plt.ylabel('Hit Rate')
@@ -70,7 +71,7 @@ class Plotter:
     def pai(self):
         for m in self.model.models:
             m.calculate_pai(c=self.c_arr)
-            af.lineplot(x=m.ap, y=m.pai, label=m.name)
+            ut.lineplot(x=m.ap, y=m.pai, label=m.name)
 
         plt.xlabel('Area Percentage')
         plt.ylabel('PAI')

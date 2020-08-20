@@ -183,33 +183,23 @@ def checked_points(points, shp):
     np.ndarray
     """
     dallas_shp = shp
-
     df_points = pd.DataFrame(
         {'x': points[0, :], 'y': points[1, :], 't': points[2, :]}
     )
-
     inc_points = df_points[['x', 'y']].apply(lambda row:
                                              Point(row['x'], row['y']),
                                              axis=1)
     geo_inc = gpd.GeoDataFrame({'geometry': inc_points, 'day': df_points['t']})
-
-    # Para borrar el warning asociado a != epsg distintos
-    geo_inc.crs = 2276
-
-    valid_inc = gpd.tools.sjoin(geo_inc,
-                                dallas_shp,
-                                how='inner',
-                                op='intersects').reset_index()
-
+    geo_inc.crs = dallas_shp.crs
+    valid_inc = gpd.tools.sjoin(geo_inc, dallas_shp,
+                                how='inner', op='intersects').reset_index()
     valid_inc_2 = valid_inc[['geometry', 'day']]
 
     x = valid_inc_2['geometry'].apply(lambda row: row.x)
     y = valid_inc_2['geometry'].apply(lambda row: row.y)
     t = valid_inc_2['day']
 
-    v_points = np.array([x, y, t])
-
-    return v_points
+    return np.array([x, y, t])
 
 
 # ML
