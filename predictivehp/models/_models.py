@@ -314,11 +314,12 @@ class STKDE:
                         marker='o',
                         zorder=3,
                         label="Incidents")
+            plt.legend()
 
             # print("finished!")
 
         plt.title('STKDE')
-        plt.legend()
+
 
         ax.set_axis_off()
         plt.tight_layout()
