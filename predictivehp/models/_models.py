@@ -282,7 +282,7 @@ class STKDE:
             z_plot = z_plot / np.max(z_plot)
 
         plt.pcolormesh(x, y, z_plot.reshape(x.shape),
-                       shading='gouraud',
+                       shading='jet',
                        alpha=.2,
                        zorder=2,
                        )
@@ -309,7 +309,7 @@ class STKDE:
             # print("\tPlotting Incidents...", end=" ")
 
             geo_df.plot(ax=ax,
-                        markersize=10,
+                        markersize=3,
                         color='red',
                         marker='o',
                         zorder=3,
@@ -2419,14 +2419,15 @@ class ProMap:
                                       crs=dallas.crs,
                                       geometry=geometry)
             geo_df.plot(ax=ax,
-                        markersize=10,
+                        markersize=3,
                         color='red',
                         marker='o',
                         zorder=3,
                         label="Incidents")
+            plt.legend()
 
         plt.title('ProMap')
-        plt.legend()
+
 
         ax.set_axis_off()
         plt.tight_layout()
@@ -2458,7 +2459,7 @@ class ProMap:
             aux = aux < c2
             hits = np.sum(aux * self.testing_matrix)
 
-        self.d_incidents = hits
+        self.d_incidents = int(hits)
 
 
 class Model:
@@ -2480,6 +2481,7 @@ class Model:
         stkde = list(filter(lambda m: m.name == "STKDE", self.models))[0]
 
         data = self.data
+        print(data.head())
         geometry = [Point(xy) for xy in zip(np.array(data[['x']]),
                                             np.array(data[['y']]))]
         data = gpd.GeoDataFrame(data, crs=2276, geometry=geometry)
@@ -2505,6 +2507,7 @@ class Model:
 
         promap = list(filter(lambda m: m.name == "ProMap", self.models))[0]
         df = self.data
+        print(df.head())
         # print("\nGenerando dataframe...")
 
         geometry = [Point(xy) for xy in zip(
@@ -2766,14 +2769,14 @@ def create_model(data=None, shps=None,
         promap = ProMap(shps=shps, start_prediction=start_prediction,
                         length_prediction=length_prediction)
         m.add_model(promap)
-    if use_stkde:
-        stkde = STKDE(shps=shps, start_prediction=start_prediction,
-                      length_prediction=length_prediction)
-        m.add_model(stkde)
     if use_rfr:
         rfr = RForestRegressor(data_0=data, shps=shps,
                                start_prediction=start_prediction)
         m.add_model(rfr)
+    if use_stkde:
+        stkde = STKDE(shps=shps, start_prediction=start_prediction,
+                      length_prediction=length_prediction)
+        m.add_model(stkde)
     return m
 
 
