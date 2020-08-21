@@ -991,7 +991,7 @@ class RForestRegressor(object):
         d_streets = self.shps['streets']
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)
-        d_streets.plot(ax=ax, alpha=0.2, lw=0.3, color="w", label="Streets")
+        d_streets.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
         if type(c) == list or type(c) == tuple:
             d_cells = cells[
@@ -1037,10 +1037,10 @@ class RForestRegressor(object):
             if not misses.empty:
                 misses.plot(ax=ax, marker='x', markersize=0.25, color='r',
                             label="Misses")
+            plt.legend()
 
         ax.set_axis_off()
         plt.title('RForestRegressor')
-        plt.legend()
 
         if show_score:
             # noinspection PyUnresolvedReferences
@@ -2214,7 +2214,9 @@ class Model:
         for m in self.models:
             m.print_parameters()
 
-    def fit(self, data_p):
+    def fit(self, data_p=None):
+        if data_p is None:
+            data_p = self.prepare_data()
         for m in self.models:
             m.fit(*data_p[m.name])
 
@@ -2252,6 +2254,8 @@ class Model:
 
     def hotspot_area(self):
         for m in self.models:
+            if m.name == 'ProMap':
+                continue
             print(f"{m.name}: {m.h_area}")
 
     def store(self, file_name='model.data'):
