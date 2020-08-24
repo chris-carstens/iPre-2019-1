@@ -497,10 +497,11 @@ class STKDE:
                     Lista con los valores del
                     Area Percentage para cada grupo
         """
+        if c is None:
+            np.linspace(0, 1, 100)
         if self.f_delitos is None:
             self.predict()
         f_delitos, f_nodos = self.f_delitos, self.f_nodos
-        # c = np.linspace(0, f_nodos.max(), 100)
         hits = [np.sum(f_delitos >= c[i]) for i in range(c.size)]
         area_h = [np.sum(f_nodos >= c[i]) for i in range(c.size)]
         HR = [i / len(f_delitos) for i in hits]
@@ -528,6 +529,8 @@ class STKDE:
                     Lista con los valores del
                     Area Percentage para cada grupo
         """
+        if c is None:
+            np.linspace(0, 1, 100)
         if not self.hr:
             self.calculate_hr(c)
         PAI = [float(self.hr[i]) / float(self.ap[i]) if

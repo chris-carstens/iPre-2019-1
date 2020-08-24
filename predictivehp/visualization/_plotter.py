@@ -52,7 +52,7 @@ class Plotter:
             m.heatmap(c=c, show_score=show_score, incidences=incidences,
                       savefig=savefig, fname=fname, **kwargs)
 
-    def hr(self, per = None):
+    def hr(self, per=None):
         cmap = plt.get_cmap('jet')
         for idx, m in enumerate(self.model.models):
             # print(f"\t {m.name}")
@@ -64,7 +64,7 @@ class Plotter:
         plt.legend()
         plt.show()
 
-    def pai(self, per = None):
+    def pai(self, per=None):
         cmap = plt.get_cmap('jet')
         for idx, m in enumerate(self.model.models):
             m.calculate_pai(c=self.c_arr, per=per)

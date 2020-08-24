@@ -21,7 +21,7 @@ m.fit(pp)
 
 # %% Plotter
 pltr = Plotter(m)
-#pltr.hr()
-# pltr.pai()
+pltr.hr(per=0.1)
+pltr.pai(per=0.1)
 # stkde.heatmap()
 pltr.heatmap(c=0.1, incidences=True)
