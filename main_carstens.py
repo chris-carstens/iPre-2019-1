@@ -13,13 +13,15 @@ data = ut.get_data()
 m = create_model(data, shps, use_stkde=True)
 
 # %% STKDE
+m.set_parameters(m_name='STKDE', bw=[780, 1090, 25])
+
 pp = m.prepare_data()
 m.fit(pp)
 # stkde.heatmap(incidences=True, c=0.1)
 
 # %% Plotter
 pltr = Plotter(m)
-pltr.hr()
+#pltr.hr()
 # pltr.pai()
 # stkde.heatmap()
-# pltr.heatmap(c=[0.2, 0.8], incidences=True)
+pltr.heatmap(c=0.1, incidences=True)
