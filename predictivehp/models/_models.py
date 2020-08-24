@@ -165,11 +165,8 @@ class STKDE:
         """
         if self.f_delitos is not None:
             return self.f_delitos, self.f_nodos
-        stkde = self.kde
 
-        # Data base, para primer grupo
-        x_training = pd.Series(self.X_train["x"]).to_numpy()
-        y_training = pd.Series(self.X_train["y"]).to_numpy()
+        stkde = self.kde
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
 
         self.predicted_sim = stkde.resample(len(pd.Series(
@@ -235,7 +232,7 @@ class STKDE:
         return score_pdf
 
     def heatmap(self, c=None, show_score=True, incidences=False,
-                savefig=False, fname='', bins=100, ti=100, **kwargs):
+                savefig=False, fname='', per='', **kwargs):
         """
         Parameters
         ----------
@@ -247,6 +244,10 @@ class STKDE:
         # print("\nPlotting Heatmap...")
         if self.f_delitos is None:
             self.predict()
+
+        if per:
+            c = af.find_c(self.ap, np.linspace(0, 1, 100), per)
+            print('Valor de c encontrado', c)
         dallas = self.shps['streets']
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)  # Sacar de _config.py
@@ -480,7 +481,7 @@ class STKDE:
     #     # ax.set_axis_off()
     #     plt.show()
 
-    def calculate_hr(self, c=None):
+    def calculate_hr(self, c=None, per=None):
         """
         Parameters
         ----------
@@ -505,9 +506,10 @@ class STKDE:
         HR = [i / len(f_delitos) for i in hits]
         area_percentaje = [i / len(f_nodos) for i in area_h]
         self.hr, self.ap = HR, area_percentaje
-        return self.hr, self.ap
+        if per:
+            print('HR: ', af.find_hr_pai(self.hr, self.ap, per))
 
-    def calculate_pai(self, c=None):
+    def calculate_pai(self, c=None, per=None):
         """
         Parameters
         ----------
@@ -531,7 +533,8 @@ class STKDE:
         PAI = [float(self.hr[i]) / float(self.ap[i]) if
                self.ap[i] else 0 for i in range(len(self.hr))]
         self.pai = PAI
-        return self.pai, self.hr, self.ap
+        if per:
+            print('PAI: ', af.find_hr_pai(self.pai, self.ap, per))
 
     def validate(self, c=0, area=993):
         if type(c != list):
