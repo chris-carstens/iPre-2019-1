@@ -1834,7 +1834,7 @@ class ProMap:
             else:
                 break
 
-    def calculate_hr(self, c):
+    def calculate_hr(self, c, per = None):
         """
         Calcula el hr (n/N)
         Parameters
@@ -1855,6 +1855,8 @@ class ProMap:
         # 4. Contar cuantos delitos quedaron luego de haber pasado este proceso.
 
         # Se espera que los valores de la lista vayan disminuyendo a medida que el valor de K aumenta
+
+        self.c_vector = c
 
         hits_n = []
 
@@ -1883,7 +1885,10 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / self.cells_in_map for
                                                i in area_hits]]
 
-    def calculate_pai(self, c):
+        if per:
+            print('HR: ', af.find_hr_pai(self.hr, self.ap, per))
+
+    def calculate_pai(self, c, per=None):
 
         """
         Calcula el PAI (n/N) / (a/A)
@@ -1901,8 +1906,11 @@ class ProMap:
             else float(self.hr[i]) / float(self.ap[i])
             for i in range(len(self.ap))]
 
+        if per:
+            print('PAI: ',af.find_hr_pai(self.pai, self.ap, per))
+
     def heatmap(self, c=None, show_score=True, incidences=False,
-                savefig=False, fname='', **kwargs):
+                savefig=False, fname='', per=None, **kwargs):
         """
         Mostrar un heatmap de una matriz de riesgo.
 
@@ -1922,11 +1930,16 @@ class ProMap:
         # dallas.to_crs(epsg=3857, inplace=True)
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)
+
+        if per:
+            c = af.find_c(self.ap, self.c_vector, per)
+            print('valor de c encontrado', c)
+
         matriz = None
         if c is None:
             matriz = self.prediction
 
-        elif type(c) == float:
+        elif type(c) == float or type(c) == np.float64:
             matriz = np.where(self.prediction >= c, 1, 0)
         elif type(c) == list or type(c) == np.ndarray:
             c = np.array(c).flatten()
@@ -2001,14 +2014,19 @@ class ProMap:
         if type(c) != list:
             hits = np.sum(
                 (self.prediction >= c) * self.testing_matrix)
+            area = np.count_nonzero(self.prediction > c)
+
+
 
         else:
             c1, c2 = min(c), max(c)
             aux = self.prediction[self.prediction > c1]
             aux = aux < c2
             hits = np.sum(aux * self.testing_matrix)
+            area = np.count_nonzero(aux)
 
         self.d_incidents = int(hits)
+        self.h_area = area*self.hx*self.hy*10**-6
 
 
 class Model:
