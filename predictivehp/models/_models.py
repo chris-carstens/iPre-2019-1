@@ -177,10 +177,10 @@ class STKDE:
 
         # noinspection PyArgumentList
         x, y, t = np.mgrid[
-                  x_training.min():
-                  x_training.max():100 * 1j,
-                  y_training.min():
-                  y_training.max():100 * 1j,
+                  self.x_min:
+                  self.x_max:100 * 1j,
+                  self.y_min:
+                  self.y_max:100 * 1j,
                   t_training.max():
                   t_training.max():1 * 1j
                   ]
@@ -245,22 +245,32 @@ class STKDE:
           Tiempo fijo para evaluar densidad en la predicción
         """
         # print("\nPlotting Heatmap...")
-
+        if self.f_delitos is None:
+            self.predict()
         dallas = self.shps['streets']
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)  # Sacar de _config.py
         dallas.plot(ax=ax, alpha=.4, color="gray", zorder=1)
+        t_training = pd.Series(self.X_train["y_day"]).to_numpy()
+
+        x, y, t = np.mgrid[
+                  self.x_min:
+                  self.x_max:100 * 1j,
+                  self.y_min:
+                  self.y_max:100 * 1j,
+                  t_training.max():
+                  t_training.max():1 * 1j
+                  ]
 
         x, y = np.mgrid[
-               self.x_min:
-               self.x_max:bins * 1j,
-               self.y_min:
-               self.y_max:bins * 1j
-               ]
-        x_f = x.flatten()
-        y_f = y.flatten()
-        z = self.kde.pdf(np.vstack([x_f, y_f,
-                                    ti * np.ones(x.size)]))
+                  self.x_min:
+                  self.x_max:100 * 1j,
+                  self.y_min:
+                  self.y_max:100 * 1j
+                  ]
+
+        z = self.kde.pdf(
+            np.array([x.flatten(), y.flatten(), t.flatten()]))
         # Normalizar
         z = z / z.max()
 
@@ -280,11 +290,25 @@ class STKDE:
                 z_plot[z > i] += 1
             z_plot = z_plot / np.max(z_plot)
 
+
+
         plt.pcolormesh(x, y, z_plot.reshape(x.shape),
                        shading='gouraud',
                        alpha=.2,
                        zorder=2,
                        )
+
+        x, y, t = \
+            np.array(self.X_test['x']), \
+            np.array(self.X_test['y']), \
+            np.array(self.X_test['y_day'])
+        ti = np.repeat(max(t_training), x.size)
+        f_delitos = self.kde.pdf(
+            np.array([x.flatten(), y.flatten(), ti.flatten()]))
+        f_delitos = f_delitos / f_delitos.max()
+
+        hits_bool = f_delitos >= c
+        no_hits_bool = f_delitos < c
 
         if show_score:
             # noinspection PyUnresolvedReferences
@@ -301,20 +325,33 @@ class STKDE:
 
         if incidences:
             # print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
-            geometry = [Point(xy) for xy in zip(
-                np.array(self.X_test[['x']]),
-                np.array(self.X_test[['y']]))]
-            geo_df = gpd.GeoDataFrame(self.X_test,
+            geometry_no_hits = [Point(xy) for xy in zip(
+                np.array(self.X_test[['x']])[no_hits_bool],
+                np.array(self.X_test[['y']])[no_hits_bool])]
+            geo_df_no_hits = gpd.GeoDataFrame(self.X_test[no_hits_bool],
                                       crs=dallas.crs,
-                                      geometry=geometry)
+                                      geometry=geometry_no_hits)
+
+            geometry_hits = [Point(xy) for xy in zip(
+                np.array(self.X_test[['x']])[hits_bool],
+                np.array(self.X_test[['y']])[hits_bool])]
+            geo_df_hits = gpd.GeoDataFrame(self.X_test[hits_bool],
+                                      crs=dallas.crs,
+                                      geometry=geometry_hits)
 
             # print("\tPlotting Incidents...", end=" ")
-            geo_df.plot(ax=ax,
+            geo_df_no_hits.plot(ax=ax,
                         markersize=3,
                         color='red',
                         marker='o',
                         zorder=3,
                         label="Incidents")
+            geo_df_hits.plot(ax=ax,
+                        markersize=3,
+                        color='blue',
+                        marker='o',
+                        zorder=3,
+                        label="Hits")
             plt.legend()
 
             # print("finished!")
@@ -2188,7 +2225,7 @@ class Model:
         if not m_name:  # Se setean todos los hyperparameters
             for m in self.models:
                 if m.name == 'STKDE':
-                    m.set_parameters(bw=[1900, 2500, 38])
+                    m.set_parameters(bw=[700, 1000, 25])
                 if m.name == 'ProMap':
                     m.set_parameters(bw=[1500, 1100, 35], hx=100,
                                      hy=100,
