@@ -17,7 +17,7 @@ import predictivehp.utils._aux_functions as af
 from predictivehp import d_colors
 
 settings = kd.EstimatorSettings(efficient=True, n_jobs=8)
-
+pd.set_option('mode.chained_assignment', None)
 
 class MyKDEMultivariate(kd.KDEMultivariate):
     def resample(self, size, shp):
@@ -1878,7 +1878,26 @@ class ProMap:
             else:
                 break
 
-    def calculate_hr(self, c, per = None):
+    def load_points(self, ventana_dias, c=0):
+
+        self.y['captured'] = 0
+
+        for index, row in self.y.iterrows():
+            x, y, t = row['x_point'], row['y_point'], row['y_day']
+
+            if t <= (self.dias_train + ventana_dias):
+                x_pos, y_pos = af.find_position(self.xx, self.yy, x, y,
+                                                self.hx,
+                                                self.hy)
+                if self.prediction[x_pos][y_pos] > c:
+                    self.y['captured'][index] = 1
+            else:
+                break
+
+
+
+
+    def calculate_hr(self, c, per=None):
         """
         Calcula el hr (n/N)
         Parameters
@@ -2002,7 +2021,7 @@ class ProMap:
                    # vmin=0, vmax=1
                    )
 
-        dallas.plot(ax=ax, alpha=.3, color="gray")
+        dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
         if show_score:
             # noinspection PyUnresolvedReferences
@@ -2019,19 +2038,41 @@ class ProMap:
             c_bar.ax.set_ylabel('Danger Score')
 
         if incidences:
-            geometry = [Point(xy) for xy in zip(
-                np.array(self.y[['x_point']]),
-                np.array(self.y[['y_point']]))
+            self.load_points(self.lp, c)
+
+            geometry_no_hits = [Point(xy) for xy in zip(
+                np.array(self.y[self.y['captured'] != 1][['x_point']]),
+                np.array(self.y[self.y['captured'] != 1][['y_point']]))
                         ]
-            geo_df = gpd.GeoDataFrame(self.y,
+
+
+            geo_df_no_hits = gpd.GeoDataFrame(self.y[self.y['captured'] != 1],
                                       crs=dallas.crs,
-                                      geometry=geometry)
-            geo_df.plot(ax=ax,
-                        markersize=3,
-                        color='red',
-                        marker='o',
+                                      geometry=geometry_no_hits)
+
+            geometry_hits = [Point(xy) for xy in zip(
+                np.array(self.y[self.y['captured'] == 1][['x_point']]),
+                np.array(self.y[self.y['captured'] == 1][['y_point']]))
+                                ]
+
+            geo_df_hits = gpd.GeoDataFrame(self.y[self.y['captured'] == 1],
+                                              crs=dallas.crs,
+                                              geometry=geometry_hits)
+
+            geo_df_no_hits.plot(ax=ax,
+                        markersize=0.5,
+                        color='r',
+                        marker='x',
                         zorder=3,
-                        label="Incidents")
+                        label="miss")
+
+            geo_df_hits.plot(ax=ax,
+                        markersize=0.5,
+                        color='lime',
+                        marker='x',
+                        zorder=3,
+                        label="hit")
+
             plt.legend()
 
         plt.title('ProMap')
