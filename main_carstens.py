@@ -21,7 +21,9 @@ m.fit(pp)
 
 # %% Plotter
 pltr = Plotter(m)
-pltr.hr(per=0.1)
-pltr.pai(per=0.1)
+#pltr.hr(per=0.1)
+#pltr.pai(per=0.1)
 # stkde.heatmap()
-pltr.heatmap(c=0.1, incidences=True)
+pltr.heatmap(c=0.3, incidences=True)
+m.validate(c=0.3)
+m.hotspot_area()

@@ -297,6 +297,7 @@ class STKDE:
                        shading='gouraud',
                        alpha=.2,
                        zorder=2,
+                       cmap="jet",
                        )
 
         x, y, t = \
@@ -346,10 +347,10 @@ class STKDE:
                         color='red',
                         marker='o',
                         zorder=3,
-                        label="Incidents")
+                        label="Misses")
             geo_df_hits.plot(ax=ax,
                         markersize=3,
-                        color='blue',
+                        color='lime',
                         marker='o',
                         zorder=3,
                         label="Hits")
