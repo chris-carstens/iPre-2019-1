@@ -1961,7 +1961,7 @@ class ProMap:
                     else:
                         break
 
-        print(self.y)
+
 
 
     def calculate_hr(self, c=None, ap=None):
