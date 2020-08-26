@@ -2084,7 +2084,7 @@ class ProMap:
                    extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                    cmap='jet',
                    # vmin=0, vmax=1
-                   alpha=0.7)
+                   alpha=0.8, interpolation=None)
 
         dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
@@ -2124,18 +2124,20 @@ class ProMap:
                                            geometry=geometry_hits)
 
             geo_df_no_hits.plot(ax=ax,
-                                markersize=0.5,
-                                color='blue',
+                                markersize=2,
+                                color='lime',
                                 marker='x',
                                 zorder=3,
-                                label="level 1")
+                                label="miss")
 
             geo_df_hits.plot(ax=ax,
-                             markersize=0.5,
-                             color='lime',
+                             markersize=2,
+                             color='red',
                              marker='x',
                              zorder=3,
-                             label="level 2")
+                             label="hit")
+
+
 
             if type(c) == list or type(c) == np.ndarray:
                 geometry_hits_2 = [Point(xy) for xy in zip(
@@ -2148,12 +2150,26 @@ class ProMap:
                                                crs=dallas.crs,
                                                geometry=geometry_hits_2)
 
+                geo_df_no_hits.plot(ax=ax,
+                                    markersize=1.5,
+                                    color='blue',
+                                    marker='x',
+                                    zorder=3,
+                                    label="level 1")
+
+                geo_df_hits.plot(ax=ax,
+                                 markersize=1.5,
+                                 color='lime',
+                                 marker='x',
+                                 zorder=3,
+                                 label="level 2")
+
                 geo_df_hits_2.plot(ax=ax,
                                  markersize=0.5,
                                  color='red',
                                  marker='x',
                                  zorder=3,
-                                 label="level 2")
+                                 label="level 3")
 
 
 
@@ -2182,14 +2198,13 @@ class ProMap:
         return self.prediction
 
     def validate(self, c=0):
+        self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
         self.load_test_matrix(self.lp)
 
         if type(c) != list:
             hits = np.sum(
                 (self.prediction >= c) * self.testing_matrix)
             area = np.count_nonzero(self.prediction > c)
-
-
 
         else:
             c1, c2 = min(c), max(c)
@@ -2445,8 +2460,6 @@ class Model:
 
     def hotspot_area(self):
         for m in self.models:
-            if m.name == 'ProMap':
-                continue
             print(f"{m.name}: {m.h_area}")
 
     def store(self, file_name='model.data'):
