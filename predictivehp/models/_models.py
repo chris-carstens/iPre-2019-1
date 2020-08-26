@@ -339,16 +339,16 @@ class STKDE:
             if c is None:
                 self.plot_geopdf(f_delitos, np.array(self.X_test[['x']]),
                                  np.array(self.X_test[['y']]), self.X_test,
-                                 dallas, ax, "lime")
+                                 dallas, ax, "red")
             elif type(c) == float:
                 hits_bool = f_delitos >= c
                 no_hits_bool = f_delitos < c
                 self.plot_geopdf(np.array(self.X_test[['x']])[no_hits_bool],
                                  np.array(self.X_test[['y']])[no_hits_bool], self.X_test[no_hits_bool],
-                                 dallas, ax, "blue", "Level 1")
+                                 dallas, ax, "lime", "Level 1")
                 self.plot_geopdf(np.array(self.X_test[['x']])[hits_bool],
                                  np.array(self.X_test[['y']])[hits_bool], self.X_test[hits_bool],
-                                 dallas, ax, "lime", "Level 2")
+                                 dallas, ax, "red", "Level 2")
             elif type(c) == list or type(c) == np.ndarray:
                 c = np.array(c).flatten()
                 c = c[c > 0]
