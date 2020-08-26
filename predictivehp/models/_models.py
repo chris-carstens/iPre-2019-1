@@ -1027,8 +1027,8 @@ class RForestRegressor(object):
         if ap:
             print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
 
-    def heatmap(self, c=None, incidences=False, savefig=False, fname='', ap=None,
-                **kwargs):
+    def heatmap(self, c=None, ap=None, incidences=False,
+                savefig=False, fname='', **kwargs):
         """
 
         Parameters
@@ -1075,8 +1075,8 @@ class RForestRegressor(object):
             c_bar.ax.set_ylabel('Danger Score')
         elif type(c) == float or type(c) == int:
             d_cells = cells[cells[('Dangerous_pred', '')] >= c]
-            d_cells.plot(ax=ax, marker='.', markersize=1, color='darkblue',
-                         label='Hotspot')  # Heatmap binario
+            d_cells.plot(ax=ax, marker='.', markersize=1, color='darkred',
+                         alpha=0.1)  # Heatmap binario
             cells['Hit'] = np.where(
                 cells[('Dangerous_pred', '')] >= c, 1, 0
             )
@@ -1126,10 +1126,10 @@ class RForestRegressor(object):
                 hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
                 misses = gpd.GeoDataFrame(join_[join_['Hit'] == 0])
                 if not hits.empty:
-                    hits.plot(ax=ax, marker='x', markersize=0.25, color='lime',
+                    hits.plot(ax=ax, marker='x', markersize=0.25, color='red',
                               label="Hits")
                 if not misses.empty:
-                    misses.plot(ax=ax, marker='x', markersize=0.25, color='red',
+                    misses.plot(ax=ax, marker='x', markersize=0.25, color='blue',
                                 label="Misses")
             else:
                 d1 = gpd.GeoDataFrame(join_[join_['D1'] == 1])
