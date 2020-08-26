@@ -2086,7 +2086,7 @@ class ProMap:
                    extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                    cmap='jet',
                    # vmin=0, vmax=1
-                   )
+                   alpha=0.7)
 
         dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
