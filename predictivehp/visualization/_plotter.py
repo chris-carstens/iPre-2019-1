@@ -47,10 +47,10 @@ class Plotter:
         pass
 
     def heatmap(self, c=None, show_score=True, incidences=False,
-                savefig=False, fname='', ap=None, **kwargs):
+                savefig=False, ap=None, **kwargs):
         for m in self.model.models:
             m.heatmap(c=c, show_score=show_score, incidences=incidences,
-                      savefig=savefig, fname=fname, ap=ap, **kwargs)
+                      savefig=savefig, ap=ap, **kwargs)
 
     def hr(self, c=None, ap=None):
         cmap = plt.get_cmap('jet')
