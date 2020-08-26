@@ -1028,7 +1028,7 @@ class RForestRegressor(object):
             print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
 
     def heatmap(self, c=None, ap=None, incidences=False,
-                savefig=False, fname='', **kwargs):
+                savefig=False, fname='RFR.png', **kwargs):
         """
 
         Parameters
@@ -1044,6 +1044,7 @@ class RForestRegressor(object):
 
         """
         if ap:
+            # c_arr =
             c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
             print('valor de C encontrado', c)
         cells = self.X[[('geometry', ''), ('Dangerous_pred', '')]]
@@ -1960,9 +1961,6 @@ class ProMap:
                             self.y['captured'][index] = index_c
                     else:
                         break
-
-
-
 
     def calculate_hr(self, c=None, ap=None):
         """
