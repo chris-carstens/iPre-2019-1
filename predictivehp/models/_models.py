@@ -2086,11 +2086,11 @@ class ProMap:
                    extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                    cmap='jet',
                    # vmin=0, vmax=1
-                   alpha=0.8, interpolation=None)
+                   alpha=0.6, interpolation=None)
 
         dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
-        if show_score:
+        if show_score and c is None:
             # noinspection PyUnresolvedReferences
             norm = mpl.colors.Normalize(vmin=0, vmax=1)
             # mpl.cm.set_array(np.ndarray(c))
@@ -2127,7 +2127,7 @@ class ProMap:
 
             geo_df_no_hits.plot(ax=ax,
                                 markersize=2,
-                                color='lime',
+                                color='blue',
                                 marker='x',
                                 zorder=3,
                                 label="miss")
@@ -2153,21 +2153,21 @@ class ProMap:
                                                geometry=geometry_hits_2)
 
                 geo_df_no_hits.plot(ax=ax,
-                                    markersize=1.5,
+                                    markersize=2,
                                     color='blue',
                                     marker='x',
                                     zorder=3,
                                     label="level 1")
 
                 geo_df_hits.plot(ax=ax,
-                                 markersize=1.5,
+                                 markersize=2,
                                  color='lime',
                                  marker='x',
                                  zorder=3,
                                  label="level 2")
 
                 geo_df_hits_2.plot(ax=ax,
-                                 markersize=0.5,
+                                 markersize=2,
                                  color='red',
                                  marker='x',
                                  zorder=3,
