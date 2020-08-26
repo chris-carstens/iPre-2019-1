@@ -19,6 +19,7 @@ from predictivehp import d_colors
 settings = kd.EstimatorSettings(efficient=True, n_jobs=8)
 pd.set_option('mode.chained_assignment', None)
 
+
 class MyKDEMultivariate(kd.KDEMultivariate):
     def resample(self, size, shp):
         """
@@ -207,9 +208,6 @@ class STKDE:
         self.f_delitos, self.f_nodos = f_delitos, f_nodos
         return self.f_delitos, self.f_nodos
 
-
-
-
     def score(self, x, y, t):
         """
 
@@ -254,6 +252,7 @@ class STKDE:
         dallas.plot(ax=ax, alpha=.4, color="gray", zorder=1)
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
 
+        # noinspection PyArgumentList
         x, y, t = np.mgrid[
                   self.x_min:
                   self.x_max:100 * 1j,
@@ -264,11 +263,11 @@ class STKDE:
                   ]
 
         x, y = np.mgrid[
-                  self.x_min:
-                  self.x_max:100 * 1j,
-                  self.y_min:
-                  self.y_max:100 * 1j
-                  ]
+               self.x_min:
+               self.x_max:100 * 1j,
+               self.y_min:
+               self.y_max:100 * 1j
+               ]
 
         z = self.kde.pdf(
             np.array([x.flatten(), y.flatten(), t.flatten()]))
@@ -290,8 +289,6 @@ class STKDE:
             for i in c:
                 z_plot[z > i] += 1
             z_plot = z_plot / np.max(z_plot)
-
-
 
         plt.pcolormesh(x, y, z_plot.reshape(x.shape),
                        shading='gouraud',
@@ -331,29 +328,29 @@ class STKDE:
                 np.array(self.X_test[['x']])[no_hits_bool],
                 np.array(self.X_test[['y']])[no_hits_bool])]
             geo_df_no_hits = gpd.GeoDataFrame(self.X_test[no_hits_bool],
-                                      crs=dallas.crs,
-                                      geometry=geometry_no_hits)
+                                              crs=dallas.crs,
+                                              geometry=geometry_no_hits)
 
             geometry_hits = [Point(xy) for xy in zip(
                 np.array(self.X_test[['x']])[hits_bool],
                 np.array(self.X_test[['y']])[hits_bool])]
             geo_df_hits = gpd.GeoDataFrame(self.X_test[hits_bool],
-                                      crs=dallas.crs,
-                                      geometry=geometry_hits)
+                                           crs=dallas.crs,
+                                           geometry=geometry_hits)
 
             # print("\tPlotting Incidents...", end=" ")
             geo_df_no_hits.plot(ax=ax,
-                        markersize=3,
-                        color='red',
-                        marker='o',
-                        zorder=3,
-                        label="Misses")
+                                markersize=3,
+                                color='red',
+                                marker='o',
+                                zorder=3,
+                                label="Misses")
             geo_df_hits.plot(ax=ax,
-                        markersize=3,
-                        color='lime',
-                        marker='o',
-                        zorder=3,
-                        label="Hits")
+                             markersize=3,
+                             color='lime',
+                             marker='o',
+                             zorder=3,
+                             label="Hits")
             plt.legend()
 
             # print("finished!")
@@ -824,6 +821,7 @@ class RForestRegressor(object):
 
         # Dejamos la asociación inc-cell en el index de self.data
         self.data.set_index('Cell', drop=True, inplace=True)
+        self.data.to_pickle("predictivehp/data/data.pkl")
 
     def fit(self, X, y):
         """Entrena el modelo
@@ -1013,14 +1011,13 @@ class RForestRegressor(object):
             self.ap = np.array(ap_l)
             self.pai = np.array(pai_l)
 
-    def heatmap(self, c=None, show_score=True, incidences=False,
-                savefig=False, fname='', **kwargs):
+    def heatmap(self, c=None, incidences=False, savefig=False, fname='',
+                **kwargs):
         """
 
         Parameters
         ----------
-        c : {int, list, tuple}
-        show_score
+        c : {float, list, tuple}
         incidences
         savefig
         fname
@@ -1037,72 +1034,105 @@ class RForestRegressor(object):
         fig, ax = plt.subplots(figsize=[6.75] * 2)
         d_streets.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
-        if type(c) == list or type(c) == tuple:
-            d_cells = cells[
-                (cells[('Dangerous_pred', '')] <= c[1]) &
-                (c[0] <= cells[('Dangerous_pred')])
-                ]
-            cells['Hit'] = np.where(
-                (c[0] <= cells[('Dangerous_pred', '')]) &
-                (cells[('Dangerous_pred', '')] <= c[1]),
-                1, 0)
-        elif c is not None and c >= 0.0:
-            d_cells = cells[cells[('Dangerous_pred', '')] >= c]
-            cells['Hit'] = np.where(
-                cells[('Dangerous_pred', '')] >= c, 1, 0
-            )
-        else:
+        if c is None:
             d_cells = cells[cells[('Dangerous_pred', '')] >= 0]
+            d_cells.plot(ax=ax, column=('Dangerous_pred', ''), cmap='jet',
+                         marker=',', markersize=0.2)  # Heatmap con rango
             cells['Hit'] = np.where(
                 cells[('Dangerous_pred', '')] >= 0, 1, 0
             )
 
-        if c is not None:
-            d_cells.plot(ax=ax, marker=',', markersize=1, color='darkblue',
-                         label='Hotspot')
-        elif c is None or c == 0.0:
-            d_cells.plot(ax=ax, column=('Dangerous_pred', ''), cmap='jet',
-                         marker=',', markersize=0.2)
-
-        if incidences:  # Se plotean los incidentes
-            data_nov = pd.DataFrame(self.data[
-                                        (date(2017, 11, 1) <= self.data.date) &
-                                        (self.data.date <= date(2017, 11, 7))])
-            data_nov.columns = pd.MultiIndex.from_product(
-                [data_nov.columns, ['']])
-            cells.drop(columns='geometry', inplace=True)
-            join_ = data_nov.join(cells)
-
-            hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
-            misses = gpd.GeoDataFrame(join_[join_['Hit'] == 0])
-            if not hits.empty:
-                hits.plot(ax=ax, marker='x', markersize=0.25, color='lime',
-                          label="Hits")
-            if not misses.empty:
-                misses.plot(ax=ax, marker='x', markersize=0.25, color='r',
-                            label="Misses")
-            plt.legend()
-
-        ax.set_axis_off()
-        plt.title('RForestRegressor')
-
-        if show_score:
+            # La colorbar se muestra solo cuando es necesario
             # noinspection PyUnresolvedReferences
             norm = mpl.colors.Normalize(vmin=0, vmax=1)
             # noinspection PyUnresolvedReferences
             cmap = mpl.cm.jet
             # noinspection PyUnresolvedReferences
             mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-            # divider = make_axes_locatable(ax)
             c_bar = fig.colorbar(mappable, ax=ax,
                                  fraction=0.15,
                                  shrink=0.5,
                                  aspect=21.5)
             c_bar.ax.set_ylabel('Danger Score')
+        elif type(c) == float or type(c) == int:
+            d_cells = cells[cells[('Dangerous_pred', '')] >= c]
+            d_cells.plot(ax=ax, marker='.', markersize=1, color='darkblue',
+                         label='Hotspot')  # Heatmap binario
+            cells['Hit'] = np.where(
+                cells[('Dangerous_pred', '')] >= c, 1, 0
+            )
+        else:  # c es una Iterable de c's: Asumo [c0, c1]
+            d1_cells = cells[
+                (0.0 <= cells[('Dangerous_pred', '')]) &
+                (cells[('Dangerous_pred', '')] <= c[0])
+                ]
+            d2_cells = cells[
+                (c[0] <= cells[('Dangerous_pred', '')]) &
+                (cells[('Dangerous_pred', '')] <= c[1])
+                ]
+            d3_cells = cells[
+                (c[1] <= cells[('Dangerous_pred', '')]) &
+                (cells[('Dangerous_pred', '')] <= 1.0)
+                ]
+            d1_cells.plot(ax=ax, marker='.', markersize=1, color='darkblue',
+                          alpha=0.05)
+            d2_cells.plot(ax=ax, marker='.', markersize=1, color='lime',
+                          alpha=0.05)
+            d3_cells.plot(ax=ax, marker='.', markersize=1, color='red',
+                          alpha=0.05)
+            cells['D1'] = np.where(
+                (0.0 <= cells[('Dangerous_pred', '')]) &
+                (cells[('Dangerous_pred', '')] <= c[0]), 1, 0
+            )
+            cells['D2'] = np.where(
+                (c[0] <= cells[('Dangerous_pred', '')]) &
+                (cells[('Dangerous_pred', '')] <= c[1]), 1, 0
+            )
+            cells['D3'] = np.where(
+                (c[1] <= cells[('Dangerous_pred', '')]) &
+                (cells[('Dangerous_pred', '')] <= 1.0), 1, 0
+            )
+
+        if incidences:  # Se plotean los incidentes
+            data_nov = pd.DataFrame(
+                self.data[(date(2017, 11, 1) <= self.data.date) &
+                          (self.data.date <= date(2017, 11, 7))])
+            data_nov.columns = pd.MultiIndex.from_product(
+                [data_nov.columns, ['']]
+            )
+            cells.drop(columns='geometry', inplace=True)
+            join_ = data_nov.join(cells)
+
+            if c is None or type(c) == float or type(c) == int:
+                hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
+                misses = gpd.GeoDataFrame(join_[join_['Hit'] == 0])
+                if not hits.empty:
+                    hits.plot(ax=ax, marker='x', markersize=0.25, color='lime',
+                              label="Hits")
+                if not misses.empty:
+                    misses.plot(ax=ax, marker='x', markersize=0.25, color='red',
+                                label="Misses")
+            else:
+                d1 = gpd.GeoDataFrame(join_[join_['D1'] == 1])
+                d2 = gpd.GeoDataFrame(join_[join_['D2'] == 1])
+                d3 = gpd.GeoDataFrame(join_[join_['D3'] == 1])
+                if not d1.empty:
+                    d1.plot(ax=ax, marker='x', markersize=0.25,
+                            color='blue', label="D1 Incidents")
+                if not d2.empty:
+                    d2.plot(ax=ax, marker='x', markersize=0.25, color='lime',
+                            label="D2 Incidents")
+                if not d3.empty:
+                    d3.plot(ax=ax, marker='x', markersize=0.25, color='red',
+                            label="D3 Incidents")
+            plt.legend()
+
+        ax.set_axis_off()
+        plt.title('RForestRegressor')
 
         plt.tight_layout()
         if savefig:
-            plt.savefig(fname, **kwargs)
+            plt.savefig(fname, dpi=200, **kwargs)
         plt.show()
 
     def plot_statistics(self, n=500):
@@ -1894,9 +1924,6 @@ class ProMap:
             else:
                 break
 
-
-
-
     def calculate_hr(self, c, per=None):
         """
         Calcula el hr (n/N)
@@ -1970,7 +1997,7 @@ class ProMap:
             for i in range(len(self.ap))]
 
         if per:
-            print('PAI: ',af.find_hr_pai(self.pai, self.ap, per))
+            print('PAI: ', af.find_hr_pai(self.pai, self.ap, per))
 
     def heatmap(self, c=None, show_score=True, incidences=False,
                 savefig=False, fname='', per=None, **kwargs):
@@ -2043,35 +2070,34 @@ class ProMap:
             geometry_no_hits = [Point(xy) for xy in zip(
                 np.array(self.y[self.y['captured'] != 1][['x_point']]),
                 np.array(self.y[self.y['captured'] != 1][['y_point']]))
-                        ]
-
+                                ]
 
             geo_df_no_hits = gpd.GeoDataFrame(self.y[self.y['captured'] != 1],
-                                      crs=dallas.crs,
-                                      geometry=geometry_no_hits)
+                                              crs=dallas.crs,
+                                              geometry=geometry_no_hits)
 
             geometry_hits = [Point(xy) for xy in zip(
                 np.array(self.y[self.y['captured'] == 1][['x_point']]),
                 np.array(self.y[self.y['captured'] == 1][['y_point']]))
-                                ]
+                             ]
 
             geo_df_hits = gpd.GeoDataFrame(self.y[self.y['captured'] == 1],
-                                              crs=dallas.crs,
-                                              geometry=geometry_hits)
+                                           crs=dallas.crs,
+                                           geometry=geometry_hits)
 
             geo_df_no_hits.plot(ax=ax,
-                        markersize=0.5,
-                        color='r',
-                        marker='x',
-                        zorder=3,
-                        label="miss")
+                                markersize=0.5,
+                                color='r',
+                                marker='x',
+                                zorder=3,
+                                label="miss")
 
             geo_df_hits.plot(ax=ax,
-                        markersize=0.5,
-                        color='lime',
-                        marker='x',
-                        zorder=3,
-                        label="hit")
+                             markersize=0.5,
+                             color='lime',
+                             marker='x',
+                             zorder=3,
+                             label="hit")
 
             plt.legend()
 
@@ -2111,7 +2137,7 @@ class ProMap:
             area = np.count_nonzero(aux)
 
         self.d_incidents = int(hits)
-        self.h_area = area*self.hx*self.hy*10**-6
+        self.h_area = area * self.hx * self.hy * 10 ** -6
 
 
 class Model:

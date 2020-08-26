@@ -52,23 +52,38 @@ class Plotter:
             m.heatmap(c=c, show_score=show_score, incidences=incidences,
                       savefig=savefig, fname=fname, **kwargs)
 
-    def hr(self, per=None):
+    def hr(self, c=None, ap=None):
         cmap = plt.get_cmap('jet')
-        for idx, m in enumerate(self.model.models):
-            # print(f"\t {m.name}")
-            m.calculate_hr(c=self.c_arr, per=per)
-            ut.lineplot(x=m.ap, y=m.hr, c=cmap((idx+1) * 80), label=m.name)
+        if c:
+            for idx, m in enumerate(self.model.models):
+                # print(f"\t {m.name}")
+                m.calculate_hr(c=self.c_arr)
+                ut.lineplot(x=m.ap, y=m.hr, c=cmap((idx + 1) * 80),
+                            label=m.name)
+        else:
+            for idx, m in enumerate(self.model.models):
+                # print(f"\t {m.name}")
+                m.calculate_hr(c=self.c_arr, ap=ap)
+                ut.lineplot(x=m.ap, y=m.hr, c=cmap((idx + 1) * 80),
+                            label=m.name)
 
         plt.xlabel('Area Percentage')
         plt.ylabel('Hit Rate')
         plt.legend()
         plt.show()
 
-    def pai(self, per=None):
+    def pai(self, c=None, ap=None):
         cmap = plt.get_cmap('jet')
-        for idx, m in enumerate(self.model.models):
-            m.calculate_pai(c=self.c_arr, per=per)
-            ut.lineplot(x=m.ap, y=m.pai, c=cmap((idx+1) * 80), label=m.name)
+        if c:
+            for idx, m in enumerate(self.model.models):
+                m.calculate_pai(c=self.c_arr)
+                ut.lineplot(x=m.ap, y=m.pai, c=cmap((idx + 1) * 80),
+                            label=m.name)
+        else:
+            for idx, m in enumerate(self.model.models):
+                m.calculate_pai(c=self.c_arr, ap=ap)
+                ut.lineplot(x=m.ap, y=m.pai, c=cmap((idx + 1) * 80),
+                            label=m.name)
 
         plt.xlabel('Area Percentage')
         plt.ylabel('PAI')

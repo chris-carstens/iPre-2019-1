@@ -1,4 +1,5 @@
 from datetime import date
+import matplotlib.pyplot as plt
 from predictivehp.models import create_model
 from predictivehp.visualization import Plotter
 import predictivehp.utils as ut
@@ -26,7 +27,8 @@ m.fit(data_p)
 m.predict()
 
 pltr = Plotter(m)
-pltr.hr()
-pltr.pai()
-pltr.heatmap(c=None, incidences=True, show_score=True,
+# pltr.hr()
+# pltr.pai()
+pltr.heatmap(c=[0.07, 0.13], incidences=True,
              savefig=False, fname='hm_example.png')
+plt.show()
