@@ -240,7 +240,8 @@ class STKDE:
                             color=color,
                             marker='o',
                             zorder=3,
-                            label=label)
+                            label=label,
+                    )
         plt.legend()
 
     def heatmap(self, c=None, show_score=True, incidences=False,
@@ -254,16 +255,11 @@ class STKDE:
           Tiempo fijo para evaluar densidad en la predicción
         """
         # print("\nPlotting Heatmap...")
-        if self.f_delitos is None:
-            self.predict()
-
-        if ap:
-            c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
-            print('Valor de c encontrado', c)
         dallas = self.shps['streets']
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)  # Sacar de _config.py
         dallas.plot(ax=ax, alpha=.4, color="gray", zorder=1)
+
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
 
         x, y, t = np.mgrid[
@@ -284,14 +280,31 @@ class STKDE:
 
         z = self.kde.pdf(
             np.array([x.flatten(), y.flatten(), t.flatten()]))
+
+        x_t, y_t, t_t = \
+            np.array(self.X_test['x']), \
+            np.array(self.X_test['y']), \
+            np.array(self.X_test['y_day'])
+        ti = np.repeat(max(t_training), x_t.size)
+        f_delitos = self.kde.pdf(
+            np.array([x_t.flatten(), y_t.flatten(), ti.flatten()]))
+        max_pdf = max([f_delitos.max(), z.max()])
         # Normalizar
-        z = z / z.max()
+        f_delitos = f_delitos / max_pdf
+        z = z / max_pdf
+
+        if ap:
+            c_array = np.linspace(0, 1, 100)
+            area_h = [np.sum(z >= c_array[i]) for i in range(c_array.size)]
+            area_percentaje = [i / len(z) for i in area_h]
+            c = float(af.find_c(area_percentaje, np.linspace(0, 1, 100), ap))
+            print('Valor de c encontrado: ', c)
 
         z_plot = None
         if c is None:
             z_plot = z
         elif type(c) == float:
-            z_plot = z > c
+            z_plot = z >= c
         elif type(c) == list or type(c) == np.ndarray:
             c = np.array(c).flatten()
             c = c[c > 0]
@@ -309,15 +322,6 @@ class STKDE:
                        zorder=2,
                        cmap="jet",
                        )
-
-        x, y, t = \
-            np.array(self.X_test['x']), \
-            np.array(self.X_test['y']), \
-            np.array(self.X_test['y_day'])
-        ti = np.repeat(max(t_training), x.size)
-        f_delitos = self.kde.pdf(
-            np.array([x.flatten(), y.flatten(), ti.flatten()]))
-        f_delitos = f_delitos / f_delitos.max()
 
         if show_score:
             # noinspection PyUnresolvedReferences
@@ -342,7 +346,7 @@ class STKDE:
                 no_hits_bool = f_delitos < c
                 self.plot_geopdf(np.array(self.X_test[['x']])[no_hits_bool],
                                  np.array(self.X_test[['y']])[no_hits_bool], self.X_test[no_hits_bool],
-                                 dallas, ax, "lime", "Level 1")
+                                 dallas, ax, "blue", "Level 1")
                 self.plot_geopdf(np.array(self.X_test[['x']])[hits_bool],
                                  np.array(self.X_test[['y']])[hits_bool], self.X_test[hits_bool],
                                  dallas, ax, "red", "Level 2")
