@@ -19,7 +19,6 @@ from predictivehp import d_colors
 settings = kd.EstimatorSettings(efficient=True, n_jobs=8)
 pd.set_option('mode.chained_assignment', None)
 
-
 class MyKDEMultivariate(kd.KDEMultivariate):
     def resample(self, size, shp):
         """
@@ -229,6 +228,21 @@ class STKDE:
         # print(f"STKDE pdf score: {score_pdf}\n")
         return score_pdf
 
+    def plot_geopdf(self, x_t, y_t, X_filtered, dallas, ax, color, label):
+
+        geometry = [Point(xy) for xy in zip(x_t, y_t)]
+        geo_df = gpd.GeoDataFrame(X_filtered,
+                                          crs=dallas.crs,
+                                          geometry=geometry)
+
+        geo_df.plot(ax=ax,
+                            markersize=3,
+                            color=color,
+                            marker='o',
+                            zorder=3,
+                            label=label)
+        plt.legend()
+
     def heatmap(self, c=None, show_score=True, incidences=False,
                 savefig=False, fname='', per='', **kwargs):
         """
@@ -252,7 +266,6 @@ class STKDE:
         dallas.plot(ax=ax, alpha=.4, color="gray", zorder=1)
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
 
-        # noinspection PyArgumentList
         x, y, t = np.mgrid[
                   self.x_min:
                   self.x_max:100 * 1j,
@@ -263,11 +276,11 @@ class STKDE:
                   ]
 
         x, y = np.mgrid[
-               self.x_min:
-               self.x_max:100 * 1j,
-               self.y_min:
-               self.y_max:100 * 1j
-               ]
+                  self.x_min:
+                  self.x_max:100 * 1j,
+                  self.y_min:
+                  self.y_max:100 * 1j
+                  ]
 
         z = self.kde.pdf(
             np.array([x.flatten(), y.flatten(), t.flatten()]))
@@ -323,37 +336,39 @@ class STKDE:
             c_bar.ax.set_ylabel('Danger Score')
 
         if incidences:
-            # print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
-            geometry_no_hits = [Point(xy) for xy in zip(
-                np.array(self.X_test[['x']])[no_hits_bool],
-                np.array(self.X_test[['y']])[no_hits_bool])]
-            geo_df_no_hits = gpd.GeoDataFrame(self.X_test[no_hits_bool],
-                                              crs=dallas.crs,
-                                              geometry=geometry_no_hits)
+            if c is None:
+                self.plot_geopdf(f_delitos, np.array(self.X_test[['x']]),
+                                 np.array(self.X_test[['y']]), self.X_test,
+                                 dallas, ax, "lime")
+            elif type(c) == float:
+                hits_bool = f_delitos >= c
+                no_hits_bool = f_delitos < c
+                self.plot_geopdf(np.array(self.X_test[['x']])[no_hits_bool],
+                                 np.array(self.X_test[['y']])[no_hits_bool], self.X_test[no_hits_bool],
+                                 dallas, ax, "blue", "Level 1")
+                self.plot_geopdf(np.array(self.X_test[['x']])[hits_bool],
+                                 np.array(self.X_test[['y']])[hits_bool], self.X_test[hits_bool],
+                                 dallas, ax, "lime", "Level 2")
+            elif type(c) == list or type(c) == np.ndarray:
+                c = np.array(c).flatten()
+                c = c[c > 0]
+                c = c[c < 1]
+                c = np.unique(c)
+                c = np.sort(c)
+                c_min, c_max = c[0], c[1]
 
-            geometry_hits = [Point(xy) for xy in zip(
-                np.array(self.X_test[['x']])[hits_bool],
-                np.array(self.X_test[['y']])[hits_bool])]
-            geo_df_hits = gpd.GeoDataFrame(self.X_test[hits_bool],
-                                           crs=dallas.crs,
-                                           geometry=geometry_hits)
-
-            # print("\tPlotting Incidents...", end=" ")
-            geo_df_no_hits.plot(ax=ax,
-                                markersize=3,
-                                color='red',
-                                marker='o',
-                                zorder=3,
-                                label="Misses")
-            geo_df_hits.plot(ax=ax,
-                             markersize=3,
-                             color='lime',
-                             marker='o',
-                             zorder=3,
-                             label="Hits")
-            plt.legend()
-
-            # print("finished!")
+                lvl1 = f_delitos <= c_min
+                lvl2 = (f_delitos > c_min) & (f_delitos <= c_max)
+                lvl3 = f_delitos > c_max
+                self.plot_geopdf(np.array(self.X_test[['x']])[lvl1],
+                                 np.array(self.X_test[['y']])[lvl1], self.X_test[lvl1],
+                                 dallas, ax, "blue", "Level 1")
+                self.plot_geopdf(np.array(self.X_test[['x']])[lvl2],
+                                 np.array(self.X_test[['y']])[lvl2], self.X_test[lvl2],
+                                 dallas, ax, "lime", "Level 2")
+                self.plot_geopdf(np.array(self.X_test[['x']])[lvl3],
+                                 np.array(self.X_test[['y']])[lvl3], self.X_test[lvl3],
+                                 dallas, ax, "red", "Level 3")
 
         plt.title('STKDE')
 
