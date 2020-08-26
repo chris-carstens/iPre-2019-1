@@ -2084,7 +2084,7 @@ class ProMap:
                    extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                    cmap='jet',
                    # vmin=0, vmax=1
-                   alpha=0.6, interpolation=None)
+                   alpha=0.4, interpolation=None)
 
         dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
@@ -2124,18 +2124,18 @@ class ProMap:
                                            geometry=geometry_hits)
 
             geo_df_no_hits.plot(ax=ax,
-                                markersize=2,
+                                markersize=3,
                                 color='blue',
                                 marker='x',
                                 zorder=3,
-                                label="miss")
+                                label="Misses")
 
             geo_df_hits.plot(ax=ax,
-                             markersize=2,
+                             markersize=3,
                              color='red',
                              marker='x',
                              zorder=3,
-                             label="hit")
+                             label="Hit")
 
 
 
@@ -2151,25 +2151,25 @@ class ProMap:
                                                geometry=geometry_hits_2)
 
                 geo_df_no_hits.plot(ax=ax,
-                                    markersize=2,
+                                    markersize=3,
                                     color='blue',
                                     marker='x',
                                     zorder=3,
-                                    label="level 1")
+                                    label="D1")
 
                 geo_df_hits.plot(ax=ax,
-                                 markersize=2,
+                                 markersize=3,
                                  color='lime',
                                  marker='x',
                                  zorder=3,
-                                 label="level 2")
+                                 label="D2")
 
                 geo_df_hits_2.plot(ax=ax,
-                                 markersize=2,
+                                 markersize=3,
                                  color='red',
                                  marker='x',
                                  zorder=3,
-                                 label="level 3")
+                                 label="D3")
 
 
 
