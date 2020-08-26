@@ -230,7 +230,7 @@ class STKDE:
         return score_pdf
 
     def heatmap(self, c=None, show_score=True, incidences=False,
-                savefig=False, fname='', per='', **kwargs):
+                savefig=False, fname='', ap=None, **kwargs):
         """
         Parameters
         ----------
@@ -243,8 +243,8 @@ class STKDE:
         if self.f_delitos is None:
             self.predict()
 
-        if per:
-            c = af.find_c(self.ap, np.linspace(0, 1, 100), per)
+        if ap:
+            c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
             print('Valor de c encontrado', c)
         dallas = self.shps['streets']
 
@@ -479,7 +479,7 @@ class STKDE:
     #     # ax.set_axis_off()
     #     plt.show()
 
-    def calculate_hr(self, c=None, per=None):
+    def calculate_hr(self, c=None, ap=None):
         """
         Parameters
         ----------
@@ -505,10 +505,10 @@ class STKDE:
         HR = [i / len(f_delitos) for i in hits]
         area_percentaje = [i / len(f_nodos) for i in area_h]
         self.hr, self.ap = HR, area_percentaje
-        if per:
-            print('HR: ', af.find_hr_pai(self.hr, self.ap, per))
+        if ap:
+            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
 
-    def calculate_pai(self, c=None, per=None):
+    def calculate_pai(self, c=None, ap=None):
         """
         Parameters
         ----------
@@ -534,8 +534,8 @@ class STKDE:
         PAI = [float(self.hr[i]) / float(self.ap[i]) if
                self.ap[i] else 0 for i in range(len(self.hr))]
         self.pai = PAI
-        if per:
-            print('PAI: ', af.find_hr_pai(self.pai, self.ap, per))
+        if ap:
+            print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
 
     def validate(self, c=0, area=993):
         if type(c != list):
@@ -1912,19 +1912,40 @@ class ProMap:
 
         self.y['captured'] = 0
 
-        for index, row in self.y.iterrows():
-            x, y, t = row['x_point'], row['y_point'], row['y_day']
+        if c is None:
+            self.y['captured'] = 1
 
-            if t <= (self.dias_train + ventana_dias):
-                x_pos, y_pos = af.find_position(self.xx, self.yy, x, y,
-                                                self.hx,
-                                                self.hy)
-                if self.prediction[x_pos][y_pos] > c:
-                    self.y['captured'][index] = 1
-            else:
-                break
+        elif type(c) == float or type(c) == np.float64:
+            for index, row in self.y.iterrows():
+                x, y, t = row['x_point'], row['y_point'], row['y_day']
 
-    def calculate_hr(self, c, per=None):
+                if t <= (self.dias_train + ventana_dias):
+                    x_pos, y_pos = af.find_position(self.xx, self.yy, x, y,
+                                                    self.hx,
+                                                    self.hy)
+                    if self.prediction[x_pos][y_pos] > c:
+                        self.y['captured'][index] = 1
+                else:
+                    break
+
+        elif type(c) == list or type(c) == np.ndarray:
+            for index_c, c_i in enumerate(c, start=1):
+                for index, row in self.y.iterrows():
+                    x, y, t = row['x_point'], row['y_point'], row['y_day']
+
+                    if t <= (self.dias_train + ventana_dias):
+                        x_pos, y_pos = af.find_position(self.xx, self.yy, x, y,
+                                                        self.hx,
+                                                        self.hy)
+                        if self.prediction[x_pos][y_pos] > c_i:
+                            self.y['captured'][index] = index_c
+                    else:
+                        break
+
+        print(self.y)
+
+
+    def calculate_hr(self, c=None, ap=None):
         """
         Calcula el hr (n/N)
         Parameters
@@ -1975,10 +1996,10 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / self.cells_in_map for
                                                i in area_hits]]
 
-        if per:
-            print('HR: ', af.find_hr_pai(self.hr, self.ap, per))
+        if ap:
+            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
 
-    def calculate_pai(self, c, per=None):
+    def calculate_pai(self, c=None, ap=None):
 
         """
         Calcula el PAI (n/N) / (a/A)
@@ -1996,11 +2017,11 @@ class ProMap:
             else float(self.hr[i]) / float(self.ap[i])
             for i in range(len(self.ap))]
 
-        if per:
-            print('PAI: ', af.find_hr_pai(self.pai, self.ap, per))
+        if ap:
+            print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
 
     def heatmap(self, c=None, show_score=True, incidences=False,
-                savefig=False, fname='', per=None, **kwargs):
+                savefig=False, fname='', ap=None, **kwargs):
         """
         Mostrar un heatmap de una matriz de riesgo.
 
@@ -2021,9 +2042,9 @@ class ProMap:
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)
 
-        if per:
-            c = af.find_c(self.ap, self.c_vector, per)
-            print('valor de c encontrado', c)
+        if ap:
+            c = af.find_c(self.ap, self.c_vector, ap)
+            print('valor de C encontrado', c)
 
         matriz = None
         if c is None:
@@ -2087,17 +2108,41 @@ class ProMap:
 
             geo_df_no_hits.plot(ax=ax,
                                 markersize=0.5,
-                                color='r',
+                                color='blue',
                                 marker='x',
                                 zorder=3,
-                                label="miss")
+                                label="level 1")
 
             geo_df_hits.plot(ax=ax,
                              markersize=0.5,
                              color='lime',
                              marker='x',
                              zorder=3,
-                             label="hit")
+                             label="level 2")
+
+            if type(c) == list or type(c) == np.ndarray:
+                geometry_hits_2 = [Point(xy) for xy in zip(
+                    np.array(self.y[self.y['captured'] == 2][['x_point']]),
+                    np.array(self.y[self.y['captured'] == 2][['y_point']]))
+                                 ]
+
+                geo_df_hits_2 = gpd.GeoDataFrame(self.y[self.y['captured'] ==
+                                                        2],
+                                               crs=dallas.crs,
+                                               geometry=geometry_hits_2)
+
+                geo_df_hits_2.plot(ax=ax,
+                                 markersize=0.5,
+                                 color='red',
+                                 marker='x',
+                                 zorder=3,
+                                 label="level 2")
+
+
+
+
+
+
 
             plt.legend()
 
