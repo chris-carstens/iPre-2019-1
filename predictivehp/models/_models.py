@@ -319,9 +319,6 @@ class STKDE:
             np.array([x.flatten(), y.flatten(), ti.flatten()]))
         f_delitos = f_delitos / f_delitos.max()
 
-        hits_bool = f_delitos >= c
-        no_hits_bool = f_delitos < c
-
         if show_score:
             # noinspection PyUnresolvedReferences
             norm = mpl.colors.Normalize(vmin=0, vmax=1)
@@ -941,7 +938,7 @@ class RForestRegressor(object):
         self.d_incidents = d_incidents
         self.h_area = h_area
 
-    def calculate_hr(self, c=0.9):
+    def calculate_hr(self, c=0.9, ap=None):
         """
 
         Parameters
@@ -979,8 +976,10 @@ class RForestRegressor(object):
                 ap_l.append(a(self.X, c) / A)
             self.hr = np.array(hr_l)
             self.ap = np.array(ap_l)
+        if ap:
+            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
 
-    def calculate_pai(self, c=0.9):
+    def calculate_pai(self, c=0.9, ap=None):
         """
         Calcula el Predictive Accuracy Index (PAI)
 
@@ -1025,8 +1024,10 @@ class RForestRegressor(object):
             self.hr = np.array(hr_l)
             self.ap = np.array(ap_l)
             self.pai = np.array(pai_l)
+        if ap:
+            print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
 
-    def heatmap(self, c=None, incidences=False, savefig=False, fname='',
+    def heatmap(self, c=None, incidences=False, savefig=False, fname='', ap=None,
                 **kwargs):
         """
 
@@ -1042,6 +1043,9 @@ class RForestRegressor(object):
         -------
 
         """
+        if ap:
+            c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
+            print('valor de C encontrado', c)
         cells = self.X[[('geometry', ''), ('Dangerous_pred', '')]]
         cells = gpd.GeoDataFrame(cells)
         d_streets = self.shps['streets']
