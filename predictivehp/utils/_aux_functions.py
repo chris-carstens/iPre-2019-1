@@ -567,25 +567,25 @@ def checked_points_pm(points):
     return len(valid_inc)
 
 
-def find_c(ap, c_list, per):
-    ap = np.array(ap)
-    ap = ap - per
-    return c_list[np.argmin(np.abs(ap))]
+def find_c(area_array, c_list, ap):
+    area_array = np.array(area_array)
+    area_array = area_array - ap
+    return c_list[np.argmin(np.abs(area_array))]
 
 
-def find_hr_pai(values, ap, per):
+def find_hr_pai(values, area_array, ap):
     values = np.array(values)
-    ap = np.array(ap)
-    ap = ap - per
-    return values[np.argmin(np.abs(ap))]
+    area_array = np.array(area_array)
+    area_array = area_array - ap
+    return values[np.argmin(np.abs(area_array))]
 
 
 if __name__ == '__main__':
-    ap = [1, 0.7, 0.6, 0.5, 0.45, 0.33, 0]
+    area_array = [1, 0.7, 0.6, 0.5, 0.45, 0.33, 0]
     c = [0, 0.2, 0.3, 0.4, 0.6, 0.8, 1]
     hr = [1, 2, 3, 4, 5, 6, 7]
     pai = [8, 9, 10, 11, 12, 13, 14]
 
-    print(find_c(ap, np.array(c), per = 0.2))
-    print(find_hr_pai(hr, ap, per=0.2))
-    print(find_hr_pai(pai, ap, per=0.2))
+    print(find_c(area_array, np.array(c), ap = 0.2))
+    print(find_hr_pai(hr, area_array, ap=0.2))
+    print(find_hr_pai(pai, area_array, ap=0.2))

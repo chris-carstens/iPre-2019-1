@@ -2078,10 +2078,11 @@ class ProMap:
 
         if type(ap) == float or type(ap) == np.float64:
             c = af.find_c(self.ap, self.c_vector, ap)
+
             print('valor de C encontrado', c)
 
         elif type(ap) == list or type(ap) == np.ndarray:
-            c = [af.find_c(self.ap, self.c_vector, i) for i in ap].sort()
+            c = sorted([af.find_c(self.ap, self.c_vector, i) for i in ap])
             print('c values', c)
 
         matriz = None
