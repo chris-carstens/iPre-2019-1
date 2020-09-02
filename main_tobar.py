@@ -30,13 +30,12 @@ pltr.hr()
 pltr.pai()
 
 
-pltr.heatmap(c=0.1, incidences=True, show_score=True,
+pltr.heatmap(c=None, ap=[0.9, 0.7], incidences=True, show_score=True,
              savefig=False, fname='hm_example.png')
 
+pltr.hr(ap=[0.9, 0.7])
+pltr.pai(ap=[0.9, 0.7])
 
-
-# pltr.heatmap(c = 0.2, incidences=True)
-# pltr.heatmap(c =[0.1, 0.2], incidences=True)
 
 
 if __name__ == '__main__':

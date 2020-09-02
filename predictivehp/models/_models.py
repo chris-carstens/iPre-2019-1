@@ -1751,9 +1751,7 @@ class ProMap:
         # MODEL
         self.name = name
         self.lp = length_prediction
-        self.prediction = np.zeros((self.bins_x, self.bins_y))
-        self.training_matrix = np.zeros((self.bins_x, self.bins_y))
-        self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
+
         self.hr, self.pai, self.ap = None, None, None
 
         # print('-' * 100)
@@ -1851,6 +1849,7 @@ class ProMap:
 
 
         else:
+            self.prediction = np.zeros((self.bins_x, self.bins_y))
             # print('\nEstimando densidades...')
             # print(
             #     f'\n\tNº de datos para entrenar el modelo: {len(self.X)}')
@@ -1900,6 +1899,7 @@ class ProMap:
         Ubica los delitos en la matriz de entrenamiento.
         """
 
+        self.training_matrix = np.zeros((self.bins_x, self.bins_y))
         for index, row in self.X.iterrows():
             x, y, t = row['x_point'], row['y_point'], row['y_day']
 
@@ -1919,6 +1919,8 @@ class ProMap:
         ventana_dias: int
             Cantidad de días que se quieren predecir.
         """
+
+        self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
 
         for index, row in self.y.iterrows():
             x, y, t = row['x_point'], row['y_point'], row['y_day']
@@ -2017,8 +2019,13 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / self.cells_in_map for
                                                i in area_hits]]
 
-        if ap:
+        if type(ap) == float or type(ap) == np.float64:
             print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
+
+        elif type(ap) == list or type(ap) == np.ndarray:
+            hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
+            for index, value in enumerate(hrs):
+                print(f'AP: {ap[index]} HR: {value}')
 
     def calculate_pai(self, c=None, ap=None):
 
@@ -2038,8 +2045,14 @@ class ProMap:
             else float(self.hr[i]) / float(self.ap[i])
             for i in range(len(self.ap))]
 
-        if ap:
+        if type(ap) == float or type(ap) == np.float64:
             print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
+
+        elif type(ap) == list or type(ap) == np.ndarray:
+            pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
+            for index, value in enumerate(pais):
+                print(f'AP: {ap[index]} PAI: {value}')
+
 
     def heatmap(self, c=None, show_score=True, incidences=False,
                 savefig=False, fname='', ap=None, **kwargs):
@@ -2063,11 +2076,16 @@ class ProMap:
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)
 
-        if ap:
+        if type(ap) == float or type(ap) == np.float64:
             c = af.find_c(self.ap, self.c_vector, ap)
             print('valor de C encontrado', c)
 
+        elif type(ap) == list or type(ap) == np.ndarray:
+            c = [af.find_c(self.ap, self.c_vector, i) for i in ap].sort()
+            print('c values', c)
+
         matriz = None
+
         if c is None:
             matriz = self.prediction
 
@@ -2202,7 +2220,7 @@ class ProMap:
         return self.prediction
 
     def validate(self, c=0):
-        self.testing_matrix = np.zeros((self.bins_x, self.bins_y))
+
         self.load_test_matrix(self.lp)
 
         if type(c) != list:
