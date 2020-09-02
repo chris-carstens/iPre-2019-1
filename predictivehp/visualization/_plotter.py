@@ -54,13 +54,14 @@ class Plotter:
 
     def hr(self, c=None, ap=None):
         cmap = plt.get_cmap('jet')
-        if c:
+        if c and ap is None:
             for idx, m in enumerate(self.model.models):
                 # print(f"\t {m.name}")
                 m.calculate_hr(c=self.c_arr)
                 ut.lineplot(x=m.ap, y=m.hr, c=cmap((idx + 1) * 80),
                             label=m.name)
-        else:
+
+        if ap is not None:
             for idx, m in enumerate(self.model.models):
                 # print(f"\t {m.name}")
                 m.calculate_hr(c=self.c_arr, ap=ap)
