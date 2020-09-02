@@ -259,7 +259,7 @@ class STKDE:
         dallas = self.shps['streets']
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)  # Sacar de _config.py
-        dallas.plot(ax=ax, alpha=.4, color="gray", zorder=1)
+        dallas.plot(ax=ax, alpha=.2, color="gray", zorder=1)
 
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
 
@@ -328,7 +328,7 @@ class STKDE:
 
         plt.pcolormesh(x, y, z_plot.reshape(x.shape),
                        shading='gouraud',
-                       alpha=.2,
+                       alpha=.4,
                        zorder=2,
                        cmap="jet",
                        )
@@ -357,11 +357,11 @@ class STKDE:
                 self.plot_geopdf(np.array(self.X_test[['x']])[no_hits_bool],
                                  np.array(self.X_test[['y']])[no_hits_bool],
                                  self.X_test[no_hits_bool],
-                                 dallas, ax, "blue", "Level 1")
+                                 dallas, ax, "blue", "Misses")
                 self.plot_geopdf(np.array(self.X_test[['x']])[hits_bool],
                                  np.array(self.X_test[['y']])[hits_bool],
                                  self.X_test[hits_bool],
-                                 dallas, ax, "red", "Level 2")
+                                 dallas, ax, "red", "Hits")
             elif type(c) == list or type(c) == np.ndarray:
                 c = np.array(c).flatten()
                 c = c[c > 0]
@@ -2203,7 +2203,7 @@ class ProMap:
                              color='red',
                              marker='x',
                              zorder=3,
-                             label="Hit")
+                             label="Hits")
 
             if type(c) == list or type(c) == np.ndarray:
                 geometry_hits_2 = [Point(xy) for xy in zip(
@@ -2221,21 +2221,21 @@ class ProMap:
                                     color='blue',
                                     marker='x',
                                     zorder=3,
-                                    label="D1")
+                                    label="Level 1")
 
                 geo_df_hits.plot(ax=ax,
                                  markersize=3,
                                  color='lime',
                                  marker='x',
                                  zorder=3,
-                                 label="D2")
+                                 label="Level 2")
 
                 geo_df_hits_2.plot(ax=ax,
                                    markersize=3,
                                    color='red',
                                    marker='x',
                                    zorder=3,
-                                   label="D3")
+                                   label="Level 3")
 
             plt.legend()
 
