@@ -993,7 +993,6 @@ class RForestRegressor(object):
         # if self.read_data:
         #     self.data = pd.read_pickle('predictivehp/data/data.pkl')
         if c is not None:
-            c = np.linspace(0, 1, 100)
             if type(c) == float or type(c) == np.float64:
                 data_nov = pd.DataFrame(
                     self.data[(date(2017, 11, 1) <= self.data.date) &
