@@ -2183,8 +2183,8 @@ class ProMap:
 
             dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
-
             self.load_points(self.lp, c)
+
 
             geometry_no_hits = [Point(xy) for xy in zip(
                 np.array(self.y[self.y['captured'] != 1][['x_point']]),
@@ -2204,21 +2204,23 @@ class ProMap:
                                            crs=dallas.crs,
                                            geometry=geometry_hits)
 
-            geo_df_no_hits.plot(ax=ax,
-                                markersize=3,
-                                color='blue',
-                                marker='x',
-                                zorder=3,
-                                label="Misses")
+            if type(c) == float or type(c) == np.float64:
 
-            geo_df_hits.plot(ax=ax,
-                             markersize=3,
-                             color='red',
-                             marker='x',
-                             zorder=3,
-                             label="Hits")
+                geo_df_no_hits.plot(ax=ax,
+                                    markersize=3,
+                                    color='blue',
+                                    marker='x',
+                                    zorder=3,
+                                    label="Misses")
 
-            if type(c) == list or type(c) == np.ndarray:
+                geo_df_hits.plot(ax=ax,
+                                 markersize=3,
+                                 color='red',
+                                 marker='x',
+                                 zorder=3,
+                                 label="Hits")
+
+            elif type(c) == list or type(c) == np.ndarray:
                 geometry_hits_2 = [Point(xy) for xy in zip(
                     np.array(self.y[self.y['captured'] == 2][['x_point']]),
                     np.array(self.y[self.y['captured'] == 2][['y_point']]))
