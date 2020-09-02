@@ -259,7 +259,7 @@ class STKDE:
         dallas = self.shps['streets']
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)  # Sacar de _config.py
-        dallas.plot(ax=ax, alpha=.4, color="gray", zorder=1)
+        dallas.plot(ax=ax, alpha=.2, color="gray", zorder=1)
 
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
 
@@ -294,12 +294,21 @@ class STKDE:
         f_delitos = f_delitos / max_pdf
         z = z / max_pdf
 
-        if ap:
+        if type(ap) == float or type(ap) == np.float64:
             c_array = np.linspace(0, 1, 100)
             area_h = [np.sum(z >= c_array[i]) for i in range(c_array.size)]
             area_percentaje = [i / len(z) for i in area_h]
             c = float(af.find_c(area_percentaje, np.linspace(0, 1, 100), ap))
             print('Valor de c encontrado: ', c)
+
+        elif type(ap) == list or type(ap) == np.ndarray:
+            c_array = np.linspace(0, 1, 100)
+            area_h = [np.sum(z >= c_array[i]) for i in range(c_array.size)]
+            area_percentaje = [i / len(z) for i in area_h]
+            c = [af.find_c(area_percentaje, c_array, i) for i in ap]
+            c = sorted(list(set(c)))
+            if len(c) == 1:
+                c = c[0]
 
         z_plot = None
         if c is None:
@@ -319,7 +328,7 @@ class STKDE:
 
         plt.pcolormesh(x, y, z_plot.reshape(x.shape),
                        shading='gouraud',
-                       alpha=.2,
+                       alpha=.4,
                        zorder=2,
                        cmap="jet",
                        )
@@ -348,11 +357,11 @@ class STKDE:
                 self.plot_geopdf(np.array(self.X_test[['x']])[no_hits_bool],
                                  np.array(self.X_test[['y']])[no_hits_bool],
                                  self.X_test[no_hits_bool],
-                                 dallas, ax, "blue", "Level 1")
+                                 dallas, ax, "blue", "Misses")
                 self.plot_geopdf(np.array(self.X_test[['x']])[hits_bool],
                                  np.array(self.X_test[['y']])[hits_bool],
                                  self.X_test[hits_bool],
-                                 dallas, ax, "red", "Level 2")
+                                 dallas, ax, "red", "Hits")
             elif type(c) == list or type(c) == np.ndarray:
                 c = np.array(c).flatten()
                 c = c[c > 0]
@@ -518,7 +527,7 @@ class STKDE:
                     Area Percentage para cada grupo
         """
         if c is None:
-            np.linspace(0, 1, 100)
+            c = np.linspace(0, 1, 100)
         if self.f_delitos is None:
             self.predict()
         f_delitos, f_nodos = self.f_delitos, self.f_nodos
@@ -527,8 +536,14 @@ class STKDE:
         HR = [i / len(f_delitos) for i in hits]
         area_percentaje = [i / len(f_nodos) for i in area_h]
         self.hr, self.ap = HR, area_percentaje
-        if ap:
+
+        if type(ap) == float or type(ap) == np.float64:
             print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
+
+        elif type(ap) == list or type(ap) == np.ndarray:
+            hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
+            for index, value in enumerate(hrs):
+                print(f'AP: {ap[index]} HR: {value}')
 
     def calculate_pai(self, c=None, ap=None):
         """
@@ -551,14 +566,20 @@ class STKDE:
                     Area Percentage para cada grupo
         """
         if c is None:
-            np.linspace(0, 1, 100)
+            c = np.linspace(0, 1, 100)
         if not self.hr:
             self.calculate_hr(c)
         PAI = [float(self.hr[i]) / float(self.ap[i]) if
                self.ap[i] else 0 for i in range(len(self.hr))]
         self.pai = PAI
-        if ap:
+
+        if type(ap) == float or type(ap) == np.float64:
             print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
+
+        elif type(ap) == list or type(ap) == np.ndarray:
+            pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
+            for index, value in enumerate(pais):
+                print(f'AP: {ap[index]} PAI: {value}')
 
     def validate(self, c=0, area=993):
         if type(c != list):
@@ -2007,7 +2028,9 @@ class ProMap:
 
         # Se espera que los valores de la lista vayan disminuyendo a medida que el valor de K aumenta
 
-        self.c_vector = c
+        if c is None:
+            c = np.linspace(0, 1, 100)
+
 
         hits_n = []
 
@@ -2054,6 +2077,9 @@ class ProMap:
             Vector que sirve para analizar el mapa en cada punto
         """
 
+        if c is None:
+            c = np.linspace(0, 1, 100)
+
         if not self.hr:
             self.calculate_hr(c)
 
@@ -2094,11 +2120,11 @@ class ProMap:
         fig, ax = plt.subplots(figsize=[6.75] * 2)
 
         if type(ap) == float or type(ap) == np.float64:
-            c = af.find_c(self.ap, self.c_vector, ap)
+            c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
             print('valor de C encontrado', c)
 
         elif type(ap) == list or type(ap) == np.ndarray:
-            c = [af.find_c(self.ap, self.c_vector, i) for i in ap]
+            c = [af.find_c(self.ap, np.linspace(0, 1, 100), i) for i in ap]
             c = sorted(list(set(c)))
             if len(c) == 1:
                 c = c[0]
@@ -2177,7 +2203,7 @@ class ProMap:
                              color='red',
                              marker='x',
                              zorder=3,
-                             label="Hit")
+                             label="Hits")
 
             if type(c) == list or type(c) == np.ndarray:
                 geometry_hits_2 = [Point(xy) for xy in zip(
@@ -2195,21 +2221,21 @@ class ProMap:
                                     color='blue',
                                     marker='x',
                                     zorder=3,
-                                    label="D1")
+                                    label="Level 1")
 
                 geo_df_hits.plot(ax=ax,
                                  markersize=3,
                                  color='lime',
                                  marker='x',
                                  zorder=3,
-                                 label="D2")
+                                 label="Level 2")
 
                 geo_df_hits_2.plot(ax=ax,
                                    markersize=3,
                                    color='red',
                                    marker='x',
                                    zorder=3,
-                                   label="D3")
+                                   label="Level 3")
 
             plt.legend()
 
