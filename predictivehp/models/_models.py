@@ -260,7 +260,6 @@ class STKDE:
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)  # Sacar de _config.py
 
-
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
 
         x, y, t = np.mgrid[
@@ -990,10 +989,14 @@ class RForestRegressor(object):
         ap : {float, np.ndarray}
           Area percentage
         """
-        # if self.read_data:
-        #     self.data = pd.read_pickle('predictivehp/data/data.pkl')
+        # TODO
+        #   .calculate_hr_onelvl(c : {float, np.ndarray, np.float64})
+        if self.read_data:
+            self.data = pd.read_pickle('predictivehp/data/data.pkl')
         if c is not None:
-            if type(c) == float or type(c) == np.float64:
+            if type(c) in {float, np.float64} or \
+                    (type(c) == np.ndarray and c.size == 1):
+                # hr = self.calculate_hr_onelvl(c)
                 data_nov = pd.DataFrame(
                     self.data[(date(2017, 11, 1) <= self.data.date) &
                               (self.data.date <= date(2017, 11, 7))]
@@ -1018,6 +1021,7 @@ class RForestRegressor(object):
                 ap_l = []
                 for c in c_arr:
                     hr_l.append(self.calculate_hr(c=np.array([c])))
+                    # hr_l.append(self.calculate_hr_onelvl(c)
                     ap_l.append(a(self.X, c) / A)
                 self.hr = np.array(hr_l)
                 self.ap = np.array(ap_l)
@@ -2045,7 +2049,6 @@ class ProMap:
         if c is None:
             c = np.linspace(0, 1, 100)
 
-
         hits_n = []
 
         for i in range(c.size):
@@ -2109,7 +2112,6 @@ class ProMap:
             pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
             for index, value in enumerate(pais):
                 print(f'AP: {ap[index]} PAI: {value}')
-
 
     def heatmap(self, c=None, show_score=True, incidences=False,
                 savefig=False, fname=f'Promap_heatmap.png', ap=None, **kwargs):
@@ -2187,7 +2189,6 @@ class ProMap:
             dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
             self.load_points(self.lp, c)
-
 
             geometry_no_hits = [Point(xy) for xy in zip(
                 np.array(self.y[self.y['captured'] != 1][['x_point']]),
