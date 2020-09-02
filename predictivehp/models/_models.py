@@ -537,7 +537,7 @@ class STKDE:
         area_percentaje = [i / len(f_nodos) for i in area_h]
         self.hr, self.ap = HR, area_percentaje
 
-        if type(ap) == float or type(ap) == np.float64
+        if type(ap) == float or type(ap) == np.float64:
             print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
 
         elif type(ap) == list or type(ap) == np.ndarray:
