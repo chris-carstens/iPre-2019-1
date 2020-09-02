@@ -19,6 +19,7 @@ from predictivehp import d_colors
 settings = kd.EstimatorSettings(efficient=True, n_jobs=8)
 pd.set_option('mode.chained_assignment', None)
 
+
 class MyKDEMultivariate(kd.KDEMultivariate):
     def resample(self, size, shp):
         """
@@ -232,15 +233,15 @@ class STKDE:
 
         geometry = [Point(xy) for xy in zip(x_t, y_t)]
         geo_df = gpd.GeoDataFrame(X_filtered,
-                                          crs=dallas.crs,
-                                          geometry=geometry)
+                                  crs=dallas.crs,
+                                  geometry=geometry)
 
         geo_df.plot(ax=ax,
-                            markersize=3,
-                            color=color,
-                            marker='o',
-                            zorder=3,
-                            label=label,
+                    markersize=3,
+                    color=color,
+                    marker='o',
+                    zorder=3,
+                    label=label,
                     )
         plt.legend()
 
@@ -272,11 +273,11 @@ class STKDE:
                   ]
 
         x, y = np.mgrid[
-                  self.x_min:
-                  self.x_max:100 * 1j,
-                  self.y_min:
-                  self.y_max:100 * 1j
-                  ]
+               self.x_min:
+               self.x_max:100 * 1j,
+               self.y_min:
+               self.y_max:100 * 1j
+               ]
 
         z = self.kde.pdf(
             np.array([x.flatten(), y.flatten(), t.flatten()]))
@@ -345,10 +346,12 @@ class STKDE:
                 hits_bool = f_delitos >= c
                 no_hits_bool = f_delitos < c
                 self.plot_geopdf(np.array(self.X_test[['x']])[no_hits_bool],
-                                 np.array(self.X_test[['y']])[no_hits_bool], self.X_test[no_hits_bool],
+                                 np.array(self.X_test[['y']])[no_hits_bool],
+                                 self.X_test[no_hits_bool],
                                  dallas, ax, "blue", "Level 1")
                 self.plot_geopdf(np.array(self.X_test[['x']])[hits_bool],
-                                 np.array(self.X_test[['y']])[hits_bool], self.X_test[hits_bool],
+                                 np.array(self.X_test[['y']])[hits_bool],
+                                 self.X_test[hits_bool],
                                  dallas, ax, "red", "Level 2")
             elif type(c) == list or type(c) == np.ndarray:
                 c = np.array(c).flatten()
@@ -362,13 +365,16 @@ class STKDE:
                 lvl2 = (f_delitos > c_min) & (f_delitos <= c_max)
                 lvl3 = f_delitos > c_max
                 self.plot_geopdf(np.array(self.X_test[['x']])[lvl1],
-                                 np.array(self.X_test[['y']])[lvl1], self.X_test[lvl1],
+                                 np.array(self.X_test[['y']])[lvl1],
+                                 self.X_test[lvl1],
                                  dallas, ax, "blue", "Level 1")
                 self.plot_geopdf(np.array(self.X_test[['x']])[lvl2],
-                                 np.array(self.X_test[['y']])[lvl2], self.X_test[lvl2],
+                                 np.array(self.X_test[['y']])[lvl2],
+                                 self.X_test[lvl2],
                                  dallas, ax, "lime", "Level 2")
                 self.plot_geopdf(np.array(self.X_test[['x']])[lvl3],
-                                 np.array(self.X_test[['y']])[lvl3], self.X_test[lvl3],
+                                 np.array(self.X_test[['y']])[lvl3],
+                                 self.X_test[lvl3],
                                  dallas, ax, "red", "Level 3")
 
         plt.title('STKDE')
@@ -528,9 +534,10 @@ class STKDE:
         """
         Parameters
         ----------
-        c : np.linspace
-            Threshold de confianza para
-            filtrar hotspots
+        c : {float, list, np.linspace}
+            Threshold de confianza para filtrar hotspots
+        ap : {float, list, np.linspace}
+
         Returns
         -------
         pai_by_group : list
@@ -942,48 +949,51 @@ class RForestRegressor(object):
         self.d_incidents = d_incidents
         self.h_area = h_area
 
-    def calculate_hr(self, c=0.9, ap=None):
+    def calculate_hr(self, c=None, ap=None):
         """
 
         Parameters
         ----------
         c : {float, np.ndarray}
           Threshold de confianza para filtrar hotspots
+        ap : {float, np.ndarray}
+          Area percentage
         """
         if self.read_data:
             self.data = pd.read_pickle('predictivehp/data/data.pkl')
-        if c.size == 1:
-            data_nov = pd.DataFrame(
-                self.data[(date(2017, 11, 1) <= self.data.date) &
-                          (self.data.date <= date(2017, 11, 7))]
-            )  # 62 Incidentes
-            if 'geometry' in set(data_nov.columns):
-                data_nov.drop(columns='geometry', inplace=True)
-            data_nov.columns = pd.MultiIndex.from_product(
-                [data_nov.columns, ['']]
-            )
-            ans = data_nov.join(self.X)
-            incidentsh = ans[ans[('Dangerous_pred', '')] >= c[0]]
-            hr = incidentsh.shape[0] / data_nov.shape[0]
-            return hr
-        else:
-            A = self.X.shape[0]
+        if c is not None:
+            if type(c) == float or type(c) == np.float64:
+                data_nov = pd.DataFrame(
+                    self.data[(date(2017, 11, 1) <= self.data.date) &
+                              (self.data.date <= date(2017, 11, 7))]
+                )  # 62 Incidentes
+                if 'geometry' in set(data_nov.columns):
+                    data_nov.drop(columns='geometry', inplace=True)
+                data_nov.columns = pd.MultiIndex.from_product(
+                    [data_nov.columns, ['']]
+                )
+                ans = data_nov.join(self.X)
+                incidentsh = ans[ans[('Dangerous_pred', '')] >= c[0]]
+                hr = incidentsh.shape[0] / data_nov.shape[0]
+                return hr
+            else:
+                A = self.X.shape[0]
 
-            def a(X, c):
-                return X[X[('Dangerous_pred', '')] >= c].shape[0]
+                def a(X, c):
+                    return X[X[('Dangerous_pred', '')] >= c].shape[0]
 
-            c_arr = c
-            hr_l = []
-            ap_l = []
-            for c in c_arr:
-                hr_l.append(self.calculate_hr(c=np.array([c])))
-                ap_l.append(a(self.X, c) / A)
-            self.hr = np.array(hr_l)
-            self.ap = np.array(ap_l)
-        if ap:
+                c_arr = c
+                hr_l = []
+                ap_l = []
+                for c in c_arr:
+                    hr_l.append(self.calculate_hr(c=np.array([c])))
+                    ap_l.append(a(self.X, c) / A)
+                self.hr = np.array(hr_l)
+                self.ap = np.array(ap_l)
+        if ap is not None:
             print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
 
-    def calculate_pai(self, c=0.9, ap=None):
+    def calculate_pai(self, c=None, ap=None):
         """
         Calcula el Predictive Accuracy Index (PAI)
 
@@ -1028,11 +1038,11 @@ class RForestRegressor(object):
             self.hr = np.array(hr_l)
             self.ap = np.array(ap_l)
             self.pai = np.array(pai_l)
-        if ap:
+        if ap is not None:
             print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
 
     def heatmap(self, c=None, ap=None, incidences=False,
-                savefig=False, fname='RFR.png', **kwargs):
+                savefig=False, fname='RFR', **kwargs):
         """
 
         Parameters
@@ -1047,10 +1057,16 @@ class RForestRegressor(object):
         -------
 
         """
-        if ap:
-            # c_arr =
+        fname = f'{fname}.png'
+        if type(ap) == float or type(ap) == np.float64:
             c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
             print('valor de C encontrado', c)
+
+        elif type(ap) == list or type(ap) == np.ndarray:
+            c = sorted([
+                af.find_c(self.ap, np.linspace(0, 1, 100), i) for i in ap
+            ])
+            print('c values', c)
         cells = self.X[[('geometry', ''), ('Dangerous_pred', '')]]
         cells = gpd.GeoDataFrame(cells)
         d_streets = self.shps['streets']
@@ -1134,7 +1150,8 @@ class RForestRegressor(object):
                     hits.plot(ax=ax, marker='x', markersize=0.25, color='red',
                               label="Hits")
                 if not misses.empty:
-                    misses.plot(ax=ax, marker='x', markersize=0.25, color='blue',
+                    misses.plot(ax=ax, marker='x', markersize=0.25,
+                                color='blue',
                                 label="Misses")
             else:
                 d1 = gpd.GeoDataFrame(join_[join_['D1'] == 1])
@@ -2160,18 +2177,16 @@ class ProMap:
                              zorder=3,
                              label="Hit")
 
-
-
             if type(c) == list or type(c) == np.ndarray:
                 geometry_hits_2 = [Point(xy) for xy in zip(
                     np.array(self.y[self.y['captured'] == 2][['x_point']]),
                     np.array(self.y[self.y['captured'] == 2][['y_point']]))
-                                 ]
+                                   ]
 
                 geo_df_hits_2 = gpd.GeoDataFrame(self.y[self.y['captured'] ==
                                                         2],
-                                               crs=dallas.crs,
-                                               geometry=geometry_hits_2)
+                                                 crs=dallas.crs,
+                                                 geometry=geometry_hits_2)
 
                 geo_df_no_hits.plot(ax=ax,
                                     markersize=3,
@@ -2188,17 +2203,11 @@ class ProMap:
                                  label="D2")
 
                 geo_df_hits_2.plot(ax=ax,
-                                 markersize=3,
-                                 color='red',
-                                 marker='x',
-                                 zorder=3,
-                                 label="D3")
-
-
-
-
-
-
+                                   markersize=3,
+                                   color='red',
+                                   marker='x',
+                                   zorder=3,
+                                   label="D3")
 
             plt.legend()
 

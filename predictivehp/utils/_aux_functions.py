@@ -568,6 +568,20 @@ def checked_points_pm(points):
 
 
 def find_c(area_array, c_list, ap):
+    """
+
+    Parameters
+    ----------
+    area_array:
+      lista con ap's (self.ap)
+    c_list
+      c_vector
+    ap
+
+    Returns
+    -------
+
+    """
     area_array = np.array(area_array)
     area_array = area_array - ap
     return c_list[np.argmin(np.abs(area_array))]
