@@ -2078,12 +2078,13 @@ class ProMap:
 
         if type(ap) == float or type(ap) == np.float64:
             c = af.find_c(self.ap, self.c_vector, ap)
-
             print('valor de C encontrado', c)
 
         elif type(ap) == list or type(ap) == np.ndarray:
-            c = sorted([af.find_c(self.ap, self.c_vector, i) for i in ap])
-            print('c values', c)
+            c = [af.find_c(self.ap, self.c_vector, i) for i in ap]
+            c = sorted(list(set(c)))
+            if len(c) == 1:
+                c = c[0]
 
         matriz = None
 
@@ -2093,6 +2094,7 @@ class ProMap:
         elif type(c) == float or type(c) == np.float64:
             matriz = np.where(self.prediction >= c, 1, 0)
         elif type(c) == list or type(c) == np.ndarray:
+
             c = np.array(c).flatten()
             c = c[c > 0]
             c = c[c < 1]
