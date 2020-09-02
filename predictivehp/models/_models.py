@@ -246,7 +246,7 @@ class STKDE:
         plt.legend()
 
     def heatmap(self, c=None, show_score=True, incidences=False,
-                savefig=False, fname='', ap=None, **kwargs):
+                savefig=False, fname='STKDE_heatmap.png', ap=None, **kwargs):
         """
         Parameters
         ----------
@@ -259,7 +259,7 @@ class STKDE:
         dallas = self.shps['streets']
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)  # Sacar de _config.py
-        dallas.plot(ax=ax, alpha=.2, color="gray", zorder=1)
+
 
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
 
@@ -326,8 +326,6 @@ class STKDE:
                 z_plot[z > i] += 1
             z_plot = z_plot / np.max(z_plot)
 
-
-
         if show_score:
             # noinspection PyUnresolvedReferences
             norm = mpl.colors.Normalize(vmin=0, vmax=1)
@@ -342,6 +340,7 @@ class STKDE:
             c_bar.ax.set_ylabel('Danger Score')
 
         if incidences:
+            dallas.plot(ax=ax, alpha=.2, color="gray", zorder=1)
             plt.pcolormesh(x, y, z_plot.reshape(x.shape),
                            shading='gouraud',
                            alpha=.4,
@@ -389,10 +388,12 @@ class STKDE:
                                  dallas, ax, "red", "Level 3")
 
         else:
+            dallas.plot(ax=ax, alpha=.2, color="gray", zorder=2)
             plt.pcolormesh(x, y, z_plot.reshape(x.shape),
                            shading='gouraud',
-                           zorder=2,
+                           zorder=1,
                            cmap="jet",
+                           alpha=1
                            )
 
         plt.title('STKDE')
@@ -2107,7 +2108,7 @@ class ProMap:
 
 
     def heatmap(self, c=None, show_score=True, incidences=False,
-                savefig=False, fname='', ap=None, **kwargs):
+                savefig=False, fname=f'Promap_heatmap.png', ap=None, **kwargs):
         """
         Mostrar un heatmap de una matriz de riesgo.
 
@@ -2156,9 +2157,6 @@ class ProMap:
             for i in c:
                 matriz[self.prediction > i] += 1
             matriz = matriz / np.max(matriz)
-
-
-
 
         if show_score and c is None:
             # noinspection PyUnresolvedReferences
