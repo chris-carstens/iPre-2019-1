@@ -990,8 +990,8 @@ class RForestRegressor(object):
         ap : {float, np.ndarray}
           Area percentage
         """
-        if self.read_data:
-            self.data = pd.read_pickle('predictivehp/data/data.pkl')
+        # if self.read_data:
+        #     self.data = pd.read_pickle('predictivehp/data/data.pkl')
         if c is not None:
             c = np.linspace(0, 1, 100)
             if type(c) == float or type(c) == np.float64:
@@ -1022,8 +1022,14 @@ class RForestRegressor(object):
                     ap_l.append(a(self.X, c) / A)
                 self.hr = np.array(hr_l)
                 self.ap = np.array(ap_l)
-        if ap is not None:
+
+        if type(ap) == float or type(ap) == np.float64:
             print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
+
+        elif type(ap) == list or type(ap) == np.ndarray:
+            hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
+            for index, value in enumerate(hrs):
+                print(f'AP: {ap[index]} HR: {value}')
 
     def calculate_pai(self, c=None, ap=None):
         """
@@ -1033,14 +1039,6 @@ class RForestRegressor(object):
         :return:
         """
 
-        # data_oct = pd.DataFrame(self.data[self.data.month1 == 'October'])
-        # data_oct.drop(columns='geometry', inplace=True)
-
-        # ans = data_oct.join(other=fwork.data, on='Cell', how='left')
-        # ans = self.data[self.data[('geometry', '')].notna()]
-
-        # a = self.data[self.data[('Dangerous_pred_Oct', '')] == 1].shape[0]
-        # a = self.data[self.data[('Dangerous_pred_Oct_rfr', '')] >= c].shape[0]
         def a(x, c):
             return x[x[('Dangerous_pred', '')] >= c].shape[0]
 
@@ -1070,8 +1068,14 @@ class RForestRegressor(object):
             self.hr = np.array(hr_l)
             self.ap = np.array(ap_l)
             self.pai = np.array(pai_l)
-        if ap is not None:
+
+        if type(ap) == float or type(ap) == np.float64:
             print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
+
+        elif type(ap) == list or type(ap) == np.ndarray:
+            pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
+            for index, value in enumerate(pais):
+                print(f'AP: {ap[index]} PAI: {value}')
 
     def heatmap(self, c=None, ap=None, incidences=False,
                 savefig=False, fname='RFR_heatmap.png', **kwargs):
