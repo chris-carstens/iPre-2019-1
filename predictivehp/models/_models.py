@@ -326,12 +326,7 @@ class STKDE:
                 z_plot[z > i] += 1
             z_plot = z_plot / np.max(z_plot)
 
-        plt.pcolormesh(x, y, z_plot.reshape(x.shape),
-                       shading='gouraud',
-                       alpha=.4,
-                       zorder=2,
-                       cmap="jet",
-                       )
+
 
         if show_score:
             # noinspection PyUnresolvedReferences
@@ -347,6 +342,13 @@ class STKDE:
             c_bar.ax.set_ylabel('Danger Score')
 
         if incidences:
+            plt.pcolormesh(x, y, z_plot.reshape(x.shape),
+                           shading='gouraud',
+                           alpha=.4,
+                           zorder=2,
+                           cmap="jet",
+                           )
+
             if c is None:
                 self.plot_geopdf(f_delitos, np.array(self.X_test[['x']]),
                                  np.array(self.X_test[['y']]), self.X_test,
@@ -385,6 +387,13 @@ class STKDE:
                                  np.array(self.X_test[['y']])[lvl3],
                                  self.X_test[lvl3],
                                  dallas, ax, "red", "Level 3")
+
+        else:
+            plt.pcolormesh(x, y, z_plot.reshape(x.shape),
+                           shading='gouraud',
+                           zorder=2,
+                           cmap="jet",
+                           )
 
         plt.title('STKDE')
 
@@ -2148,13 +2157,8 @@ class ProMap:
                 matriz[self.prediction > i] += 1
             matriz = matriz / np.max(matriz)
 
-        plt.imshow(np.flipud(matriz.T),
-                   extent=[self.x_min, self.x_max, self.y_min, self.y_max],
-                   cmap='jet',
-                   # vmin=0, vmax=1
-                   alpha=0.4, interpolation=None)
 
-        dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
+
 
         if show_score and c is None:
             # noinspection PyUnresolvedReferences
@@ -2171,6 +2175,16 @@ class ProMap:
             c_bar.ax.set_ylabel('Danger Score')
 
         if incidences:
+
+            plt.imshow(np.flipud(matriz.T),
+                       extent=[self.x_min, self.x_max, self.y_min, self.y_max],
+                       cmap='jet',
+                       # vmin=0, vmax=1
+                       alpha=0.4, interpolation=None)
+
+            dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
+
+
             self.load_points(self.lp, c)
 
             geometry_no_hits = [Point(xy) for xy in zip(
@@ -2238,6 +2252,13 @@ class ProMap:
                                    label="Level 3")
 
             plt.legend()
+
+        else:
+            plt.imshow(np.flipud(matriz.T),
+                       extent=[self.x_min, self.x_max, self.y_min, self.y_max],
+                       cmap='jet',
+                       interpolation=None)
+            dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
         plt.title('ProMap')
 
