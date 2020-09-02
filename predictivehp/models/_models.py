@@ -1189,13 +1189,13 @@ class RForestRegressor(object):
                 d3 = gpd.GeoDataFrame(join_[join_['D3'] == 1])
                 if not d1.empty:
                     d1.plot(ax=ax, marker='x', markersize=0.25,
-                            color='blue', label="D1 Incidents")
+                            color='blue', label="Level 1")
                 if not d2.empty:
                     d2.plot(ax=ax, marker='x', markersize=0.25, color='lime',
-                            label="D2 Incidents")
+                            label="Level 2")
                 if not d3.empty:
                     d3.plot(ax=ax, marker='x', markersize=0.25, color='red',
-                            label="D3 Incidents")
+                            label="Level 3")
             plt.legend()
 
         ax.set_axis_off()
