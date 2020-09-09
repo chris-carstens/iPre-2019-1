@@ -1014,7 +1014,8 @@ class RForestRegressor(object):
             self.pai = np.array(pai_l)
 
     def heatmap(self, c=None, ap=None, incidences=False,
-                savefig=False, fname='RFR_heatmap.png', **kwargs):
+                savefig=False, fname='RFR_heatmap.png',
+                verbose=False, **kwargs):
         """
 
         Parameters
@@ -1029,7 +1030,7 @@ class RForestRegressor(object):
         -------
 
         """
-        print('\tPlotting Heatmap...')
+        print('\tPlotting Heatmap...') if (verbose or self.verbose) else None
         fname = f'{fname}.png'
         if self.ap is None:
             self.calculate_pai(np.linspace(0, 1, 100))
