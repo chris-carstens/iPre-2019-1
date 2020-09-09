@@ -2206,6 +2206,10 @@ class ProMap:
 
         self.load_test_matrix(self.lp)
 
+        if ap is not None:
+            if self.ap is None:
+                self.calculate_ap_c()
+
         if type(ap) == float or type(ap) == np.float64:
             c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
             print('valor de C encontrado', c)
@@ -2240,6 +2244,20 @@ class ProMap:
         self.h_area = hp_area * self.hx * self.hy * 10 ** -6
         self.hr_validated = self.d_incidents / total_incidents
         self.pai_validated = self.hr_validated / (hp_area/self.cells_in_map)
+
+
+    def calculate_ap_c(self):
+
+        c = np.linespace(0, 1, 100)
+        self.c_vector = c
+        area_hits = []
+
+        for i in range(c.size):
+            area_hits.append(
+                np.count_nonzero(self.prediction >= c[i]))
+
+        self.ap = [1 if j > 1 else j for j in [i / self.cells_in_map for
+                                               i in area_hits]]
 
 
 class Model:
@@ -2519,7 +2537,6 @@ class Model:
     #     for m in self.models:
     #         m.heatmap(c=c, show_score=show_score, incidences=incidences,
     #                   savefig=savefig, fname=fname, **kwargs)
-
 
 def create_model(data=None, shps=None,
                  start_prediction=date(2017, 11, 1), length_prediction=7,
