@@ -26,9 +26,9 @@ m.fit(data_p)
 m.predict()
 
 pltr = Plotter(m)
-pltr.hr(c=0)
+# pltr.hr(c=0)
 # pltr.pai(c=0)
-# pltr.heatmap(c=[0.07, 0.13], incidences=True,
-#              savefig=False, fname='hm_example.png')
+pltr.heatmap(c=[0.07, 0.13], incidences=True,
+             savefig=False, fname='hm_example.png')
 # pltr.heatmap(c=0.1, incidences=True)
 # plt.show()

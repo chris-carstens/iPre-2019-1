@@ -282,7 +282,8 @@ class STKDE:
             np.array([x.flatten(), y.flatten(), t.flatten()]))
 
         z_filtered = self.kde.pdf(af.checked_points(
-            np.array([x.flatten(), y.flatten(), t.flatten()]), self.shps['councils']))
+            np.array([x.flatten(), y.flatten(), t.flatten()]),
+            self.shps['councils']))
 
         x_t, y_t, t_t = \
             np.array(self.X_test['x']), \
@@ -408,8 +409,6 @@ class STKDE:
             plt.savefig(fname, **kwargs)
         plt.show()
 
-
-
     def calculate_hr(self, c=None, ap=None):
         """
         Parameters
@@ -497,23 +496,24 @@ class STKDE:
             self.hr_validated = hrs
         elif type(c) == float or type(c) == np.float64:
             hits = self.f_delitos[self.f_delitos >= c]
-            h_nodos = self.f_nodos[self.f_nodos >=c]
+            h_nodos = self.f_nodos[self.f_nodos >= c]
             self.hr_validated = np.sum(hits) / len(self.f_delitos)
-            self.pai_validated = self.hr_validated / (np.sum(h_nodos) / len(self.f_nodos))
+            self.pai_validated = self.hr_validated / (
+                    np.sum(h_nodos) / len(self.f_nodos))
         elif type(c) == list or type(c) == np.ndarray:
             hits = self.f_delitos[self.f_delitos < max(c)]
             hits = self.hits[hits > min(c)]
             h_nodos = self.f_nodos[self.f_nodos < max(c)]
             h_nodos = self.f_nodos[h_nodos > min(c)]
             self.hr_validated = np.sum(hits) / len(self.f_delitos)
-            self.pai_validated = self.hr_validated / (np.sum(h_nodos) / len(self.f_nodos))
+            self.pai_validated = self.hr_validated / (
+                    np.sum(h_nodos) / len(self.f_nodos))
 
         if not ap and c:
             self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
             self.d_incidents = hits.size
 
         print(self.hr_validated, self.pai_validated)
-
 
 
 class RForestRegressor(object):
@@ -915,7 +915,6 @@ class RForestRegressor(object):
 
     def calculate_hr(self, c=None, ap=None):
         """
-
         Parameters
         ----------
         c : {int, float, list, np.ndarray}
@@ -925,8 +924,6 @@ class RForestRegressor(object):
         """
         # TODO
         #   .calculate_hr_onelvl(c : {float, np.ndarray, np.float64})
-        if self.read_data:
-            self.data = pd.read_pickle('predictivehp/data/data.pkl')
         if c is not None:
             if type(c) in {float, np.float64} or \
                     (type(c) == np.ndarray and c.size == 1):
@@ -972,9 +969,23 @@ class RForestRegressor(object):
         """
         Calcula el Predictive Accuracy Index (PAI)
 
-        :param [float, np.ndarray] c:
-        :return:
+        Parameters
+        ----------
+        c : {int, float, list, np.ndarray}
+          Threshold de confianza para filtrar hotspots
+        ap : {int, float, list, np.ndarray}
+          Area percentage
         """
+
+        if type(ap) in {np.float64, float}:
+            print(1, ap)
+            print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
+
+        elif type(ap) in {list, np.ndarray}:
+            print(2)
+            pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
+            for index, value in enumerate(pais):
+                print(f'AP: {ap[index]} PAI: {value}')
 
         def a(x, c):
             return x[x[('Dangerous_pred', '')] >= c].shape[0]
@@ -983,11 +994,6 @@ class RForestRegressor(object):
         if c.size == 1:
             hr = self.calculate_hr(c=c)
             ap = a(self.X, c) / A
-
-            # print(f"a: {a} cells    A: {A} cells")
-            # print(f"Area Percentage: {ap:1.3f}")
-            # print(f"PAI: {hr / ap:1.3f}")
-
             return hr / ap
         else:
             c_arr = c
@@ -1006,14 +1012,6 @@ class RForestRegressor(object):
             self.ap = np.array(ap_l)
             self.pai = np.array(pai_l)
 
-        if type(ap) == float or type(ap) == np.float64:
-            print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
-
-        elif type(ap) == list or type(ap) == np.ndarray:
-            pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
-            for index, value in enumerate(pais):
-                print(f'AP: {ap[index]} PAI: {value}')
-
     def heatmap(self, c=None, ap=None, incidences=False,
                 savefig=False, fname='RFR_heatmap.png', **kwargs):
         """
@@ -1030,6 +1028,7 @@ class RForestRegressor(object):
         -------
 
         """
+        print('\tPlotting Heatmap...')
         fname = f'{fname}.png'
         if type(ap) == float or type(ap) == np.float64:
             c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
@@ -1822,7 +1821,7 @@ class ProMap:
 
         points = np.array([self.xx.flatten(), self.yy.flatten()])
         print("Fitting promap...")
-        #self.cells_in_map = af.checked_points_pm(points, self.shps[
+        # self.cells_in_map = af.checked_points_pm(points, self.shps[
         # 'councils'])  #
         self.cells_in_map = 141337
 
@@ -2263,8 +2262,7 @@ class ProMap:
         self.d_incidents = int(hits)
         self.h_area = hp_area * self.hx * self.hy * 10 ** -6
         self.hr_validated = self.d_incidents / total_incidents
-        self.pai_validated = self.hr_validated / (hp_area/self.cells_in_map)
-
+        self.pai_validated = self.hr_validated / (hp_area / self.cells_in_map)
 
     def calculate_ap_c(self):
 
@@ -2554,6 +2552,7 @@ class Model:
     #     for m in self.models:
     #         m.heatmap(c=c, show_score=show_score, incidences=incidences,
     #                   savefig=savefig, fname=fname, **kwargs)
+
 
 def create_model(data=None, shps=None,
                  start_prediction=date(2017, 11, 1), length_prediction=7,
