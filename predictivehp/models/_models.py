@@ -270,13 +270,9 @@ class STKDE:
                   t_training.max():
                   t_training.max():1 * 1j
                   ]
-
-        x, y = np.mgrid[
-               self.x_min:
-               self.x_max:100 * 1j,
-               self.y_min:
-               self.y_max:100 * 1j
-               ]
+        x = x.reshape(100, 100)
+        y = y.reshape(100, 100)
+        t = t.reshape(100, 100)
 
         z = self.kde.pdf(
             np.array([x.flatten(), y.flatten(), t.flatten()]))
@@ -289,29 +285,34 @@ class STKDE:
             np.array(self.X_test['x']), \
             np.array(self.X_test['y']), \
             np.array(self.X_test['y_day'])
+
         ti = np.repeat(max(t_training), x_t.size)
+
         f_delitos = self.kde.pdf(
             np.array([x_t.flatten(), y_t.flatten(), ti.flatten()]))
         max_pdf = max([f_delitos.max(), z.max()])
+
         # Normalizar
         f_delitos = f_delitos / max_pdf
         z = z / max_pdf
+        z_filtered = z_filtered / max_pdf
 
         if type(ap) == float or type(ap) == np.float64:
-            c_array = np.linspace(0, 1, 100)
+            c_array = np.linspace(0, 1, 1000)
             area_h = [np.sum(z_filtered >= c_array[i]) for i in range(
                 c_array.size)]
             area_percentaje = [i / len(z_filtered) for i in area_h]
             c = float(af.find_c(area_percentaje, c_array, ap))
-            print('Valor de c encontrado: ', c)
+            print('c value: ', c)
 
         elif type(ap) == list or type(ap) == np.ndarray:
-            c_array = np.linspace(0, 1, 100)
+            c_array = np.linspace(0, 1, 1000)
             area_h = [np.sum(z_filtered >= c_array[i]) for i in range(
                 c_array.size)]
             area_percentaje = [i / len(z_filtered) for i in area_h]
             c = [af.find_c(area_percentaje, c_array, i) for i in ap]
             c = sorted(list(set(c)))
+            print('c values: ', c)
             if len(c) == 1:
                 c = c[0]
 
@@ -351,6 +352,8 @@ class STKDE:
                            alpha=.4,
                            zorder=2,
                            cmap="jet",
+                           vmin=0,
+                           vmax=1
                            )
 
             if c is None:
