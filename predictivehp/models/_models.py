@@ -2024,7 +2024,7 @@ class ProMap:
         #     for index, value in enumerate(hrs):
         #         print(f'AP: {ap[index]} HR: {value}')
 
-    def calculate_pai(self, c=None):
+    def calculate_pai(self, c=None, ap=None):
 
         """
         Calcula el PAI (n/N) / (a/A)
@@ -2126,7 +2126,8 @@ class ProMap:
                        extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                        cmap='jet',
                        # vmin=0, vmax=1
-                       alpha=0.4, interpolation=None)
+                       alpha=0.4, interpolation=None,
+                       vmin=0, vmax=1)
 
             dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
@@ -2235,7 +2236,7 @@ class ProMap:
 
         if type(ap) == float or type(ap) == np.float64:
             c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
-            print('valor de C encontrado', c)
+
 
         elif type(ap) == list or type(ap) == np.ndarray:
             c = [af.find_c(self.ap, np.linspace(0, 1, 100), i) for i in ap]
@@ -2247,7 +2248,6 @@ class ProMap:
             hits = np.sum(
                 (self.prediction >= c) * self.testing_matrix)
             hp_area = np.count_nonzero(self.prediction >= c)
-
 
         else:
             c_min, c_max = min(c), max(c)
@@ -2521,11 +2521,11 @@ class Model:
 
     def hotspot_area(self):
         for m in self.models:
-            print(f"{m.name}: {m.h_area}")
+            print(f"{m.name}: {m.h_area} km^2")
 
     def hr_validated(self):
         for m in self.models:
-            print(f"{m.name}: {m.hr_validated}")
+            print(f"{m.name}: {m.hr_validated} incidents")
 
     def pai_validated(self):
         for m in self.models:
