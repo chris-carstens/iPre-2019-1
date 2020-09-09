@@ -283,7 +283,7 @@ class STKDE:
             np.array([x.flatten(), y.flatten(), t.flatten()]))
 
         z_filtered = self.kde.pdf(af.checked_points(
-            np.array([x.flatten(), y.flatten(), t.flatten()]), self.shps))
+            np.array([x.flatten(), y.flatten(), t.flatten()]), self.shps['councils']))
 
         x_t, y_t, t_t = \
             np.array(self.X_test['x']), \
@@ -438,14 +438,6 @@ class STKDE:
         area_percentaje = [i / len(f_nodos) for i in area_h]
         self.hr, self.ap = HR, area_percentaje
 
-        if type(ap) == float or type(ap) == np.float64:
-            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
-
-        elif type(ap) == list or type(ap) == np.ndarray:
-            hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
-            for index, value in enumerate(hrs):
-                print(f'AP: {ap[index]} HR: {value}')
-
     def calculate_pai(self, c=None, ap=None):
         """
         Parameters
@@ -474,22 +466,55 @@ class STKDE:
                self.ap[i] else 0 for i in range(len(self.hr))]
         self.pai = PAI
 
+    def validate(self, c=0, area=1000, ap=None):
+        """
+        Si inrego asp, solo calcula PAI y HR, si ingreso c, calculo todo
+        Parameters
+        ----------
+        c
+        area
+        ap
+
+        Returns
+        -------
+
+        """
+
         if type(ap) == float or type(ap) == np.float64:
             print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
+            self.pai_validated = af.find_hr_pai(self.pai, self.ap, ap)
+            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
+            self.hr_validated = af.find_hr_pai(self.hr, self.ap, ap)
+
 
         elif type(ap) == list or type(ap) == np.ndarray:
             pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
             for index, value in enumerate(pais):
                 print(f'AP: {ap[index]} PAI: {value}')
-
-    def validate(self, c=0, area=993):
-        if type(c != list):
-            hits = self.f_delitos[self.f_delitos > c]
-        else:
+            self.pai_validated = pais
+            hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
+            for index, value in enumerate(hrs):
+                print(f'AP: {ap[index]} HR: {value}')
+            self.hr_validated = hrs
+        elif type(c) == float or type(c) == np.float64:
+            hits = self.f_delitos[self.f_delitos >= c]
+            h_nodos = self.f_nodos[self.f_nodos >=c]
+            self.hr_validated = np.sum(hits) / len(self.f_delitos)
+            self.pai_validated = self.hr_validated / (np.sum(h_nodos) / len(self.f_nodos))
+        elif type(c) == list or type(c) == np.ndarray:
             hits = self.f_delitos[self.f_delitos < max(c)]
             hits = self.hits[hits > min(c)]
-        self.h_area = np.sum(self.f_nodos >= c) * area / len(self.f_nodos)
-        self.d_incidents = hits.size
+            h_nodos = self.f_nodos[self.f_nodos < max(c)]
+            h_nodos = self.f_nodos[h_nodos > min(c)]
+            self.hr_validated = np.sum(hits) / len(self.f_delitos)
+            self.pai_validated = self.hr_validated / (np.sum(h_nodos) / len(self.f_nodos))
+
+        if not ap and c:
+            self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
+            self.d_incidents = hits.size
+
+        print(self.hr_validated, self.pai_validated)
+
 
 
 class RForestRegressor(object):
@@ -2414,7 +2439,7 @@ class Model:
                 continue
             m.predict()
 
-    def validate(self, c=None):
+    def validate(self, c=None, ap=None):
         """
         Calcula la cantidad de incidentes detectados para los hotspots
         afines.
@@ -2432,7 +2457,7 @@ class Model:
           ji
         """
         for m in self.models:
-            m.validate(c)
+            m.validate(c=c, ap=ap)
 
     def detected_incidences(self):
         for m in self.models:
