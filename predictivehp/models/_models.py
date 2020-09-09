@@ -260,6 +260,7 @@ class STKDE:
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)  # Sacar de _config.py
 
+
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
 
         x, y, t = np.mgrid[
@@ -281,6 +282,9 @@ class STKDE:
         z = self.kde.pdf(
             np.array([x.flatten(), y.flatten(), t.flatten()]))
 
+        z_filtered = self.kde.pdf(af.checked_points(
+            np.array([x.flatten(), y.flatten(), t.flatten()]), self.shps))
+
         x_t, y_t, t_t = \
             np.array(self.X_test['x']), \
             np.array(self.X_test['y']), \
@@ -295,15 +299,17 @@ class STKDE:
 
         if type(ap) == float or type(ap) == np.float64:
             c_array = np.linspace(0, 1, 100)
-            area_h = [np.sum(z >= c_array[i]) for i in range(c_array.size)]
-            area_percentaje = [i / len(z) for i in area_h]
-            c = float(af.find_c(area_percentaje, np.linspace(0, 1, 100), ap))
+            area_h = [np.sum(z_filtered >= c_array[i]) for i in range(
+                c_array.size)]
+            area_percentaje = [i / len(z_filtered) for i in area_h]
+            c = float(af.find_c(area_percentaje, c_array, ap))
             print('Valor de c encontrado: ', c)
 
         elif type(ap) == list or type(ap) == np.ndarray:
             c_array = np.linspace(0, 1, 100)
-            area_h = [np.sum(z >= c_array[i]) for i in range(c_array.size)]
-            area_percentaje = [i / len(z) for i in area_h]
+            area_h = [np.sum(z_filtered >= c_array[i]) for i in range(
+                c_array.size)]
+            area_percentaje = [i / len(z_filtered) for i in area_h]
             c = [af.find_c(area_percentaje, c_array, i) for i in ap]
             c = sorted(list(set(c)))
             if len(c) == 1:
@@ -325,7 +331,7 @@ class STKDE:
                 z_plot[z > i] += 1
             z_plot = z_plot / np.max(z_plot)
 
-        if show_score:
+        if show_score and c is None:
             # noinspection PyUnresolvedReferences
             norm = mpl.colors.Normalize(vmin=0, vmax=1)
             # noinspection PyUnresolvedReferences
@@ -403,121 +409,7 @@ class STKDE:
             plt.savefig(fname, **kwargs)
         plt.show()
 
-    # def data_barplot(self, pdf: bool = False):
-    #     """
-    #     Bar Plot
-    #     pdf: True si se desea guardar el plot en formato pdf
-    #     """
-    #
-    #     print("\nPlotting Bar Plot...")
-    #
-    #     fig = plt.figure()
-    #     ax = fig.add_subplot()
-    #     ax.tick_params(axis='x', length=0)
-    #
-    #     for i in range(1, 13):
-    #         count = self.data[
-    #             (self.data["date"].apply(lambda x: x.month) == i)
-    #         ].shape[0]
-    #
-    #         plt.bar(x=i, height=count, width=0.25, color=["black"])
-    #         plt.text(x=i - 0.275, y=count + 5, s=str(count))
-    #
-    #     plt.xticks(
-    #         [i for i in range(1, 13)],
-    #         [datetime.datetime.strptime(str(i), "%m").strftime('%b')
-    #          for i in range(1, 13)])
-    #
-    #     sns.despine()
-    #
-    #     plt.xlabel("Month",
-    #                fontdict={'fontsize': 12.5,
-    #                          'fontweight': 'bold'},
-    #                labelpad=10
-    #                )
-    #     plt.ylabel("Count",
-    #                fontdict={'fontsize': 12.5,
-    #                          'fontweight': 'bold'},
-    #                labelpad=7.5
-    #                )
-    #
-    #     if pdf:
-    #         plt.savefig(f"output/barplot.pdf", format='pdf')
-    #
-    #     plt.show()
-    #
-    # def spatial_pattern(self):
-    #     """
-    #     Spatial pattern of incidents
-    #     pdf: True si se desea guardar el plot en formato pdf
-    #     """
-    #
-    #     self.predict()
-    #     # print("\nPlotting Spatial Pattern of incidents...", sep="\n\n")
-    #
-    #     # print("\tReading shapefiles...", end=" ")
-    #     dallas = self.shps['streets']
-    #     # print("finished!")
-    #
-    #     fig, ax = plt.subplots(figsize=(15, 15))
-    #     ax.set_facecolor('xkcd:black')
-    #
-    #     # US Survey Foot: 0.3048 m
-    #     # print("\n", f"EPSG: {dallas.crs['init'].split(':')[1]}")  # 2276
-    #
-    #     geometry = [Point(xy) for xy in zip(
-    #         np.array(self.X_test[['x']]),
-    #         np.array(self.X_test[['y']]))]
-    #     geo_df = gpd.GeoDataFrame(self.X_test, crs=dallas.crs,
-    #                               geometry=geometry)
-    #
-    #     # print("\tPlotting Streets...", end=" ")
-    #     dallas.plot(ax=ax,
-    #                 alpha=0.4,
-    #                 color="steelblue",
-    #                 zorder=2,
-    #                 label="Streets")
-    #     # print("finished!")
-    #
-    #     # print("\tPlotting Incidents...", end=" ")
-    #
-    #     geo_df.plot(ax=ax,
-    #                 markersize=17.5,
-    #                 color='red',
-    #                 marker='o',
-    #                 zorder=3,
-    #                 label="Incidents")
-    #
-    #     # print("finished!")
-    #
-    #     geometry = [Point(xy) for xy in zip(self.predicted_sim[0],
-    #                                         self.predicted_sim[1])]
-    #
-    #     geo_df = gpd.GeoDataFrame(self.X_test,
-    #                               crs=dallas.crs,
-    #                               geometry=geometry)
-    #
-    #     # print("\tPlotting Simulated Incidents...", end=" ")
-    #
-    #     geo_df.plot(ax=ax,
-    #                 markersize=17.5,
-    #                 color='blue',
-    #                 marker='o',
-    #                 zorder=3,
-    #                 label="Simulated Incidents")
-    #
-    #     # print("finished!")
-    #
-    #     plt.title(f"Dallas Incidents - Spatial Pattern\n",
-    #               fontdict={'fontsize': 20},
-    #               pad=25)
-    #
-    #     plt.legend(loc="lower right",
-    #                frameon=False,
-    #                fontsize=13.5)
-    #
-    #     # ax.set_axis_off()
-    #     plt.show()
+
 
     def calculate_hr(self, c=None, ap=None):
         """
@@ -2113,6 +2005,8 @@ class ProMap:
             for index, value in enumerate(pais):
                 print(f'AP: {ap[index]} PAI: {value}')
 
+
+
     def heatmap(self, c=None, show_score=True, incidences=False,
                 savefig=False, fname=f'Promap_heatmap.png', ap=None, **kwargs):
         """
@@ -2283,7 +2177,7 @@ class ProMap:
         """
         return self.prediction
 
-    def validate(self, c=0):
+    def validate(self, c=0, ap=None):
 
         self.load_test_matrix(self.lp)
 
@@ -2295,12 +2189,15 @@ class ProMap:
         else:
             c1, c2 = min(c), max(c)
             aux = self.prediction[self.prediction > c1]
-            aux = aux < c2
+            aux = aux[aux < c2]
             hits = np.sum(aux * self.testing_matrix)
             area = np.count_nonzero(aux)
 
+        total_incidents = np.sum(self.testing_matrix)
         self.d_incidents = int(hits)
         self.h_area = area * self.hx * self.hy * 10 ** -6
+        self.hr_validated = self.d_incidents / total_incidents
+        self.pai_validated = self.hr_validated / (self.h_area/self.cells_in_map)
 
 
 class Model:
@@ -2547,6 +2444,14 @@ class Model:
     def hotspot_area(self):
         for m in self.models:
             print(f"{m.name}: {m.h_area}")
+
+    def hr_validated(self):
+        for m in self.models:
+            print(f"{m.name}: {m.hr_validated}")
+
+    def pai_validated(self):
+        for m in self.models:
+            print(f"{m.name}: {m.pai_validated}")
 
     def store(self, file_name='model.data'):
         pass
