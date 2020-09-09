@@ -542,28 +542,29 @@ def print_mes(m_train, m_predict, dias):
            f'Predicción de: {dias} días para {meses[m_predict]} '
 
 
-def checked_points_pm(points):
-    print("Filtering points...")
-    # 'predictivehp/data/councils.shp'
-    dallas_shp = gpd.read_file('predictivehp/data/councils.shp')
-    dallas_shp.crs = 2276
-    dallas_shp.to_crs(epsg=3857, inplace=True)
+def checked_points_pm(points, shp):
+    """
 
-    df_points = pd.DataFrame({'x': points[0, :], 'y': points[1, :]})
-
+    Parameters
+    ----------
+    points
+    shp : gpd.GeoDataFrame
+      Councils shp
+    Returns
+    -------
+    np.ndarray
+    """
+    dallas_shp = shp
+    df_points = pd.DataFrame(
+        {'x': points[0, :], 'y': points[1, :]}
+    )
     inc_points = df_points[['x', 'y']].apply(lambda row:
                                              Point(row['x'], row['y']),
                                              axis=1)
-
-    geo_inc = gpd.GeoDataFrame({'geometry': inc_points}, crs=3857)
-
+    geo_inc = gpd.GeoDataFrame({'geometry': inc_points})
     geo_inc.crs = dallas_shp.crs
-
-    valid_inc = gpd.tools.sjoin(geo_inc,
-                                dallas_shp,
-                                how='inner',
-                                op='intersects').reset_index()
-
+    valid_inc = gpd.tools.sjoin(geo_inc, dallas_shp,
+                                how='inner', op='intersects').reset_index()
     return len(valid_inc)
 
 

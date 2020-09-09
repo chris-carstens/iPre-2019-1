@@ -1798,9 +1798,11 @@ class ProMap:
         self.y = y
         self.dias_train = self.X['y_day'].max()
 
-        # points = np.array([self.xx.flatten(), self.yy.flatten()])
-        # self.cells_in_map = af.checked_points_pm(points)  # 141337
-        self.cells_in_map = 117337
+        points = np.array([self.xx.flatten(), self.yy.flatten()])
+        print("Fitting promap...")
+        #self.cells_in_map = af.checked_points_pm(points, self.shps[
+        # 'councils'])  #
+        self.cells_in_map = 141337
 
     def predict(self):
 
@@ -1936,7 +1938,7 @@ class ProMap:
                     else:
                         break
 
-    def calculate_hr(self, c=None, ap=None):
+    def calculate_hr(self, c=None):
         """
         Calcula el hr (n/N)
         Parameters
@@ -1959,8 +1961,9 @@ class ProMap:
         # Se espera que los valores de la lista vayan disminuyendo a medida que el valor de K aumenta
 
         if c is None:
-            c = np.linspace(0, 1, 100)
-
+            self.c_vector = np.linspace(0, 1, 100)
+        else:
+            self.c_vector = c
 
         hits_n = []
 
@@ -1989,15 +1992,15 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / self.cells_in_map for
                                                i in area_hits]]
 
-        if type(ap) == float or type(ap) == np.float64:
-            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
+        # if type(ap) == float or type(ap) == np.float64:
+        #     print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
+        #
+        # elif type(ap) == list or type(ap) == np.ndarray:
+        #     hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
+        #     for index, value in enumerate(hrs):
+        #         print(f'AP: {ap[index]} HR: {value}')
 
-        elif type(ap) == list or type(ap) == np.ndarray:
-            hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
-            for index, value in enumerate(hrs):
-                print(f'AP: {ap[index]} HR: {value}')
-
-    def calculate_pai(self, c=None, ap=None):
+    def calculate_pai(self, c=None):
 
         """
         Calcula el PAI (n/N) / (a/A)
@@ -2008,7 +2011,9 @@ class ProMap:
         """
 
         if c is None:
-            c = np.linspace(0, 1, 100)
+            self.c_vector = np.linspace(0, 1, 100)
+        else:
+            self.c_vector = c
 
         if not self.hr:
             self.calculate_hr(c)
@@ -2018,15 +2023,13 @@ class ProMap:
             else float(self.hr[i]) / float(self.ap[i])
             for i in range(len(self.ap))]
 
-        if type(ap) == float or type(ap) == np.float64:
-            print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
-
-        elif type(ap) == list or type(ap) == np.ndarray:
-            pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
-            for index, value in enumerate(pais):
-                print(f'AP: {ap[index]} PAI: {value}')
-
-
+        # if type(ap) == float or type(ap) == np.float64:
+        #     print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
+        #
+        # elif type(ap) == list or type(ap) == np.ndarray:
+        #     pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
+        #     for index, value in enumerate(pais):
+        #         print(f'AP: {ap[index]} PAI: {value}')
 
     def heatmap(self, c=None, show_score=True, incidences=False,
                 savefig=False, fname=f'Promap_heatmap.png', ap=None, **kwargs):
@@ -2203,23 +2206,40 @@ class ProMap:
 
         self.load_test_matrix(self.lp)
 
+        if type(ap) == float or type(ap) == np.float64:
+            c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
+            print('valor de C encontrado', c)
+
+        elif type(ap) == list or type(ap) == np.ndarray:
+            c = [af.find_c(self.ap, np.linspace(0, 1, 100), i) for i in ap]
+            c = sorted(list(set(c)))
+            if len(c) == 1:
+                c = c[0]
+
         if type(c) != list:
             hits = np.sum(
                 (self.prediction >= c) * self.testing_matrix)
-            area = np.count_nonzero(self.prediction > c)
+            hp_area = np.count_nonzero(self.prediction >= c)
+
 
         else:
-            c1, c2 = min(c), max(c)
-            aux = self.prediction[self.prediction > c1]
-            aux = aux[aux < c2]
+            c_min, c_max = min(c), max(c)
+
+            aux = np.where(self.prediction >= c_min, self.prediction, 0)
+            aux = np.where(aux <= c_max, self.prediction, 0)
+            aux = np.where(aux != 0, True, False)
+
             hits = np.sum(aux * self.testing_matrix)
-            area = np.count_nonzero(aux)
+            hp_area = np.count_nonzero(aux)
+
+        hp_area = min(hp_area, self.cells_in_map)
+        print(hp_area)
 
         total_incidents = np.sum(self.testing_matrix)
         self.d_incidents = int(hits)
-        self.h_area = area * self.hx * self.hy * 10 ** -6
+        self.h_area = hp_area * self.hx * self.hy * 10 ** -6
         self.hr_validated = self.d_incidents / total_incidents
-        self.pai_validated = self.hr_validated / (self.h_area/self.cells_in_map)
+        self.pai_validated = self.hr_validated / (hp_area/self.cells_in_map)
 
 
 class Model:

@@ -52,12 +52,12 @@ class Plotter:
             m.heatmap(c=c, show_score=show_score, incidences=incidences,
                       savefig=savefig, ap=ap, **kwargs)
 
-    def hr(self, c=None, ap=None):
+    def hr(self):
         cmap = plt.get_cmap('jet')
 
         for idx, m in enumerate(self.model.models):
             # print(f"\t {m.name}")
-            m.calculate_hr(c=self.c_arr, ap=ap)
+            m.calculate_hr(c=self.c_arr)
             ut.lineplot(x=m.ap, y=m.hr, c=cmap((idx + 1) * 80),
                         label=m.name)
 
@@ -73,11 +73,11 @@ class Plotter:
         plt.legend()
         plt.show()
 
-    def pai(self, c=None, ap=None):
+    def pai(self):
         cmap = plt.get_cmap('jet')
 
         for idx, m in enumerate(self.model.models):
-            m.calculate_pai(c=self.c_arr, ap=ap)
+            m.calculate_pai(c=self.c_arr)
             ut.lineplot(x=m.ap, y=m.pai, c=cmap((idx + 1) * 80),
                         label=m.name)
 
