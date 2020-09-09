@@ -23,9 +23,8 @@ m.predict()
 
 # %% Plotter
 pltr = Plotter(m)
-pltr.hr()
-pltr.pai()
+#pltr.hr()
+#pltr.pai()
 # stkde.heatmap()
-#pltr.heatmap(ap=0.2, incidences=True)
-m.validate(ap=0.2)
-#m.hotspot_area()
+pltr.heatmap(ap=[0.05, 0.5], incidences=True)
+#m.validate(ap=0.2)
