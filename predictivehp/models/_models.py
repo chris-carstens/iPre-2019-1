@@ -887,7 +887,7 @@ class RForestRegressor(object):
             if self.ap is None:
                 self.calculate_pai(np.linspace(0, 1, 100))
 
-        if type(ap) == float or type(ap) == np.float64:
+        if type(ap) in {float, np.float64}:
             c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
             print('valor de C encontrado', c)
 
@@ -897,7 +897,7 @@ class RForestRegressor(object):
             if len(c) == 1:
                 c = c[0]
 
-        if type(c) == list or type(c) == tuple:
+        if type(c) in {list, np.ndarray}:
             d_cells = cells[
                 (c <= cells[('Dangerous_pred', '')]) &
                 (cells[('Dangerous_pred', '')] <= c)
@@ -927,8 +927,12 @@ class RForestRegressor(object):
         d_incidents = hits.shape[0]
         h_area = d_cells.shape[0] * self.xc_size * self.yc_size * (10 ** -6)
 
+        a, A = d_cells.shape[0], cells.shape[0]
+
         self.d_incidents = d_incidents
         self.h_area = h_area
+        self.hr_validated = self.d_incidents / data_nov.shape[0]
+        self.pai_validated = self.hr_validated / (a / A)
 
     def calculate_hr(self, c=None):
         """
