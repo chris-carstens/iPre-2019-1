@@ -412,7 +412,7 @@ class STKDE:
             plt.savefig(fname, **kwargs)
         plt.show()
 
-    def calculate_hr(self, c=None, ap=None):
+    def calculate_hr(self):
         """
         Parameters
         ----------
@@ -428,8 +428,7 @@ class STKDE:
                     Lista con los valores del
                     Area Percentage para cada grupo
         """
-        if c is None:
-            c = np.linspace(0, 1, 100)
+        c = np.linspace(0, 1, 100)
         if self.f_delitos is None:
             self.predict()
         f_delitos, f_nodos = self.f_delitos, self.f_nodos
@@ -439,7 +438,7 @@ class STKDE:
         area_percentaje = [i / len(f_nodos) for i in area_h]
         self.hr, self.ap = HR, area_percentaje
 
-    def calculate_pai(self, c=None, ap=None):
+    def calculate_pai(self):
         """
         Parameters
         ----------
@@ -459,8 +458,8 @@ class STKDE:
                     Lista con los valores del
                     Area Percentage para cada grupo
         """
-        if c is None:
-            c = np.linspace(0, 1, 100)
+        c = np.linspace(0, 1, 100)
+
         if not self.hr:
             self.calculate_hr(c)
         PAI = [float(self.hr[i]) / float(self.ap[i]) if
@@ -486,7 +485,6 @@ class STKDE:
             self.pai_validated = af.find_hr_pai(self.pai, self.ap, ap)
             print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
             self.hr_validated = af.find_hr_pai(self.hr, self.ap, ap)
-
 
         elif type(ap) == list or type(ap) == np.ndarray:
             pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
