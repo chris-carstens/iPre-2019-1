@@ -461,7 +461,6 @@ class STKDE:
         """
         if c is None:
             c = np.linspace(0, 1, 100)
-        c = np.linspace(0, 1, 100)
 
         if not self.hr:
             self.calculate_hr(c)
