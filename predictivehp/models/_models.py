@@ -872,7 +872,7 @@ class RForestRegressor(object):
         # print(f"{'Precision:':<10s}{precision:1.5f}")
         # print(f"{'Recall:':<10s}{recall:1.5f}")
 
-    def validate(self, c=None, ap=None):
+    def validate(self, c=0, ap=None):
         """
 
         Parameters
@@ -882,6 +882,20 @@ class RForestRegressor(object):
         """
         cells = self.X[[('geometry', ''), ('Dangerous_pred', '')]]
         cells = gpd.GeoDataFrame(cells)
+
+        if ap is not None:
+            if self.ap is None:
+                self.calculate_pai(np.linspace(0, 1, 100))
+
+        if type(ap) == float or type(ap) == np.float64:
+            c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
+            print('valor de C encontrado', c)
+
+        elif type(ap) == list or type(ap) == np.ndarray:
+            c = [af.find_c(self.ap, np.linspace(0, 1, 100), i) for i in ap]
+            c = sorted(list(set(c)))
+            if len(c) == 1:
+                c = c[0]
 
         if type(c) == list or type(c) == tuple:
             d_cells = cells[
@@ -916,7 +930,7 @@ class RForestRegressor(object):
         self.d_incidents = d_incidents
         self.h_area = h_area
 
-    def calculate_hr(self, c=None, ap=None):
+    def calculate_hr(self, c=None):
         """
         Parameters
         ----------
@@ -960,15 +974,7 @@ class RForestRegressor(object):
                 self.hr = np.array(hr_l)
                 self.ap = np.array(ap_l)
 
-        if type(ap) == float or type(ap) == np.float64:
-            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
-
-        elif type(ap) == list or type(ap) == np.ndarray:
-            hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
-            for index, value in enumerate(hrs):
-                print(f'AP: {ap[index]} HR: {value}')
-
-    def calculate_pai(self, c=None, ap=None):
+    def calculate_pai(self, c=None):
         """
         Calcula el Predictive Accuracy Index (PAI)
 
@@ -979,16 +985,6 @@ class RForestRegressor(object):
         ap : {int, float, list, np.ndarray}
           Area percentage
         """
-
-        if type(ap) in {np.float64, float}:
-            print(1, ap)
-            print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
-
-        elif type(ap) in {list, np.ndarray}:
-            print(2)
-            pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
-            for index, value in enumerate(pais):
-                print(f'AP: {ap[index]} PAI: {value}')
 
         def a(x, c):
             return x[x[('Dangerous_pred', '')] >= c].shape[0]
