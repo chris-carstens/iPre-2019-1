@@ -260,7 +260,6 @@ class STKDE:
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)  # Sacar de _config.py
 
-
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
 
         x, y, t = np.mgrid[
@@ -409,8 +408,6 @@ class STKDE:
             plt.savefig(fname, **kwargs)
         plt.show()
 
-
-
     def calculate_hr(self, c=None, ap=None):
         """
         Parameters
@@ -496,8 +493,8 @@ class RForestRegressor(object):
     def __init__(self, data_0=None, shps=None,
                  xc_size=100, yc_size=100, n_layers=7,
                  t_history=4, start_prediction=date(2017, 11, 1),
-                 read_data=False, w_data=False,
-                 read_X=False, w_X=False,
+                 read_data=False, w_data=False, read_X=False, w_X=False,
+                 verbose=False,
                  name='RForestRegressor'):
         """ Regressor modificado de Scipy usado para predecir delitos.
 
@@ -529,6 +526,9 @@ class RForestRegressor(object):
         name : str
           Nombre especial para el regressor que aparece en los plots,
           estadísticas, etc.
+        verbose : bool
+          Indica si se printean las diferentes acciones del método.
+          default False
 
         Returns
         -------
@@ -562,7 +562,7 @@ class RForestRegressor(object):
         self.X = None
         self.read_data, self.read_X = read_data, read_X
         self.w_data, self.w_X = w_data, w_X
-        self.X = None
+        self.verbose = verbose
 
         self.d_incidents = 0  # Detected incidents
         self.h_area = 0  # Hotspot area
@@ -575,7 +575,8 @@ class RForestRegressor(object):
                        xc_size, yc_size, n_layers,
                        label_weights=None,
                        read_data=False, w_data=False,
-                       read_X=False, w_X=False):
+                       read_X=False, w_X=False,
+                       verbose=False):
         """
         Setea los hiperparámetros del modelo
 
@@ -606,6 +607,7 @@ class RForestRegressor(object):
         self.read_X = read_X
         self.w_data = w_data
         self.w_X = w_X
+        self.verbose = verbose
 
     def print_parameters(self):
         print('RFR Hyperparameters')
@@ -616,7 +618,24 @@ class RForestRegressor(object):
         print(f'{"l_weights:":<20s}{self.l_weights}')
         print()
 
-    def generate_X(self):
+    def generate_data(self, verbose=False):
+        """Prepara self.data a una estructura más propicia para el estudio
+
+        Parameters
+        ----------
+        verbose : bool
+          Indica si se printean las diferentes acciones del método.
+          default False
+        """
+        geometry = [Point(xy) for xy in zip(np.array(self.data[['x']]),
+                                            np.array(self.data[['y']]))]
+        self.data = gpd.GeoDataFrame(self.data, crs=2276,
+                                     geometry=geometry)
+        self.data.to_crs(epsg=3857, inplace=True)
+        self.data['Cell'] = None
+        self.assign_cells()
+
+    def generate_X(self, verbose=False):
         """
         La malla se genera de la esquina inf-izquierda a la esquina sup-derecha,
         partiendo con id = 0.
@@ -636,19 +655,25 @@ class RForestRegressor(object):
         operaciones trasposición y luego up-down del nd-array entregan las
         posiciones reales para el pandas dataframe.
 
-        :return: Pandas Dataframe con la información
+        Parameters
+        ----------
+        verbose : bool
+          Indica si se printean las diferentes acciones del método.
+          default False
         """
-        print("\nGenerating dataframe...\n")
+        print("\nGenerating dataframe...\n") \
+            if (verbose or self.verbose) else None
 
         # Creación de la malla
-        # print("\tCreating mgrid...")
+        print("\tCreating mgrid...") if (verbose or self.verbose) else None
         x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
         x_bins = abs(x_max - x_min) / self.xc_size
         y_bins = abs(y_max - y_min) / self.yc_size
         x, y = np.mgrid[x_min: x_max: x_bins * 1j, y_min: y_max: y_bins * 1j, ]
 
         # Creación del esqueleto del dataframe
-        print("\tCreating dataframe columns...")
+        print("\tCreating dataframe columns...") if (
+                verbose or self.verbose) else None
 
         X_cols = pd.MultiIndex.from_product(
             [[f"Incidents_{i}" for i in range(self.n_layers + 1)], self.weeks]
@@ -656,34 +681,16 @@ class RForestRegressor(object):
         X = pd.DataFrame(columns=X_cols)
 
         # Creación de los parámetros para el cálculo de los índices
-        print("\tFilling data...")
+        print("\tFilling data...") if (verbose or self.verbose) else None
         self.nx = x.shape[0] - 1
         self.ny = y.shape[1] - 1
         self.hx = (x.max() - x.min()) / self.nx
         self.hy = (y.max() - y.min()) / self.ny
 
-        if self.read_data:
-            self.data = pd.read_pickle('predictivehp/data/data.pkl')
-        else:
-            # en caso que no se tenga un data.pkl de antes, se recibe el
-            # dado por la PreProcessing Class, mientras que self.X es llenado
-            # al llamar self.generate_X dentro de self.fit()
-
-            # Manejo de los puntos de incidentes para poder trabajar en (x, y)
-            geometry = [Point(xy) for xy in zip(np.array(self.data[['x']]),
-                                                np.array(self.data[['y']]))]
-            self.data = gpd.GeoDataFrame(self.data, crs=2276,
-                                         geometry=geometry)
-            self.data.to_crs(epsg=3857, inplace=True)
-            self.data['Cell'] = None
-            self.assign_cells()
-
-            if self.w_data:
-                self.to_pickle('data.pkl')
-
         # Nro. incidentes en la i-ésima capa de la celda (i, j)
         for week in self.weeks:
-            print(f"\t\t{week}... ", end=' ')
+            print(f"\t\t{week}... ", end=' ') if (
+                    verbose or self.verbose) else None
             wi_date = week
             wf_date = week + timedelta(days=6)
             fil_incidents = self.data[
@@ -702,10 +709,11 @@ class RForestRegressor(object):
                 X.loc[:, (f"Incidents_{i}", f"{week}")] = \
                     af.to_df_col(D) if i == 0 \
                         else af.to_df_col(af.il_neighbors(D, i))
-            print('finished!')
+            print('finished!') if (verbose or self.verbose) else None
 
         # Adición de las columnas 'geometry' e 'in_dallas' al data
-        print("\tPreparing data for filtering...")
+        print("\tPreparing data for filtering...") if (
+                verbose or self.verbose) else None
         X[('geometry', '')] = [Point(i) for i in
                                zip(x[:-1, :-1].flatten(),
                                    y[:-1, :-1].flatten())]
@@ -716,15 +724,16 @@ class RForestRegressor(object):
         X.drop(columns=[('in_dallas', '')], inplace=True)
 
         self.X = X
+        self.to_pickle('X.pkl')
 
-    def to_pickle(self, file_name):
+    def to_pickle(self, file_name, verbose=False):
         """Genera un pickle de self.data o self.data dependiendo el nombre
         dado (data.pkl o X.pkl).
 
         OBS.
 
         >>> self.data  # es guardado en self.generate_X()
-        >>> self.X  # es guardado en self.predict()
+        >>> self.X  # es guardado en self.generate_X()
 
         luego, si self.read_X = True, no es necesario realizar un
         self.fit() o self.predict()
@@ -734,17 +743,24 @@ class RForestRegressor(object):
         file_name : str
           Nombre del pickle a generar en predictivehp/data/file_name
         """
-        # print("\nPickling dataframe...", end=" ")
+        print("\nPickling dataframe...", end=" ") if (verbose or self.verbose) \
+            else None
         if file_name == "X.pkl":
             self.X.to_pickle(f"predictivehp/data/{file_name}")
         if file_name == "data.pkl":
             self.data.to_pickle(f"predictivehp/data/{file_name}")
 
-    def assign_cells(self):
+    def assign_cells(self, verbose=False):
         """Rellena la columna 'Cell' de self.data. Asigna el número de
         celda asociado a cada incidente.
+
+        Parameters
+        ----------
+        verbose : bool
+          Indica si se printean las diferentes acciones del método.
+          default False
         """
-        # print("\nAssigning cells...\n")
+        print("\tAssigning cells...") if (verbose or self.verbose) else None
         x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
 
         x_bins = abs(x_max - x_min) / self.xc_size
@@ -766,30 +782,31 @@ class RForestRegressor(object):
 
         # Dejamos la asociación inc-cell en el index de self.data
         self.data.set_index('Cell', drop=True, inplace=True)
-        self.data.to_pickle("predictivehp/data/data.pkl")
+        # self.data.to_pickle("predictivehp/data/data.pkl")
 
-    def fit(self, X, y):
+    def fit(self, X, y, verbose=False):
         """Entrena el modelo
 
         Parameters
         ----------
         X : pd.DataFrame
-            X_train
+          X_train
         y : pd.DataFrame
-            y_train
+          y_train
+        verbose : bool
+          Indica si se printean las diferentes acciones del método.
+          default False
 
         Returns
         -------
         self : object
         """
-        # print("\tFitting Model...")
+        print("\tFitting Model...") if (verbose or self.verbose) else None
         self.rfr.fit(X, y.to_numpy().ravel())
-        # Sirven para determinar celdas con TP/FN
-        self.X[('Dangerous', '')] = y
-        self.X.to_pickle('predictivehp/data/X.pkl')
+        self.X[('Dangerous', '')] = y  # Sirven para determinar celdas con TP/FN
         return self
 
-    def predict(self, X):
+    def predict(self, X, verbose=False):
         """Predice el score de peligrosidad en cada una de las celdas
         en la malla de Dallas.
 
@@ -797,6 +814,9 @@ class RForestRegressor(object):
         ----------
         X : pd.DataFrame
           X_test for prediction
+        verbose : bool
+          Indica si se printean las diferentes acciones del método.
+          default False
 
         Returns
         -------
@@ -804,12 +824,10 @@ class RForestRegressor(object):
           Vector de predicción que indica el score de peligrocidad en
           una celda de la malla de Dallas
         """
-        # print("\tMaking predictions...")
+        print("\tMaking predictions...") if (verbose or self.verbose) else None
         y_pred = self.rfr.predict(X)
         self.X[('Dangerous_pred', '')] = y_pred / y_pred.max()
         self.X.index.name = 'Cell'
-        if self.w_X:
-            self.to_pickle('X.pkl')
         return y_pred
 
     def score(self):
@@ -824,16 +842,13 @@ class RForestRegressor(object):
         # print(f"{'Precision:':<10s}{precision:1.5f}")
         # print(f"{'Recall:':<10s}{recall:1.5f}")
 
-    def validate(self, c=None):
+    def validate(self, c=None, ap=None):
         """
 
         Parameters
         ----------
-        c
-
-        Returns
-        -------
-
+        c: {int, float, np.ndarray, list}
+        ap: {int, float, np.ndarray, list}
         """
         cells = self.X[[('geometry', ''), ('Dangerous_pred', '')]]
         cells = gpd.GeoDataFrame(cells)
@@ -876,9 +891,9 @@ class RForestRegressor(object):
 
         Parameters
         ----------
-        c : {float, np.ndarray}
+        c : {int, float, list, np.ndarray}
           Threshold de confianza para filtrar hotspots
-        ap : {float, np.ndarray}
+        ap : {int, float, list, np.ndarray}
           Area percentage
         """
         # TODO
@@ -2005,8 +2020,6 @@ class ProMap:
             for index, value in enumerate(pais):
                 print(f'AP: {ap[index]} PAI: {value}')
 
-
-
     def heatmap(self, c=None, show_score=True, incidences=False,
                 savefig=False, fname=f'Promap_heatmap.png', ap=None, **kwargs):
         """
@@ -2197,7 +2210,8 @@ class ProMap:
         self.d_incidents = int(hits)
         self.h_area = area * self.hx * self.hy * 10 ** -6
         self.hr_validated = self.d_incidents / total_incidents
-        self.pai_validated = self.hr_validated / (self.h_area/self.cells_in_map)
+        self.pai_validated = self.hr_validated / (
+                self.h_area / self.cells_in_map)
 
 
 class Model:
@@ -2285,6 +2299,8 @@ class Model:
         # de celdas en las capas [o distancia])
         # [('Incidents_i', self.model.weeks[-2])] for i in range(8)
         rfr = [m for m in self.models if m.name == 'RForestRegressor'][0]
+        if 'geometry' not in rfr.data.columns:
+            rfr.generate_data()
         if rfr.X is None:  # Sin las labels generadas
             rfr.generate_X()
 
@@ -2320,8 +2336,7 @@ class Model:
 
         else:
             # print("Preparing Testing Data for RFR...")
-            # Nos movemos una semana adelante
-            X = rfr.X.loc[
+            X = rfr.X.loc[  # Nos movemos una semana adelante
                 :,
                 reduce(lambda a, b: a + b,
                        [[(f'Incidents_{i}', week)]
@@ -2352,16 +2367,11 @@ class Model:
                 dict_['STKDE'] = self.prepare_stkde()
             elif m.name == 'ProMap':
                 dict_['ProMap'] = self.prepare_promap()
-            else:
+            else:  # RFR
                 if m.read_X:
+                    print('Reading X dataframe...') if m.verbose else None
                     m.X = pd.read_pickle('predictivehp/data/X.pkl')
                 dict_['RForestRegressor'] = self.prepare_rfr()
-        # dict_ = {
-        #     m.name:
-        #         self.prepare_stkde() if m.name == 'STKDE' else
-        #         self.prepare_promap() if m.name == 'ProMap' else
-        #         self.prepare_rfr()
-        #     for m in self.models}
         return dict_
 
     def add_model(self, m):
@@ -2417,7 +2427,7 @@ class Model:
                 continue
             m.predict()
 
-    def validate(self, c=None):
+    def validate(self, c=None, ap=None):
         """
         Calcula la cantidad de incidentes detectados para los hotspots
         afines.
@@ -2426,16 +2436,15 @@ class Model:
 
         Parameters
         ----------
-        c : {None, float, list}
+        c : {float, list, np.ndarray}
           Umbral de score
-
-        Returns
-        -------
-        int
-          ji
         """
-        for m in self.models:
-            m.validate(c)
+        if c is not None:
+            for m in self.models:
+                m.validate(c)
+        if ap is not None:
+            for m in self.models:
+                m.validate(ap)
 
     def detected_incidences(self):
         for m in self.models:

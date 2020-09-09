@@ -49,17 +49,23 @@ class Plotter:
     def heatmap(self, c=None, show_score=True, incidences=False,
                 savefig=False, ap=None, **kwargs):
         for m in self.model.models:
-            m.heatmap(c=c, show_score=show_score, incidences=incidences,
-                      savefig=savefig, ap=ap, **kwargs)
+            m.heatmap(c=c, ap=ap, show_score=show_score, incidences=incidences,
+                      savefig=savefig, **kwargs)
 
     def hr(self, c=None, ap=None):
+        """Plotea la curva Hit Rate para el c o ap dado.
+
+        Parameters
+        ----------
+        c : {int, float, list, np.ndarray}
+        ap : {int, float, list, np.ndarray}
+        """
         cmap = plt.get_cmap('jet')
 
         for idx, m in enumerate(self.model.models):
             # print(f"\t {m.name}")
             m.calculate_hr(c=self.c_arr, ap=ap)
-            ut.lineplot(x=m.ap, y=m.hr, c=cmap((idx + 1) * 80),
-                        label=m.name)
+            ut.lineplot(x=m.ap, y=m.hr, c=cmap((idx + 1) * 80), label=m.name)
 
         # if ap is not None:
         #     for idx, m in enumerate(self.model.models):
@@ -74,6 +80,13 @@ class Plotter:
         plt.show()
 
     def pai(self, c=None, ap=None):
+        """Plotea la curva de PAI para el c o ap dado.
+
+        Parameters
+        ----------
+        c : {int, float, list, np.ndarray}
+        ap : {int, float, list, np.ndarray}
+        """
         cmap = plt.get_cmap('jet')
 
         for idx, m in enumerate(self.model.models):
@@ -91,8 +104,3 @@ class Plotter:
         plt.ylabel('PAI')
         plt.legend()
         plt.show()
-
-
-
-if __name__ == '__main__':
-    pass

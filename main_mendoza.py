@@ -18,18 +18,17 @@ m = create_model(
     use_stkde=False, use_promap=False, use_rfr=True,
 )
 m.set_parameters(m_name='RForestRegressor', t_history=4,
-                 xc_size=100, yc_size=100, n_layers=7,
-                 label_weights=None,
-                 read_data=False, read_X=False,
-                 w_data=True, w_X=True)
+                 xc_size=100, yc_size=100, n_layers=7, label_weights=None,
+                 read_data=False, read_X=True, w_data=False, w_X=True,
+                 verbose=True)
 data_p = m.prepare_data()
 m.fit(data_p)
 m.predict()
 
 pltr = Plotter(m)
-pltr.hr()
-pltr.pai()
+pltr.hr(c=0)
+# pltr.pai(c=0)
 # pltr.heatmap(c=[0.07, 0.13], incidences=True,
 #              savefig=False, fname='hm_example.png')
 # pltr.heatmap(c=0.1, incidences=True)
-plt.show()
+# plt.show()
