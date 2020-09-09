@@ -1,4 +1,5 @@
 from datetime import date
+import matplotlib.pyplot as plt
 
 import predictivehp.utils as ut
 from predictivehp.models import create_model
@@ -24,12 +25,12 @@ m.set_parameters(m_name='RForestRegressor', t_history=4,
 data_p = m.prepare_data()
 m.fit(data_p)
 m.predict()
-m.validate(c=0)
+# m.validate(c=0)
 
-# pltr = Plotter(m)
+pltr = Plotter(m)
 # pltr.hr(c=0)
 # pltr.pai(c=0)
 # pltr.heatmap(c=[0.07, 0.13], incidences=True,
 #              savefig=False, fname='hm_example.png')
-# pltr.heatmap(c=0.1, incidences=True)
-# plt.show()
+pltr.heatmap(ap=0.01, incidences=True)
+plt.show()

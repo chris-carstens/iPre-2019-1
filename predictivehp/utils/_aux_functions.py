@@ -578,10 +578,6 @@ def find_c(area_array, c_list, ap):
     c_list
       c_vector
     ap
-
-    Returns
-    -------
-
     """
     area_array = np.array(area_array)
     area_array = area_array - ap

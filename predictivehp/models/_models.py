@@ -516,6 +516,7 @@ class STKDE:
             self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
             self.d_incidents = hits.size
 
+
 class RForestRegressor(object):
     def __init__(self, data_0=None, shps=None,
                  xc_size=100, yc_size=100, n_layers=7,
@@ -1030,15 +1031,16 @@ class RForestRegressor(object):
         """
         print('\tPlotting Heatmap...')
         fname = f'{fname}.png'
+        if self.ap is None:
+            self.calculate_pai(np.linspace(0, 1, 100))
         if type(ap) == float or type(ap) == np.float64:
             c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
-            print('valor de C encontrado', c)
 
         elif type(ap) == list or type(ap) == np.ndarray:
             c = sorted([
                 af.find_c(self.ap, np.linspace(0, 1, 100), i) for i in ap
             ])
-            print('c values', c)
+
         cells = self.X[[('geometry', ''), ('Dangerous_pred', '')]]
         cells = gpd.GeoDataFrame(cells)
         d_streets = self.shps['streets']
@@ -1066,7 +1068,7 @@ class RForestRegressor(object):
                                  shrink=0.5,
                                  aspect=21.5)
             c_bar.ax.set_ylabel('Danger Score')
-        elif type(c) == float or type(c) == int:
+        elif type(c) in {float, int, np.float64}:
             d_cells = cells[cells[('Dangerous_pred', '')] >= c]
             d_cells.plot(ax=ax, marker='.', markersize=1, color='darkred',
                          alpha=0.1)  # Heatmap binario
@@ -1115,7 +1117,7 @@ class RForestRegressor(object):
             cells.drop(columns='geometry', inplace=True)
             join_ = data_nov.join(cells)
 
-            if c is None or type(c) == float or type(c) == int:
+            if c is None or type(c) in {float, int, np.float64}:
                 hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
                 misses = gpd.GeoDataFrame(join_[join_['Hit'] == 0])
                 if not hits.empty:
