@@ -2078,7 +2078,7 @@ class ProMap:
 
         if type(ap) == float or type(ap) == np.float64:
             c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
-            print('valor de C encontrado', c)
+
 
         elif type(ap) == list or type(ap) == np.ndarray:
             c = [af.find_c(self.ap, np.linspace(0, 1, 100), i) for i in ap]
@@ -2267,7 +2267,6 @@ class ProMap:
         self.pai_validated = self.hr_validated / (hp_area / self.cells_in_map)
 
     def calculate_ap_c(self):
-
         c = np.linespace(0, 1, 100)
         self.c_vector = c
         area_hits = []
