@@ -2237,7 +2237,6 @@ class ProMap:
             hp_area = np.count_nonzero(aux)
 
         hp_area = min(hp_area, self.cells_in_map)
-        print(hp_area)
 
         total_incidents = np.sum(self.testing_matrix)
         self.d_incidents = int(hits)
