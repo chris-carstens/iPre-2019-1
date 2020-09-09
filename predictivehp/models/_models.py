@@ -516,9 +516,6 @@ class STKDE:
             self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
             self.d_incidents = hits.size
 
-        print(self.hr_validated, self.pai_validated)
-
-
 class RForestRegressor(object):
     def __init__(self, data_0=None, shps=None,
                  xc_size=100, yc_size=100, n_layers=7,
