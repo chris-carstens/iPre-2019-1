@@ -29,12 +29,18 @@ pltr = Plotter(modelos)
 pltr.hr()
 pltr.pai()
 
+pm.validate(c=0)
 
-pltr.heatmap(ap=[0.4, 0.4], incidences=True, show_score=True,
-             savefig=False, fname='hm_example.png')
+print(pm.d_incidents, pm.pai_validated)
 
-pltr.hr(ap=[0.4, 0.5])
-pltr.pai(ap=[0.4, 0.5])
+
+# pltr.heatmap(ap=[0.4, 0.4], incidences=True, show_score=True,
+#              savefig=False, fname='hm_example.png')
+#
+# pltr.hr(ap=[0.4, 0.5])
+# pltr.pai(ap=[0.4, 0.5])
+
+
 
 
 

@@ -282,7 +282,7 @@ class STKDE:
             np.array([x.flatten(), y.flatten(), t.flatten()]))
 
         z_filtered = self.kde.pdf(af.checked_points(
-            np.array([x.flatten(), y.flatten(), t.flatten()]), self.shps))
+            np.array([x.flatten(), y.flatten(), t.flatten()]), self.shps['councils']))
 
         x_t, y_t, t_t = \
             np.array(self.X_test['x']), \
@@ -408,6 +408,8 @@ class STKDE:
             plt.savefig(fname, **kwargs)
         plt.show()
 
+
+
     def calculate_hr(self, c=None, ap=None):
         """
         Parameters
@@ -434,14 +436,6 @@ class STKDE:
         HR = [i / len(f_delitos) for i in hits]
         area_percentaje = [i / len(f_nodos) for i in area_h]
         self.hr, self.ap = HR, area_percentaje
-
-        if type(ap) == float or type(ap) == np.float64:
-            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
-
-        elif type(ap) == list or type(ap) == np.ndarray:
-            hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
-            for index, value in enumerate(hrs):
-                print(f'AP: {ap[index]} HR: {value}')
 
     def calculate_pai(self, c=None, ap=None):
         """
@@ -471,22 +465,55 @@ class STKDE:
                self.ap[i] else 0 for i in range(len(self.hr))]
         self.pai = PAI
 
+    def validate(self, c=0, area=1000, ap=None):
+        """
+        Si inrego asp, solo calcula PAI y HR, si ingreso c, calculo todo
+        Parameters
+        ----------
+        c
+        area
+        ap
+
+        Returns
+        -------
+
+        """
+
         if type(ap) == float or type(ap) == np.float64:
             print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
+            self.pai_validated = af.find_hr_pai(self.pai, self.ap, ap)
+            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
+            self.hr_validated = af.find_hr_pai(self.hr, self.ap, ap)
+
 
         elif type(ap) == list or type(ap) == np.ndarray:
             pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
             for index, value in enumerate(pais):
                 print(f'AP: {ap[index]} PAI: {value}')
-
-    def validate(self, c=0, area=993):
-        if type(c != list):
-            hits = self.f_delitos[self.f_delitos > c]
-        else:
+            self.pai_validated = pais
+            hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
+            for index, value in enumerate(hrs):
+                print(f'AP: {ap[index]} HR: {value}')
+            self.hr_validated = hrs
+        elif type(c) == float or type(c) == np.float64:
+            hits = self.f_delitos[self.f_delitos >= c]
+            h_nodos = self.f_nodos[self.f_nodos >=c]
+            self.hr_validated = np.sum(hits) / len(self.f_delitos)
+            self.pai_validated = self.hr_validated / (np.sum(h_nodos) / len(self.f_nodos))
+        elif type(c) == list or type(c) == np.ndarray:
             hits = self.f_delitos[self.f_delitos < max(c)]
             hits = self.hits[hits > min(c)]
-        self.h_area = np.sum(self.f_nodos >= c) * area / len(self.f_nodos)
-        self.d_incidents = hits.size
+            h_nodos = self.f_nodos[self.f_nodos < max(c)]
+            h_nodos = self.f_nodos[h_nodos > min(c)]
+            self.hr_validated = np.sum(hits) / len(self.f_delitos)
+            self.pai_validated = self.hr_validated / (np.sum(h_nodos) / len(self.f_nodos))
+
+        if not ap and c:
+            self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
+            self.d_incidents = hits.size
+
+        print(self.hr_validated, self.pai_validated)
+
 
 
 class RForestRegressor(object):
@@ -1793,9 +1820,11 @@ class ProMap:
         self.y = y
         self.dias_train = self.X['y_day'].max()
 
-        # points = np.array([self.xx.flatten(), self.yy.flatten()])
-        # self.cells_in_map = af.checked_points_pm(points)  # 141337
-        self.cells_in_map = 117337
+        points = np.array([self.xx.flatten(), self.yy.flatten()])
+        print("Fitting promap...")
+        #self.cells_in_map = af.checked_points_pm(points, self.shps[
+        # 'councils'])  #
+        self.cells_in_map = 141337
 
     def predict(self):
 
@@ -1931,7 +1960,7 @@ class ProMap:
                     else:
                         break
 
-    def calculate_hr(self, c=None, ap=None):
+    def calculate_hr(self, c=None):
         """
         Calcula el hr (n/N)
         Parameters
@@ -1954,7 +1983,9 @@ class ProMap:
         # Se espera que los valores de la lista vayan disminuyendo a medida que el valor de K aumenta
 
         if c is None:
-            c = np.linspace(0, 1, 100)
+            self.c_vector = np.linspace(0, 1, 100)
+        else:
+            self.c_vector = c
 
         hits_n = []
 
@@ -1983,15 +2014,15 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / self.cells_in_map for
                                                i in area_hits]]
 
-        if type(ap) == float or type(ap) == np.float64:
-            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
+        # if type(ap) == float or type(ap) == np.float64:
+        #     print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
+        #
+        # elif type(ap) == list or type(ap) == np.ndarray:
+        #     hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
+        #     for index, value in enumerate(hrs):
+        #         print(f'AP: {ap[index]} HR: {value}')
 
-        elif type(ap) == list or type(ap) == np.ndarray:
-            hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
-            for index, value in enumerate(hrs):
-                print(f'AP: {ap[index]} HR: {value}')
-
-    def calculate_pai(self, c=None, ap=None):
+    def calculate_pai(self, c=None):
 
         """
         Calcula el PAI (n/N) / (a/A)
@@ -2002,7 +2033,9 @@ class ProMap:
         """
 
         if c is None:
-            c = np.linspace(0, 1, 100)
+            self.c_vector = np.linspace(0, 1, 100)
+        else:
+            self.c_vector = c
 
         if not self.hr:
             self.calculate_hr(c)
@@ -2012,13 +2045,13 @@ class ProMap:
             else float(self.hr[i]) / float(self.ap[i])
             for i in range(len(self.ap))]
 
-        if type(ap) == float or type(ap) == np.float64:
-            print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
-
-        elif type(ap) == list or type(ap) == np.ndarray:
-            pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
-            for index, value in enumerate(pais):
-                print(f'AP: {ap[index]} PAI: {value}')
+        # if type(ap) == float or type(ap) == np.float64:
+        #     print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
+        #
+        # elif type(ap) == list or type(ap) == np.ndarray:
+        #     pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
+        #     for index, value in enumerate(pais):
+        #         print(f'AP: {ap[index]} PAI: {value}')
 
     def heatmap(self, c=None, show_score=True, incidences=False,
                 savefig=False, fname=f'Promap_heatmap.png', ap=None, **kwargs):
@@ -2194,24 +2227,57 @@ class ProMap:
 
         self.load_test_matrix(self.lp)
 
+        if ap is not None:
+            if self.ap is None:
+                self.calculate_ap_c()
+
+        if type(ap) == float or type(ap) == np.float64:
+            c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
+            print('valor de C encontrado', c)
+
+        elif type(ap) == list or type(ap) == np.ndarray:
+            c = [af.find_c(self.ap, np.linspace(0, 1, 100), i) for i in ap]
+            c = sorted(list(set(c)))
+            if len(c) == 1:
+                c = c[0]
+
         if type(c) != list:
             hits = np.sum(
                 (self.prediction >= c) * self.testing_matrix)
-            area = np.count_nonzero(self.prediction > c)
+            hp_area = np.count_nonzero(self.prediction >= c)
+
 
         else:
-            c1, c2 = min(c), max(c)
-            aux = self.prediction[self.prediction > c1]
-            aux = aux[aux < c2]
+            c_min, c_max = min(c), max(c)
+
+            aux = np.where(self.prediction >= c_min, self.prediction, 0)
+            aux = np.where(aux <= c_max, self.prediction, 0)
+            aux = np.where(aux != 0, True, False)
+
             hits = np.sum(aux * self.testing_matrix)
-            area = np.count_nonzero(aux)
+            hp_area = np.count_nonzero(aux)
+
+        hp_area = min(hp_area, self.cells_in_map)
 
         total_incidents = np.sum(self.testing_matrix)
         self.d_incidents = int(hits)
-        self.h_area = area * self.hx * self.hy * 10 ** -6
+        self.h_area = hp_area * self.hx * self.hy * 10 ** -6
         self.hr_validated = self.d_incidents / total_incidents
-        self.pai_validated = self.hr_validated / (
-                self.h_area / self.cells_in_map)
+        self.pai_validated = self.hr_validated / (hp_area/self.cells_in_map)
+
+
+    def calculate_ap_c(self):
+
+        c = np.linespace(0, 1, 100)
+        self.c_vector = c
+        area_hits = []
+
+        for i in range(c.size):
+            area_hits.append(
+                np.count_nonzero(self.prediction >= c[i]))
+
+        self.ap = [1 if j > 1 else j for j in [i / self.cells_in_map for
+                                               i in area_hits]]
 
 
 class Model:
@@ -2445,6 +2511,8 @@ class Model:
         if ap is not None:
             for m in self.models:
                 m.validate(ap)
+        for m in self.models:
+            m.validate(c=c, ap=ap)
 
     def detected_incidences(self):
         for m in self.models:
@@ -2486,7 +2554,6 @@ class Model:
     #     for m in self.models:
     #         m.heatmap(c=c, show_score=show_score, incidences=incidences,
     #                   savefig=savefig, fname=fname, **kwargs)
-
 
 def create_model(data=None, shps=None,
                  start_prediction=date(2017, 11, 1), length_prediction=7,

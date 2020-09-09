@@ -17,13 +17,15 @@ m.set_parameters(m_name='STKDE', bw=[780, 1090, 25])
 
 pp = m.prepare_data()
 m.fit(pp)
+m.predict()
+
 # stkde.heatmap(incidences=True, c=0.1)
 
 # %% Plotter
 pltr = Plotter(m)
-#pltr.hr(per=0.1)
-#pltr.pai(per=0.1)
+pltr.hr()
+pltr.pai()
 # stkde.heatmap()
-pltr.heatmap(ap=0.2, incidences=True)
-m.validate(c=[0.1, 0.2])
-m.hotspot_area()
+#pltr.heatmap(ap=0.2, incidences=True)
+m.validate(ap=0.2)
+#m.hotspot_area()
