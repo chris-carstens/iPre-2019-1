@@ -17,6 +17,7 @@ class Plotter:
           segmento [1, 0].
         """
         self.c_arr = np.linspace(0, 1, n)
+        self.colors = {1: "blue", 2: "lime", 3: "red", 4: "yellow"}
         self.model = model
 
     def add_model(self, model):
@@ -50,7 +51,7 @@ class Plotter:
                 savefig=False, verbose=False, **kwargs):
         for m in self.model.models:
             m.heatmap(c=c, ap=ap, show_score=show_score, incidences=incidences,
-                      savefig=savefig, verbose=verbose, **kwargs)
+                      savefig=savefig, verbose=verbose, colors=self.colors, **kwargs)
 
     def hr(self, c=None):
         """Plotea la curva Hit Rate para el c o ap dado.

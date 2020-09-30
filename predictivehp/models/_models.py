@@ -61,7 +61,7 @@ class STKDE:
     def __init__(self,
                  shps=None, bw=None, sample_number=3600,
                  start_prediction=date(2017, 11, 1),
-                 length_prediction=7, name="STKDE"):
+                 length_prediction=7, name="STKDE", verbose=False):
         """
         Parameters
         ----------
@@ -84,6 +84,7 @@ class STKDE:
         self.shps = shps
         self.start_prediction = start_prediction
         self.lp = length_prediction
+        self.verbose = verbose
 
         self.hr, self.ap, self.pai = None, None, None
         self.f_delitos, self.f_nodos = None, None
@@ -100,7 +101,7 @@ class STKDE:
 
         # print('-' * 30)
 
-    def set_parameters(self, bw):
+    def set_parameters(self, bw, verbose=False):
         """
 
         Parameters
@@ -116,6 +117,8 @@ class STKDE:
         # Reentrenamos el modelo con nuevo bw
         if self.df is not None:
             self.fit(self.X_train, self.X_test)
+        self.verbose = verbose
+
 
     def print_parameters(self):
         """
@@ -132,8 +135,9 @@ class STKDE:
         else:
             print(
                 "No bandwith set. The model will automatically calculate bandwith after fit.\n")
+        print()
 
-    def fit(self, X, X_t):
+    def fit(self, X, X_t, verbose=False):
         """
         Parameters
         ----------
@@ -142,9 +146,9 @@ class STKDE:
         X_t : pd.DataFrame
           Test data.
         """
+        print("\tFitting Model...") if (verbose or self.verbose) else None
         self.X_train, self.X_test = X, X_t
 
-        # print("\nBuilding KDE...")
         self.kde = MyKDEMultivariate(
             [np.array(self.X_train[['x']]),
              np.array(self.X_train[['y']]),
@@ -153,7 +157,7 @@ class STKDE:
 
         self.bw = self.kde.bw
 
-    def predict(self):
+    def predict(self, verbose=False):
         """
         Returns
         -------
@@ -164,6 +168,8 @@ class STKDE:
           Diccionario con los valores de la función densidad evaluada en
           la malla original con llave el grupo
         """
+
+        print("\tMaking predictions...") if (verbose or self.verbose) else None
         if self.f_delitos is not None:
             return self.f_delitos, self.f_nodos
 
@@ -226,7 +232,6 @@ class STKDE:
         if self.f_max is None:
             self.predict()
         score_pdf = self.kde.pdf(np.array([x, y, t])) / self.f_max
-        # print(f"STKDE pdf score: {score_pdf}\n")
         return score_pdf
 
     def plot_geopdf(self, x_t, y_t, X_filtered, dallas, ax, color, label):
@@ -246,7 +251,7 @@ class STKDE:
         plt.legend()
 
     def heatmap(self, c=None, show_score=True, incidences=False,
-                savefig=False, fname='STKDE_heatmap.png', ap=None, **kwargs):
+                savefig=False, fname='STKDE_heatmap.png', ap=None, verbose=False, **kwargs):
         """
         Parameters
         ----------
@@ -255,11 +260,10 @@ class STKDE:
         ti : int
           Tiempo fijo para evaluar densidad en la predicción
         """
-        # print("\nPlotting Heatmap...")
+
+        print('\tPlotting Heatmap...') if (verbose or self.verbose) else None
         dallas = self.shps['streets']
-
         fig, ax = plt.subplots(figsize=[6.75] * 2)  # Sacar de _config.py
-
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
 
         x, y, t = np.mgrid[
@@ -292,7 +296,7 @@ class STKDE:
             np.array([x_t.flatten(), y_t.flatten(), ti.flatten()]))
         max_pdf = max([f_delitos.max(), z.max()])
 
-        # Normalizar
+        # Normalize
         f_delitos = f_delitos / max_pdf
         z = z / max_pdf
         z_filtered = z_filtered / max_pdf
@@ -303,7 +307,9 @@ class STKDE:
                 c_array.size)]
             area_percentaje = [i / len(z_filtered) for i in area_h]
             c = float(af.find_c(area_percentaje, c_array, ap))
-            print('c value: ', c)
+            print('c value: ', c) if (verbose or self.verbose) else None
+
+
 
         elif type(ap) == list or type(ap) == np.ndarray:
             c_array = np.linspace(0, 1, 1000)
@@ -312,7 +318,9 @@ class STKDE:
             area_percentaje = [i / len(z_filtered) for i in area_h]
             c = [af.find_c(area_percentaje, c_array, i) for i in ap]
             c = sorted(list(set(c)))
-            print('c values: ', c)
+
+            print('c values: ', c) if (verbose or self.verbose) else None
+
             if len(c) == 1:
                 c = c[0]
 
@@ -377,23 +385,25 @@ class STKDE:
                 c = c[c < 1]
                 c = np.unique(c)
                 c = np.sort(c)
-                c_min, c_max = c[0], c[1]
-
-                lvl1 = f_delitos <= c_min
-                lvl2 = (f_delitos > c_min) & (f_delitos <= c_max)
-                lvl3 = f_delitos > c_max
-                self.plot_geopdf(np.array(self.X_test[['x']])[lvl1],
-                                 np.array(self.X_test[['y']])[lvl1],
-                                 self.X_test[lvl1],
-                                 dallas, ax, "blue", "Level 1")
-                self.plot_geopdf(np.array(self.X_test[['x']])[lvl2],
-                                 np.array(self.X_test[['y']])[lvl2],
-                                 self.X_test[lvl2],
-                                 dallas, ax, "lime", "Level 2")
-                self.plot_geopdf(np.array(self.X_test[['x']])[lvl3],
-                                 np.array(self.X_test[['y']])[lvl3],
-                                 self.X_test[lvl3],
-                                 dallas, ax, "red", "Level 3")
+                i = 0
+                for c_i in c:
+                    if i == 0:
+                        lvl = f_delitos <= c_i
+                    elif i < c.size - 1:
+                        lvl = (f_delitos <= c_i) & (f_delitos > c[i-1])
+                    else:
+                        lvl = (f_delitos <= c_i) & (f_delitos > c[i-1])
+                        i += 1
+                        self.plot_geopdf(np.array(self.X_test[['x']])[lvl],
+                                         np.array(self.X_test[['y']])[lvl],
+                                         self.X_test[lvl],
+                                         dallas, ax, kwargs['colors'][i], f"Level {i}")
+                        lvl = f_delitos > c_i
+                    i += 1
+                    self.plot_geopdf(np.array(self.X_test[['x']])[lvl],
+                                     np.array(self.X_test[['y']])[lvl],
+                                     self.X_test[lvl],
+                                     dallas, ax, kwargs['colors'][i], f"Level {i}")
 
         else:
             dallas.plot(ax=ax, alpha=.2, color="gray", zorder=2)
@@ -468,7 +478,7 @@ class STKDE:
                self.ap[i] else 0 for i in range(len(self.hr))]
         self.pai = PAI
 
-    def validate(self, c=0, area=1000, ap=None):
+    def validate(self, c=0, ap=None, verbose=False, area=1000):
         """
         Si inrego asp, solo calcula PAI y HR, si ingreso c, calculo todo
         Parameters
@@ -483,19 +493,21 @@ class STKDE:
         """
 
         if type(ap) == float or type(ap) == np.float64:
-            print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap))
+
+            print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap)) if (verbose or self.verbose) else None
             self.pai_validated = af.find_hr_pai(self.pai, self.ap, ap)
-            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
+            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap)) if (verbose or self.verbose) else None
+
             self.hr_validated = af.find_hr_pai(self.hr, self.ap, ap)
 
         elif type(ap) == list or type(ap) == np.ndarray:
             pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
             for index, value in enumerate(pais):
-                print(f'AP: {ap[index]} PAI: {value}')
+                print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
             self.pai_validated = pais
             hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
             for index, value in enumerate(hrs):
-                print(f'AP: {ap[index]} HR: {value}')
+                print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
             self.hr_validated = hrs
         elif type(c) == float or type(c) == np.float64:
             hits = self.f_delitos[self.f_delitos >= c]
@@ -2281,11 +2293,12 @@ class ProMap:
 
 
 class Model:
-    def __init__(self, models=None, data=None, shps=None):
+    def __init__(self, models=None, data=None, shps=None, verbose=False):
         """Supraclase Model"""
         self.models = [] if not models else models
         self.data = data
         self.shps = shps
+        self.verbose = verbose
 
         self.set_parameters()
 
@@ -2429,6 +2442,7 @@ class Model:
     def prepare_data(self):
         dict_ = {}
         for m in self.models:
+            m.verbose = True
             if m.name == 'STKDE':
                 dict_['STKDE'] = self.prepare_stkde()
             elif m.name == 'ProMap':
@@ -2447,6 +2461,7 @@ class Model:
         ----------
         m : {STKDE, RForestRegressor, ProMap}
         """
+        print(f"\t{m.name} model added") if (self.verbose) else None
         self.models.append(m)
 
     def set_parameters(self, m_name='', **kwargs):
