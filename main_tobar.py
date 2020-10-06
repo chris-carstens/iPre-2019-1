@@ -2,6 +2,7 @@
 from predictivehp.models._models import create_model
 import predictivehp.utils as ut
 from predictivehp.visualization import Plotter
+import numpy as np
 
 # %% Data
 b_path = 'predictivehp/data'
@@ -23,6 +24,7 @@ modelos.predict()
 
 pm = modelos.models[0]
 
+print(np.sum(pm.testing_matrix))
 
 #
 pltr = Plotter(modelos)
@@ -30,7 +32,7 @@ pltr.hr()
 pltr.pai()
 
 
-pltr.heatmap(c=0.0, incidences=True, show_score=True,
+pltr.heatmap(c=[0.1,0.2,0.3,0.4], incidences=True, show_score=True,
              savefig=False, fname='hm_example.png')
 
 # pltr.hr(ap=[0.4, 0.5])
