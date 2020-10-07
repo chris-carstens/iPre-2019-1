@@ -617,7 +617,6 @@ class RForestRegressor(object):
         self.X = None
         self.read_data, self.read_X = read_data, read_X
         self.w_data, self.w_X = w_data, w_X
-        self.verbose = verbose
 
         self.d_incidents = 0  # Detected incidents
         self.h_area = 0  # Hotspot area
@@ -630,8 +629,7 @@ class RForestRegressor(object):
                        xc_size, yc_size, n_layers,
                        label_weights=None,
                        read_data=False, w_data=False,
-                       read_X=False, w_X=False,
-                       verbose=False):
+                       read_X=False, w_X=False):
         """
         Setea los hiperparámetros del modelo
 
@@ -662,7 +660,6 @@ class RForestRegressor(object):
         self.read_X = read_X
         self.w_data = w_data
         self.w_X = w_X
-        self.verbose = verbose
 
     def print_parameters(self):
         print('RFR Hyperparameters')
@@ -717,18 +714,17 @@ class RForestRegressor(object):
           default False
         """
         print("\nGenerating dataframe...\n") \
-            if (verbose or self.verbose) else None
+            if verbose else None
 
         # Creación de la malla
-        print("\tCreating mgrid...") if (verbose or self.verbose) else None
+        print("\tCreating mgrid...") if verbose else None
         x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
         x_bins = abs(x_max - x_min) / self.xc_size
         y_bins = abs(y_max - y_min) / self.yc_size
         x, y = np.mgrid[x_min: x_max: x_bins * 1j, y_min: y_max: y_bins * 1j, ]
 
         # Creación del esqueleto del dataframe
-        print("\tCreating dataframe columns...") if (
-                verbose or self.verbose) else None
+        print("\tCreating dataframe columns...") if verbose else None
 
         X_cols = pd.MultiIndex.from_product(
             [[f"Incidents_{i}" for i in range(self.n_layers + 1)], self.weeks]
@@ -736,7 +732,7 @@ class RForestRegressor(object):
         X = pd.DataFrame(columns=X_cols)
 
         # Creación de los parámetros para el cálculo de los índices
-        print("\tFilling data...") if (verbose or self.verbose) else None
+        print("\tFilling data...") if verbose else None
         self.nx = x.shape[0] - 1
         self.ny = y.shape[1] - 1
         self.hx = (x.max() - x.min()) / self.nx
@@ -744,8 +740,7 @@ class RForestRegressor(object):
 
         # Nro. incidentes en la i-ésima capa de la celda (i, j)
         for week in self.weeks:
-            print(f"\t\t{week}... ", end=' ') if (
-                    verbose or self.verbose) else None
+            print(f"\t\t{week}... ", end=' ') if verbose else None
             wi_date = week
             wf_date = week + timedelta(days=6)
             fil_incidents = self.data[
@@ -764,11 +759,10 @@ class RForestRegressor(object):
                 X.loc[:, (f"Incidents_{i}", f"{week}")] = \
                     af.to_df_col(D) if i == 0 \
                         else af.to_df_col(af.il_neighbors(D, i))
-            print('finished!') if (verbose or self.verbose) else None
+            print('finished!') if verbose else None
 
         # Adición de las columnas 'geometry' e 'in_dallas' al data
-        print("\tPreparing data for filtering...") if (
-                verbose or self.verbose) else None
+        print("\tPreparing data for filtering...") if verbose else None
         X[('geometry', '')] = [Point(i) for i in
                                zip(x[:-1, :-1].flatten(),
                                    y[:-1, :-1].flatten())]
@@ -798,7 +792,7 @@ class RForestRegressor(object):
         file_name : str
           Nombre del pickle a generar en predictivehp/data/file_name
         """
-        print("\nPickling dataframe...", end=" ") if (verbose or self.verbose) \
+        print("\nPickling dataframe...", end=" ") if verbose \
             else None
         if file_name == "X.pkl":
             self.X.to_pickle(f"predictivehp/data/{file_name}")
@@ -815,7 +809,7 @@ class RForestRegressor(object):
           Indica si se printean las diferentes acciones del método.
           default False
         """
-        print("\tAssigning cells...") if (verbose or self.verbose) else None
+        print("\tAssigning cells...") if verbose else None
         x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
 
         x_bins = abs(x_max - x_min) / self.xc_size
@@ -856,7 +850,7 @@ class RForestRegressor(object):
         -------
         self : object
         """
-        print("\tFitting Model...") if (verbose or self.verbose) else None
+        print("\tFitting Model...") if verbose else None
         self.rfr.fit(X, y.to_numpy().ravel())
         self.X[('Dangerous', '')] = y  # Sirven para determinar celdas con TP/FN
         return self
@@ -879,7 +873,7 @@ class RForestRegressor(object):
           Vector de predicción que indica el score de peligrocidad en
           una celda de la malla de Dallas
         """
-        print("\tMaking predictions...") if (verbose or self.verbose) else None
+        print("\tMaking predictions...") if verbose else None
         y_pred = self.rfr.predict(X)
         self.X[('Dangerous_pred', '')] = y_pred / y_pred.max()
         self.X.index.name = 'Cell'
@@ -1057,7 +1051,7 @@ class RForestRegressor(object):
         -------
 
         """
-        print('\tPlotting Heatmap...') if (verbose or self.verbose) else None
+        print('\tPlotting Heatmap...') if verbose else None
         fname = f'{fname}.png'
         if self.ap is None:
             self.calculate_pai(np.linspace(0, 1, 100))
@@ -2550,19 +2544,19 @@ class Model:
         for m in self.models:
             m.print_parameters()
 
-    def fit(self, data_p=None, **kwargs):
+    def fit(self, data_p=None, verbose=False, **kwargs):
         if data_p is None:
             data_p = self.prepare_data()
         for m in self.models:
-            m.fit(*data_p[m.name], **kwargs)
+            m.fit(*data_p[m.name], verbose=verbose, **kwargs)
 
-    def predict(self):
+    def predict(self, verbose=False):
         for m in self.models:
             if m.name == 'RForestRegressor':
                 X_test = self.prepare_rfr(mode='test', label='default')[0]
                 m.predict(X_test)
                 continue
-            m.predict()
+            m.predict(verbose=verbose)
 
     def validate(self, c=None, ap=None):
         """
