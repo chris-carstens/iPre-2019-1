@@ -309,6 +309,8 @@ class STKDE:
             c = float(af.find_c(area_percentaje, c_array, ap))
             print('c value: ', c) if (verbose or self.verbose) else None
 
+
+
         elif type(ap) == list or type(ap) == np.ndarray:
             c_array = np.linspace(0, 1, 1000)
             area_h = [np.sum(z_filtered >= c_array[i]) for i in range(
@@ -478,9 +480,9 @@ class STKDE:
                self.ap[i] else 0 for i in range(len(self.hr))]
         self.pai = PAI
 
-    def validate(self, c=0, ap=None, verbose=False, area=1000):
+    def validate(self, c=None, ap=None, verbose=False, area=1000):
         """
-        Si inrego asp, solo calcula PAI y HR, si ingreso c, calculo todo
+        Si inrego asp, solo calcula PAI y HR, si ingreso c, calculo
         Parameters
         ----------
         c
@@ -491,46 +493,57 @@ class STKDE:
         -------
 
         """
+        if self.pai is None:
+            self.calculate_pai()
 
-        if type(ap) == float or type(ap) == np.float64:
+        if ap is not None:
+            c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
 
-            print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap)) if (
-                    verbose or self.verbose) else None
-            self.pai_validated = af.find_hr_pai(self.pai, self.ap, ap)
-            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap)) if (
-                    verbose or self.verbose) else None
+       # if type(ap) == float or type(ap) == np.float64:
 
-            self.hr_validated = af.find_hr_pai(self.hr, self.ap, ap)
+        #    print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap)) if (verbose or self.verbose) else None
+         #   self.pai_validated = af.find_hr_pai(self.pai, self.ap, ap)
+          #  print('HR: ', af.find_hr_pai(self.hr, self.ap, ap)) if (verbose or self.verbose) else None
+#
+ #           self.hr_validated = af.find_hr_pai(self.hr, self.ap, ap)
 
-        elif type(ap) == list or type(ap) == np.ndarray:
-            pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
-            for index, value in enumerate(pais):
-                print(f'AP: {ap[index]} PAI: {value}') if (
-                        verbose or self.verbose) else None
-            self.pai_validated = pais
-            hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
-            for index, value in enumerate(hrs):
-                print(f'AP: {ap[index]} PAI: {value}') if (
-                        verbose or self.verbose) else None
-            self.hr_validated = hrs
-        elif type(c) == float or type(c) == np.float64:
-            hits = self.f_delitos[self.f_delitos >= c]
-            h_nodos = self.f_nodos[self.f_nodos >= c]
+  #      elif type(ap) == list or type(ap) == np.ndarray:
+   #         pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
+    #        for index, value in enumerate(pais):
+     #           print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
+      #      self.pai_validated = pais
+       #     hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
+        #    for index, value in enumerate(hrs):
+         #       print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
+          #  self.hr_validated = hrs
+        if type(c) == float or type(c) == np.float64:
+            hits = self.f_delitos >= c
+            h_nodos = self.f_nodos >= c
             self.hr_validated = np.sum(hits) / len(self.f_delitos)
             self.pai_validated = self.hr_validated / (
                     np.sum(h_nodos) / len(self.f_nodos))
         elif type(c) == list or type(c) == np.ndarray:
-            hits = self.f_delitos[self.f_delitos < max(c)]
-            hits = self.hits[hits > min(c)]
-            h_nodos = self.f_nodos[self.f_nodos < max(c)]
-            h_nodos = self.f_nodos[h_nodos > min(c)]
-            self.hr_validated = np.sum(hits) / len(self.f_delitos)
+            hits = self.f_delitos < max(c)
+            hits = hits > min(c)
+            h_nodos = self.f_nodos < max(c)
+            h_nodos = h_nodos > min(c)
+            self.hr_validated = hits.size / len(self.f_delitos)
             self.pai_validated = self.hr_validated / (
                     np.sum(h_nodos) / len(self.f_nodos))
 
-        if not ap and c:
-            self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
-            self.d_incidents = hits.size
+      #  if ap is not None:
+       #     self.h_area = (self.hr_validated / self.pai_validated) * area
+
+
+       # elif ap is None:
+        self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
+        self.d_incidents = hits.size
+
+
+       # print("total delitos:", len(self.f_delitos))
+        #print("hits", np.sum(hits))
+        #print("hr", self.hr_validated)
+        print("H area:", self.h_area)
 
 
 class RForestRegressor(object):
@@ -1744,7 +1757,7 @@ class ProMap:
                  bw_x=400, bw_y=400, bw_t=7, length_prediction=7,
                  tiempo_entrenamiento=None,
                  start_prediction=date(2017, 11, 1),
-                 km2=1_000, name='ProMap', shps=None):
+                 km2=1_000, name='ProMap', shps=None, verbose = False):
 
         """
         Modelo Promap
@@ -1796,13 +1809,12 @@ class ProMap:
         self.lp = length_prediction
 
         self.hr, self.pai, self.ap = None, None, None
+        self.verbose = verbose
 
-        # print('-' * 100)
-        # print('\t\t', self.name)
 
-        # print('-' * 100)
 
-    def set_parameters(self, bw=None, hx=None, hy=None, read_density=False):
+    def set_parameters(self, bw=None, hx=None, hy=None, read_density=False,
+                       verbose=False):
         """
         Setea los hiperparámetros del modelo Promap
         Parameters
@@ -1821,7 +1833,7 @@ class ProMap:
         if hx and hy:
             self.hx, self.hy = hx, hy
         self.read_density = read_density
-        # se debe actualizar la malla
+        self.verbose = verbose
 
     def print_parameters(self):
         """
@@ -1836,7 +1848,7 @@ class ProMap:
         print(f'hy: {self.hy} mts')
         print()
 
-    def create_grid(self):
+    def create_grid(self, verbose=False):
 
         """
         Genera una malla en base a los x{min, max} y{min, max}.
@@ -1844,6 +1856,9 @@ class ProMap:
         celda en la malla del mapa.
 
         """
+
+        print("\nGenerating grid...\n") \
+            if (verbose or self.verbose) else None
 
         delta_x = self.hx / 2
         delta_y = self.hy / 2
@@ -1853,7 +1868,7 @@ class ProMap:
                            self.y_min + delta_y:self.y_max - delta_y:self.bins_y * 1j
                            ]
 
-    def fit(self, X, y):
+    def fit(self, X, y, verbose=False):
 
         """
         Se encarga de generar la malla en base a los datos del modelo.
@@ -1874,12 +1889,14 @@ class ProMap:
         self.dias_train = self.X['y_day'].max()
 
         points = np.array([self.xx.flatten(), self.yy.flatten()])
-        print("Fitting promap...")
+        print("\tFitting ProMap...\n") \
+            if (verbose or self.verbose) else None
         # self.cells_in_map = af.checked_points_pm(points, self.shps[
         # 'councils'])  #
         self.cells_in_map = 141337
+        self.load_test_matrix(self.lp)
 
-    def predict(self):
+    def predict(self, verbose=False):
 
         """
         Calula el score en cada celda de la malla de densidades.
@@ -1894,6 +1911,8 @@ class ProMap:
 
 
         else:
+            print("\tPredicting...\n") \
+                if (verbose or self.verbose) else None
             self.prediction = np.zeros((self.bins_x, self.bins_y))
             # print('\nEstimando densidades...')
             # print(
@@ -2013,7 +2032,7 @@ class ProMap:
                     else:
                         break
 
-    def calculate_hr(self, c=None):
+    def calculate_hr(self, c=None, verbose=False):
         """
         Calcula el hr (n/N)
         Parameters
@@ -2021,6 +2040,9 @@ class ProMap:
         c: np.ndarray
             Vector que sirve para analizar el mapa en cada punto
         """
+
+        print("\tCalculando HR...\n") \
+            if (verbose or self.verbose) else None
 
         self.load_train_matrix()
         self.load_test_matrix(self.lp)
@@ -2075,7 +2097,7 @@ class ProMap:
         #     for index, value in enumerate(hrs):
         #         print(f'AP: {ap[index]} HR: {value}')
 
-    def calculate_pai(self, c=None, ap=None):
+    def calculate_pai(self, c=None, verbose=False):
 
         """
         Calcula el PAI (n/N) / (a/A)
@@ -2084,6 +2106,9 @@ class ProMap:
         c: np.ndarray
             Vector que sirve para analizar el mapa en cada punto
         """
+
+        print("\tCalculando PAI...\n") \
+            if (verbose or self.verbose) else None
 
         if c is None:
             self.c_vector = np.linspace(0, 1, 100)
@@ -2105,6 +2130,26 @@ class ProMap:
         #     pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
         #     for index, value in enumerate(pais):
         #         print(f'AP: {ap[index]} PAI: {value}')
+
+    def plot_geopdf(self,dallas, ax, color, label,level):
+
+        geometry = [Point(xy) for xy in zip(
+                    np.array(self.y[self.y['captured'] == level][['x_point']]),
+                    np.array(self.y[self.y['captured'] == level][['y_point']]))
+                                   ]
+        geo_df = gpd.GeoDataFrame(self.y[self.y['captured'] ==
+                                                        level],
+                                  crs=dallas.crs,
+                                  geometry=geometry)
+
+        geo_df.plot(ax=ax,
+                    markersize=3,
+                    color=color,
+                    marker='o',
+                    zorder=3,
+                    label=label,
+                    )
+        plt.legend()
 
     def heatmap(self, c=None, show_score=True, incidences=False,
                 savefig=False, fname=f'Promap_heatmap.png', ap=None, **kwargs):
@@ -2173,6 +2218,8 @@ class ProMap:
 
         if incidences:
 
+            self.y['captured'] = 0
+
             plt.imshow(np.flipud(matriz.T),
                        extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                        cmap='jet',
@@ -2182,75 +2229,49 @@ class ProMap:
 
             dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
-            self.load_points(self.lp, c)
-
-            geometry_no_hits = [Point(xy) for xy in zip(
-                np.array(self.y[self.y['captured'] != 1][['x_point']]),
-                np.array(self.y[self.y['captured'] != 1][['y_point']]))
-                                ]
-
-            geo_df_no_hits = gpd.GeoDataFrame(self.y[self.y['captured'] != 1],
-                                              crs=dallas.crs,
-                                              geometry=geometry_no_hits)
-
-            geometry_hits = [Point(xy) for xy in zip(
-                np.array(self.y[self.y['captured'] == 1][['x_point']]),
-                np.array(self.y[self.y['captured'] == 1][['y_point']]))
-                             ]
-
-            geo_df_hits = gpd.GeoDataFrame(self.y[self.y['captured'] == 1],
-                                           crs=dallas.crs,
-                                           geometry=geometry_hits)
+            if c is None:
+                self.y['captured'] = 1
+                self.plot_geopdf(dallas, ax, kwargs['colors'][1],
+                                 label="Hits",level=1)
 
             if type(c) == float or type(c) == np.float64:
+                for index, row in self.y.iterrows():
+                    x, y, t = row['x_point'], row['y_point'], row['y_day']
 
-                geo_df_no_hits.plot(ax=ax,
-                                    markersize=3,
-                                    color='blue',
-                                    marker='x',
-                                    zorder=3,
-                                    label="Misses")
+                    if t <= (self.dias_train + self.lp):
+                        x_pos, y_pos = af.find_position(self.xx, self.yy, x, y,
+                                                        self.hx,
+                                                        self.hy)
+                        if self.prediction[x_pos][y_pos] > c:
+                            self.y['captured'][index] = 1
+                    else:
+                        break
 
-                geo_df_hits.plot(ax=ax,
-                                 markersize=3,
-                                 color='red',
-                                 marker='x',
-                                 zorder=3,
-                                 label="Hits")
+                self.plot_geopdf(dallas, ax, kwargs['colors'][0],
+                                 label="No Hits", level=0)
+                self.plot_geopdf(dallas, ax, kwargs['colors'][1],
+                                 label="Hits", level=1)
 
             elif type(c) == list or type(c) == np.ndarray:
-                geometry_hits_2 = [Point(xy) for xy in zip(
-                    np.array(self.y[self.y['captured'] == 2][['x_point']]),
-                    np.array(self.y[self.y['captured'] == 2][['y_point']]))
-                                   ]
+                for index_c, c_i in enumerate(c, start=1):
+                    for index, row in self.y.iterrows():
+                        x, y, t = row['x_point'], row['y_point'], row['y_day']
 
-                geo_df_hits_2 = gpd.GeoDataFrame(self.y[self.y['captured'] ==
-                                                        2],
-                                                 crs=dallas.crs,
-                                                 geometry=geometry_hits_2)
+                        if t <= (self.dias_train + self.lp):
+                            x_pos, y_pos = af.find_position(self.xx, self.yy, x,
+                                                            y,
+                                                            self.hx,
+                                                            self.hy)
+                            if self.prediction[x_pos][y_pos] > c_i:
+                                self.y['captured'][index] = index_c
+                        else:
+                            break
 
-                geo_df_no_hits.plot(ax=ax,
-                                    markersize=3,
-                                    color='blue',
-                                    marker='x',
-                                    zorder=3,
-                                    label="Level 1")
+                for index in range(len(c)+1):
+                    self.plot_geopdf(dallas, ax, kwargs['colors'][index],
+                                     label=f'nivel {index}',
+                                     level=index)
 
-                geo_df_hits.plot(ax=ax,
-                                 markersize=3,
-                                 color='lime',
-                                 marker='x',
-                                 zorder=3,
-                                 label="Level 2")
-
-                geo_df_hits_2.plot(ax=ax,
-                                   markersize=3,
-                                   color='red',
-                                   marker='x',
-                                   zorder=3,
-                                   label="Level 3")
-
-            plt.legend()
 
         else:
             plt.imshow(np.flipud(matriz.T),
@@ -2364,10 +2385,10 @@ class Model:
         data.reset_index(drop=True, inplace=True)
 
         # División en training data (X_train) y testing data (y)
-        X_train = data[data["date"] <= stkde.start_prediction]
-        X_test = data[data["date"] > stkde.start_prediction]
+        X_train = data[data["date"] < stkde.start_prediction]
+        X_test = data[data["date"] >= stkde.start_prediction]
         X_test = X_test[
-            X_test["date"] < stkde.start_prediction
+            X_test["date"] <= stkde.start_prediction
             + timedelta(days=stkde.lp)]
         return X_train, X_test
 
@@ -2389,9 +2410,9 @@ class Model:
 
         # División en training y testing data
 
-        X = df[df["date"] <= promap.start_prediction]
-        y = df[df["date"] > promap.start_prediction]
-        y = y[y["date"] < promap.start_prediction + timedelta(days=promap.lp)]
+        X = df[df["date"] < promap.start_prediction]
+        y = df[df["date"] >= promap.start_prediction]
+        y = y[y["date"] <= promap.start_prediction + timedelta(days=promap.lp)]
 
         return X, y
 
@@ -2565,8 +2586,8 @@ class Model:
         if ap is not None:
             for m in self.models:
                 m.validate(ap)
-        for m in self.models:
-            m.validate(c=c, ap=ap)
+        #for m in self.models:
+         #   m.validate(c=c, ap=ap)
 
     def detected_incidences(self):
         for m in self.models:
