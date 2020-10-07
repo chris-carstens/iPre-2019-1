@@ -250,8 +250,7 @@ class STKDE:
         plt.legend()
 
     def heatmap(self, c=None, show_score=True, incidences=False,
-                savefig=False, fname='STKDE_heatmap.png', ap=None,
-                verbose=False, **kwargs):
+                savefig=False, fname='STKDE_heatmap.png', ap=None, verbose=False, **kwargs):
         """
         Parameters
         ----------
@@ -536,7 +535,8 @@ class STKDE:
 
         # elif ap is None:
         self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
-        self.d_incidents = hits.size
+        self.d_incidents = np.sum(hits)
+        print(self.d_incidents)
 
         # print("total delitos:", len(self.f_delitos))
         # print("hits", np.sum(hits))
