@@ -25,7 +25,7 @@ def timer(fn):
     return inner
 
 
-def get_data(year=2017, n=150000):
+def get_data(year=2017, n=150000, city='Dallas'):
     # print("\nRequesting data...")
     with Socrata(cre.socrata_domain,
                  cre.API_KEY_S,

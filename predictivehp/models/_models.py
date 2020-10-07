@@ -1964,7 +1964,6 @@ class ProMap:
                 self.training_matrix[x_pos][y_pos] += 1
 
     def load_test_matrix(self, ventana_dias):
-
         """
         Ubica los delitos en la matriz de testeo
 
