@@ -510,23 +510,28 @@ class STKDE:
                 print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
             self.hr_validated = hrs
         elif type(c) == float or type(c) == np.float64:
-            hits = self.f_delitos[self.f_delitos >= c]
-            h_nodos = self.f_nodos[self.f_nodos >= c]
+            hits = self.f_delitos >= c
+            h_nodos = self.f_nodos >= c
             self.hr_validated = np.sum(hits) / len(self.f_delitos)
             self.pai_validated = self.hr_validated / (
                     np.sum(h_nodos) / len(self.f_nodos))
         elif type(c) == list or type(c) == np.ndarray:
-            hits = self.f_delitos[self.f_delitos < max(c)]
-            hits = self.hits[hits > min(c)]
-            h_nodos = self.f_nodos[self.f_nodos < max(c)]
-            h_nodos = self.f_nodos[h_nodos > min(c)]
-            self.hr_validated = np.sum(hits) / len(self.f_delitos)
+            hits = self.f_delitos < max(c)
+            hits = hits > min(c)
+            h_nodos = self.f_nodos < max(c)
+            h_nodos = h_nodos > min(c)
+            self.hr_validated = hits.size / len(self.f_delitos)
             self.pai_validated = self.hr_validated / (
                     np.sum(h_nodos) / len(self.f_nodos))
 
         if not ap and c:
             self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
             self.d_incidents = hits.size
+
+       # print("total delitos:", len(self.f_delitos))
+        #print("hits", np.sum(hits))
+        #print("hr", self.hr_validated)
+        print(self.h_area)
 
 
 class RForestRegressor(object):
