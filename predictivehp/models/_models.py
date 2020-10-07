@@ -119,7 +119,6 @@ class STKDE:
             self.fit(self.X_train, self.X_test)
         self.verbose = verbose
 
-
     def print_parameters(self):
         """
 
@@ -251,7 +250,8 @@ class STKDE:
         plt.legend()
 
     def heatmap(self, c=None, show_score=True, incidences=False,
-                savefig=False, fname='STKDE_heatmap.png', ap=None, verbose=False, **kwargs):
+                savefig=False, fname='STKDE_heatmap.png', ap=None,
+                verbose=False, **kwargs):
         """
         Parameters
         ----------
@@ -308,8 +308,6 @@ class STKDE:
             area_percentaje = [i / len(z_filtered) for i in area_h]
             c = float(af.find_c(area_percentaje, c_array, ap))
             print('c value: ', c) if (verbose or self.verbose) else None
-
-
 
         elif type(ap) == list or type(ap) == np.ndarray:
             c_array = np.linspace(0, 1, 1000)
@@ -390,20 +388,22 @@ class STKDE:
                     if i == 0:
                         lvl = f_delitos <= c_i
                     elif i < c.size - 1:
-                        lvl = (f_delitos <= c_i) & (f_delitos > c[i-1])
+                        lvl = (f_delitos <= c_i) & (f_delitos > c[i - 1])
                     else:
-                        lvl = (f_delitos <= c_i) & (f_delitos > c[i-1])
+                        lvl = (f_delitos <= c_i) & (f_delitos > c[i - 1])
                         i += 1
                         self.plot_geopdf(np.array(self.X_test[['x']])[lvl],
                                          np.array(self.X_test[['y']])[lvl],
                                          self.X_test[lvl],
-                                         dallas, ax, kwargs['colors'][i], f"Level {i}")
+                                         dallas, ax, kwargs['colors'][i],
+                                         f"Level {i}")
                         lvl = f_delitos > c_i
                     i += 1
                     self.plot_geopdf(np.array(self.X_test[['x']])[lvl],
                                      np.array(self.X_test[['y']])[lvl],
                                      self.X_test[lvl],
-                                     dallas, ax, kwargs['colors'][i], f"Level {i}")
+                                     dallas, ax, kwargs['colors'][i],
+                                     f"Level {i}")
 
         else:
             dallas.plot(ax=ax, alpha=.2, color="gray", zorder=2)
@@ -494,20 +494,24 @@ class STKDE:
 
         if type(ap) == float or type(ap) == np.float64:
 
-            print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap)) if (verbose or self.verbose) else None
+            print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap)) if (
+                    verbose or self.verbose) else None
             self.pai_validated = af.find_hr_pai(self.pai, self.ap, ap)
-            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap)) if (verbose or self.verbose) else None
+            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap)) if (
+                    verbose or self.verbose) else None
 
             self.hr_validated = af.find_hr_pai(self.hr, self.ap, ap)
 
         elif type(ap) == list or type(ap) == np.ndarray:
             pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
             for index, value in enumerate(pais):
-                print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
+                print(f'AP: {ap[index]} PAI: {value}') if (
+                        verbose or self.verbose) else None
             self.pai_validated = pais
             hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
             for index, value in enumerate(hrs):
-                print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
+                print(f'AP: {ap[index]} PAI: {value}') if (
+                        verbose or self.verbose) else None
             self.hr_validated = hrs
         elif type(c) == float or type(c) == np.float64:
             hits = self.f_delitos[self.f_delitos >= c]
@@ -1084,41 +1088,68 @@ class RForestRegressor(object):
         elif type(c) in {float, int, np.float64}:
             d_cells = cells[cells[('Dangerous_pred', '')] >= c]
             d_cells.plot(ax=ax, marker='.', markersize=1, color='darkred',
-                         alpha=0.1)  # Heatmap binario
+                         alpha=0.3)  # Heatmap binario
             cells['Hit'] = np.where(
                 cells[('Dangerous_pred', '')] >= c, 1, 0
             )
         else:  # c es una Iterable de c's: Asumo [c0, c1]
-            d1_cells = cells[
-                (0.0 <= cells[('Dangerous_pred', '')]) &
-                (cells[('Dangerous_pred', '')] <= c[0])
-                ]
-            d2_cells = cells[
-                (c[0] <= cells[('Dangerous_pred', '')]) &
-                (cells[('Dangerous_pred', '')] <= c[1])
-                ]
-            d3_cells = cells[
-                (c[1] <= cells[('Dangerous_pred', '')]) &
-                (cells[('Dangerous_pred', '')] <= 1.0)
-                ]
-            d1_cells.plot(ax=ax, marker='.', markersize=1, color='darkblue',
-                          alpha=0.05)
-            d2_cells.plot(ax=ax, marker='.', markersize=1, color='lime',
-                          alpha=0.05)
-            d3_cells.plot(ax=ax, marker='.', markersize=1, color='red',
-                          alpha=0.05)
-            cells['D1'] = np.where(
-                (0.0 <= cells[('Dangerous_pred', '')]) &
-                (cells[('Dangerous_pred', '')] <= c[0]), 1, 0
-            )
-            cells['D2'] = np.where(
-                (c[0] <= cells[('Dangerous_pred', '')]) &
-                (cells[('Dangerous_pred', '')] <= c[1]), 1, 0
-            )
-            cells['D3'] = np.where(
-                (c[1] <= cells[('Dangerous_pred', '')]) &
-                (cells[('Dangerous_pred', '')] <= 1.0), 1, 0
-            )
+            c = np.array(c).flatten()
+            c = c[c > 0]
+            c = c[c < 1]
+            c = np.unique(c)
+            c = np.sort(c)
+
+            for idx, i in enumerate(c):
+                if idx == 0:
+                    lvl = cells[('Dangerous_pred', '')] <= c[idx]
+                else:
+                    lvl = (c[idx - 1] < cells[('Dangerous_pred', '')]) &\
+                          (cells[('Dangerous_pred', '')] <= c[idx])
+
+                d_cells = cells[lvl]
+                d_cells.plot(ax=ax, marker='.', markersize=1,
+                             color=kwargs['colors'][idx + 1],
+                             alpha=0.1)
+                cells[f'D{idx + 1}'] = np.where(lvl, 1, 0)
+
+            lvl = c[-1] < cells[('Dangerous_pred', '')]
+
+            d_cells = cells[lvl]
+            d_cells.plot(ax=ax, marker='.', markersize=1,
+                         color=kwargs['colors'][c.size + 1],
+                         alpha=0.1)
+            cells[f'D{c.size + 1}'] = np.where(lvl, 1, 0)
+
+            # d1_cells = cells[
+            #     (0.0 <= cells[('Dangerous_pred', '')]) &
+            #     (cells[('Dangerous_pred', '')] <= c[0])
+            #     ]
+            # d2_cells = cells[
+            #     (c[0] <= cells[('Dangerous_pred', '')]) &
+            #     (cells[('Dangerous_pred', '')] <= c[1])
+            #     ]
+            # d3_cells = cells[
+            #     (c[1] <= cells[('Dangerous_pred', '')]) &
+            #     (cells[('Dangerous_pred', '')] <= 1.0)
+            #     ]
+            # d1_cells.plot(ax=ax, marker='.', markersize=1, color='darkblue',
+            #               alpha=0.1)
+            # d2_cells.plot(ax=ax, marker='.', markersize=1, color='lime',
+            #               alpha=0.1)
+            # d3_cells.plot(ax=ax, marker='.', markersize=1, color='red',
+            #               alpha=0.1)
+            # cells['D1'] = np.where(
+            #     (0.0 <= cells[('Dangerous_pred', '')]) &
+            #     (cells[('Dangerous_pred', '')] <= c[0]), 1, 0
+            # )
+            # cells['D2'] = np.where(
+            #     (c[0] <= cells[('Dangerous_pred', '')]) &
+            #     (cells[('Dangerous_pred', '')] <= c[1]), 1, 0
+            # )
+            # cells['D3'] = np.where(
+            #     (c[1] <= cells[('Dangerous_pred', '')]) &
+            #     (cells[('Dangerous_pred', '')] <= 1.0), 1, 0
+            # )
 
         if incidences:  # Se plotean los incidentes
             data_nov = pd.DataFrame(
@@ -1141,18 +1172,26 @@ class RForestRegressor(object):
                                 color='blue',
                                 label="Misses")
             else:
-                d1 = gpd.GeoDataFrame(join_[join_['D1'] == 1])
-                d2 = gpd.GeoDataFrame(join_[join_['D2'] == 1])
-                d3 = gpd.GeoDataFrame(join_[join_['D3'] == 1])
-                if not d1.empty:
-                    d1.plot(ax=ax, marker='x', markersize=0.25,
-                            color='blue', label="Level 1")
-                if not d2.empty:
-                    d2.plot(ax=ax, marker='x', markersize=0.25, color='lime',
-                            label="Level 2")
-                if not d3.empty:
-                    d3.plot(ax=ax, marker='x', markersize=0.25, color='red',
-                            label="Level 3")
+                for i in range(1, c.size + 2):
+                    d = gpd.GeoDataFrame(join_[join_[f'D{i}'] == 1])
+                    if not d.empty:
+                        d.plot(
+                            ax=ax, marker='x', markersize=0.25,
+                            color=kwargs['colors'][i], label=f'Level {i}'
+                        )
+
+                # d1 = gpd.GeoDataFrame(join_[join_['D1'] == 1])
+                # d2 = gpd.GeoDataFrame(join_[join_['D2'] == 1])
+                # d3 = gpd.GeoDataFrame(join_[join_['D3'] == 1])
+                # if not d1.empty:
+                #     d1.plot(ax=ax, marker='x', markersize=0.25,
+                #             color='blue', label="Level 1")
+                # if not d2.empty:
+                #     d2.plot(ax=ax, marker='x', markersize=0.25, color='lime',
+                #             label="Level 2")
+                # if not d3.empty:
+                #     d3.plot(ax=ax, marker='x', markersize=0.25, color='red',
+                #             label="Level 3")
             plt.legend()
 
         ax.set_axis_off()
@@ -2494,11 +2533,11 @@ class Model:
         for m in self.models:
             m.print_parameters()
 
-    def fit(self, data_p=None):
+    def fit(self, data_p=None, **kwargs):
         if data_p is None:
             data_p = self.prepare_data()
         for m in self.models:
-            m.fit(*data_p[m.name])
+            m.fit(*data_p[m.name], **kwargs)
 
     def predict(self):
         for m in self.models:
