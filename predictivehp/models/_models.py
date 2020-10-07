@@ -2181,7 +2181,7 @@ class ProMap:
 
             if c is None:
                 self.y['captured'] = 1
-                self.plot_geopdf(dallas, ax, kwargs['colors'][1],
+                self.plot_geopdf(dallas, ax, kwargs['colors'][0],
                                  label="Hits", level=1)
 
             if type(c) == float or type(c) == np.float64:
@@ -2196,9 +2196,9 @@ class ProMap:
                             self.y['captured'][index] = 1
                     else:
                         break
-
-                self.plot_geopdf(dallas, ax, kwargs['colors'][0],
-                                 label="No Hits", level=0)
+                if c != 0.0:
+                    self.plot_geopdf(dallas, ax, kwargs['colors'][0],
+                                     label="Misses", level=0)
                 self.plot_geopdf(dallas, ax, kwargs['colors'][1],
                                  label="Hits", level=1)
 
@@ -2219,7 +2219,7 @@ class ProMap:
 
                 for index in range(len(c) + 1):
                     self.plot_geopdf(dallas, ax, kwargs['colors'][index],
-                                     label=f'nivel {index}',
+                                     label=f'nivel {index+1}',
                                      level=index)
 
 
