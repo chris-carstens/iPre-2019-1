@@ -1894,7 +1894,7 @@ class ProMap:
         # self.cells_in_map = af.checked_points_pm(points, self.shps[
         # 'councils'])  #
         self.cells_in_map = 141337
-        self.load_test_matrix(self.lp)
+        self.load_test_matrix()
 
     def predict(self, verbose=False):
 
@@ -1973,7 +1973,7 @@ class ProMap:
                                                 self.hy)
                 self.training_matrix[x_pos][y_pos] += 1
 
-    def load_test_matrix(self, ventana_dias):
+    def load_test_matrix(self):
 
         """
         Ubica los delitos en la matriz de testeo
@@ -1989,7 +1989,7 @@ class ProMap:
         for index, row in self.y.iterrows():
             x, y, t = row['x_point'], row['y_point'], row['y_day']
 
-            if t <= (self.dias_train + ventana_dias):
+            if t <= (self.dias_train + self.lp):
                 x_pos, y_pos = af.find_position(self.xx, self.yy, x, y,
                                                 self.hx,
                                                 self.hy)
@@ -1998,39 +1998,6 @@ class ProMap:
             else:
                 break
 
-    def load_points(self, ventana_dias, c=0):
-
-        self.y['captured'] = 0
-
-        if c is None:
-            self.y['captured'] = 1
-
-        elif type(c) == float or type(c) == np.float64:
-            for index, row in self.y.iterrows():
-                x, y, t = row['x_point'], row['y_point'], row['y_day']
-
-                if t <= (self.dias_train + ventana_dias):
-                    x_pos, y_pos = af.find_position(self.xx, self.yy, x, y,
-                                                    self.hx,
-                                                    self.hy)
-                    if self.prediction[x_pos][y_pos] > c:
-                        self.y['captured'][index] = 1
-                else:
-                    break
-
-        elif type(c) == list or type(c) == np.ndarray:
-            for index_c, c_i in enumerate(c, start=1):
-                for index, row in self.y.iterrows():
-                    x, y, t = row['x_point'], row['y_point'], row['y_day']
-
-                    if t <= (self.dias_train + ventana_dias):
-                        x_pos, y_pos = af.find_position(self.xx, self.yy, x, y,
-                                                        self.hx,
-                                                        self.hy)
-                        if self.prediction[x_pos][y_pos] > c_i:
-                            self.y['captured'][index] = index_c
-                    else:
-                        break
 
     def calculate_hr(self, c=None, verbose=False):
         """
@@ -2045,7 +2012,7 @@ class ProMap:
             if (verbose or self.verbose) else None
 
         self.load_train_matrix()
-        self.load_test_matrix(self.lp)
+        self.load_test_matrix()
 
         # 1. Solo considera las celdas que son mayor a un K
         #     Esto me entrega una matriz con True/False (Matriz A)
@@ -2089,13 +2056,6 @@ class ProMap:
         self.ap = [1 if j > 1 else j for j in [i / self.cells_in_map for
                                                i in area_hits]]
 
-        # if type(ap) == float or type(ap) == np.float64:
-        #     print('HR: ', af.find_hr_pai(self.hr, self.ap, ap))
-        #
-        # elif type(ap) == list or type(ap) == np.ndarray:
-        #     hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
-        #     for index, value in enumerate(hrs):
-        #         print(f'AP: {ap[index]} HR: {value}')
 
     def calculate_pai(self, c=None, verbose=False):
 
@@ -2242,7 +2202,7 @@ class ProMap:
                         x_pos, y_pos = af.find_position(self.xx, self.yy, x, y,
                                                         self.hx,
                                                         self.hy)
-                        if self.prediction[x_pos][y_pos] > c:
+                        if self.prediction[x_pos][y_pos] >= c:
                             self.y['captured'][index] = 1
                     else:
                         break
@@ -2262,7 +2222,7 @@ class ProMap:
                                                             y,
                                                             self.hx,
                                                             self.hy)
-                            if self.prediction[x_pos][y_pos] > c_i:
+                            if self.prediction[x_pos][y_pos] >= c_i:
                                 self.y['captured'][index] = index_c
                         else:
                             break
@@ -2300,7 +2260,7 @@ class ProMap:
 
     def validate(self, c=0, ap=None):
 
-        self.load_test_matrix(self.lp)
+        self.load_test_matrix()
 
         if ap is not None:
             if self.ap is None:
@@ -2412,7 +2372,7 @@ class Model:
 
         X = df[df["date"] < promap.start_prediction]
         y = df[df["date"] >= promap.start_prediction]
-        y = y[y["date"] <= promap.start_prediction + timedelta(days=promap.lp)]
+        y = y[y["date"] < promap.start_prediction + timedelta(days=promap.lp)]
 
         return X, y
 
