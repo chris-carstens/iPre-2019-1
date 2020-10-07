@@ -478,9 +478,9 @@ class STKDE:
                self.ap[i] else 0 for i in range(len(self.hr))]
         self.pai = PAI
 
-    def validate(self, c=0, ap=None, verbose=False, area=1000):
+    def validate(self, c=None, ap=None, verbose=False, area=1000):
         """
-        Si inrego asp, solo calcula PAI y HR, si ingreso c, calculo todo
+        Si inrego asp, solo calcula PAI y HR, si ingreso c, calculo
         Parameters
         ----------
         c
@@ -491,25 +491,30 @@ class STKDE:
         -------
 
         """
+        if self.pai is None:
+            self.calculate_pai()
 
-        if type(ap) == float or type(ap) == np.float64:
+        if ap is not None:
+            c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
 
-            print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap)) if (verbose or self.verbose) else None
-            self.pai_validated = af.find_hr_pai(self.pai, self.ap, ap)
-            print('HR: ', af.find_hr_pai(self.hr, self.ap, ap)) if (verbose or self.verbose) else None
+       # if type(ap) == float or type(ap) == np.float64:
 
-            self.hr_validated = af.find_hr_pai(self.hr, self.ap, ap)
+        #    print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap)) if (verbose or self.verbose) else None
+         #   self.pai_validated = af.find_hr_pai(self.pai, self.ap, ap)
+          #  print('HR: ', af.find_hr_pai(self.hr, self.ap, ap)) if (verbose or self.verbose) else None
+#
+ #           self.hr_validated = af.find_hr_pai(self.hr, self.ap, ap)
 
-        elif type(ap) == list or type(ap) == np.ndarray:
-            pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
-            for index, value in enumerate(pais):
-                print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
-            self.pai_validated = pais
-            hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
-            for index, value in enumerate(hrs):
-                print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
-            self.hr_validated = hrs
-        elif type(c) == float or type(c) == np.float64:
+  #      elif type(ap) == list or type(ap) == np.ndarray:
+   #         pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
+    #        for index, value in enumerate(pais):
+     #           print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
+      #      self.pai_validated = pais
+       #     hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
+        #    for index, value in enumerate(hrs):
+         #       print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
+          #  self.hr_validated = hrs
+        if type(c) == float or type(c) == np.float64:
             hits = self.f_delitos >= c
             h_nodos = self.f_nodos >= c
             self.hr_validated = np.sum(hits) / len(self.f_delitos)
@@ -524,14 +529,19 @@ class STKDE:
             self.pai_validated = self.hr_validated / (
                     np.sum(h_nodos) / len(self.f_nodos))
 
-        if not ap and c:
-            self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
-            self.d_incidents = hits.size
+      #  if ap is not None:
+       #     self.h_area = (self.hr_validated / self.pai_validated) * area
+
+
+       # elif ap is None:
+        self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
+        self.d_incidents = hits.size
+
 
        # print("total delitos:", len(self.f_delitos))
         #print("hits", np.sum(hits))
         #print("hr", self.hr_validated)
-        print(self.h_area)
+        print("H area:", self.h_area)
 
 
 class RForestRegressor(object):
@@ -2539,8 +2549,8 @@ class Model:
         if ap is not None:
             for m in self.models:
                 m.validate(ap)
-        for m in self.models:
-            m.validate(c=c, ap=ap)
+        #for m in self.models:
+         #   m.validate(c=c, ap=ap)
 
     def detected_incidences(self):
         for m in self.models:
