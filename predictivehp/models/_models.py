@@ -499,23 +499,23 @@ class STKDE:
         if ap is not None:
             c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
 
-       # if type(ap) == float or type(ap) == np.float64:
+        # if type(ap) == float or type(ap) == np.float64:
 
         #    print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap)) if (verbose or self.verbose) else None
-         #   self.pai_validated = af.find_hr_pai(self.pai, self.ap, ap)
-          #  print('HR: ', af.find_hr_pai(self.hr, self.ap, ap)) if (verbose or self.verbose) else None
-#
- #           self.hr_validated = af.find_hr_pai(self.hr, self.ap, ap)
+        #   self.pai_validated = af.find_hr_pai(self.pai, self.ap, ap)
+        #  print('HR: ', af.find_hr_pai(self.hr, self.ap, ap)) if (verbose or self.verbose) else None
+        #
+        #           self.hr_validated = af.find_hr_pai(self.hr, self.ap, ap)
 
-  #      elif type(ap) == list or type(ap) == np.ndarray:
-   #         pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
-    #        for index, value in enumerate(pais):
-     #           print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
-      #      self.pai_validated = pais
-       #     hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
+        #      elif type(ap) == list or type(ap) == np.ndarray:
+        #         pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
+        #        for index, value in enumerate(pais):
+        #           print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
+        #      self.pai_validated = pais
+        #     hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
         #    for index, value in enumerate(hrs):
-         #       print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
-          #  self.hr_validated = hrs
+        #       print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
+        #  self.hr_validated = hrs
         if type(c) == float or type(c) == np.float64:
             hits = self.f_delitos >= c
             h_nodos = self.f_nodos >= c
@@ -531,19 +531,17 @@ class STKDE:
             self.pai_validated = self.hr_validated / (
                     np.sum(h_nodos) / len(self.f_nodos))
 
-      #  if ap is not None:
-       #     self.h_area = (self.hr_validated / self.pai_validated) * area
+        #  if ap is not None:
+        #     self.h_area = (self.hr_validated / self.pai_validated) * area
 
-
-       # elif ap is None:
+        # elif ap is None:
         self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
         self.d_incidents = hits.size
 
-
-       # print("total delitos:", len(self.f_delitos))
-        #print("hits", np.sum(hits))
-        #print("hr", self.hr_validated)
-        print("H area:", self.h_area)
+        # print("total delitos:", len(self.f_delitos))
+        # print("hits", np.sum(hits))
+        # print("hr", self.hr_validated)
+        print("H area:", self.h_area) if (verbose or self.verbose) else None
 
 
 class RForestRegressor(object):
@@ -1116,7 +1114,7 @@ class RForestRegressor(object):
                 if idx == 0:
                     lvl = cells[('Dangerous_pred', '')] <= c[idx]
                 else:
-                    lvl = (c[idx - 1] < cells[('Dangerous_pred', '')]) &\
+                    lvl = (c[idx - 1] < cells[('Dangerous_pred', '')]) & \
                           (cells[('Dangerous_pred', '')] <= c[idx])
 
                 d_cells = cells[lvl]
@@ -1757,7 +1755,7 @@ class ProMap:
                  bw_x=400, bw_y=400, bw_t=7, length_prediction=7,
                  tiempo_entrenamiento=None,
                  start_prediction=date(2017, 11, 1),
-                 km2=1_000, name='ProMap', shps=None, verbose = False):
+                 km2=1_000, name='ProMap', shps=None, verbose=False):
 
         """
         Modelo Promap
@@ -1810,8 +1808,6 @@ class ProMap:
 
         self.hr, self.pai, self.ap = None, None, None
         self.verbose = verbose
-
-
 
     def set_parameters(self, bw=None, hx=None, hy=None, read_density=False,
                        verbose=False):
@@ -2131,14 +2127,14 @@ class ProMap:
         #     for index, value in enumerate(pais):
         #         print(f'AP: {ap[index]} PAI: {value}')
 
-    def plot_geopdf(self,dallas, ax, color, label,level):
+    def plot_geopdf(self, dallas, ax, color, label, level):
 
         geometry = [Point(xy) for xy in zip(
-                    np.array(self.y[self.y['captured'] == level][['x_point']]),
-                    np.array(self.y[self.y['captured'] == level][['y_point']]))
-                                   ]
+            np.array(self.y[self.y['captured'] == level][['x_point']]),
+            np.array(self.y[self.y['captured'] == level][['y_point']]))
+                    ]
         geo_df = gpd.GeoDataFrame(self.y[self.y['captured'] ==
-                                                        level],
+                                         level],
                                   crs=dallas.crs,
                                   geometry=geometry)
 
@@ -2232,7 +2228,7 @@ class ProMap:
             if c is None:
                 self.y['captured'] = 1
                 self.plot_geopdf(dallas, ax, kwargs['colors'][1],
-                                 label="Hits",level=1)
+                                 label="Hits", level=1)
 
             if type(c) == float or type(c) == np.float64:
                 for index, row in self.y.iterrows():
@@ -2267,7 +2263,7 @@ class ProMap:
                         else:
                             break
 
-                for index in range(len(c)+1):
+                for index in range(len(c) + 1):
                     self.plot_geopdf(dallas, ax, kwargs['colors'][index],
                                      label=f'nivel {index}',
                                      level=index)
@@ -2580,14 +2576,14 @@ class Model:
         c : {float, list, np.ndarray}
           Umbral de score
         """
-        if c is not None:
-            for m in self.models:
-                m.validate(c)
         if ap is not None:
             for m in self.models:
-                m.validate(ap)
-        #for m in self.models:
-         #   m.validate(c=c, ap=ap)
+                m.validate(ap=ap)
+        elif c is not None:
+            for m in self.models:
+                m.validate(c=c)
+        # for m in self.models:
+        #   m.validate(c=c, ap=ap)
 
     def detected_incidences(self):
         for m in self.models:
