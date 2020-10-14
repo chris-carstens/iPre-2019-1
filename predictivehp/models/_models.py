@@ -373,11 +373,11 @@ class STKDE:
                 self.plot_geopdf(np.array(self.X_test[['x']])[no_hits_bool],
                                  np.array(self.X_test[['y']])[no_hits_bool],
                                  self.X_test[no_hits_bool],
-                                 dallas, ax, "blue", "Misses")
+                                 dallas, ax, "red", "Misses")
                 self.plot_geopdf(np.array(self.X_test[['x']])[hits_bool],
                                  np.array(self.X_test[['y']])[hits_bool],
                                  self.X_test[hits_bool],
-                                 dallas, ax, "red", "Hits")
+                                 dallas, ax, "lime", "Hits")
             elif type(c) == list or type(c) == np.ndarray:
                 c = np.array(c).flatten()
                 c = c[c > 0]
@@ -1170,11 +1170,11 @@ class RForestRegressor(object):
                 hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
                 misses = gpd.GeoDataFrame(join_[join_['Hit'] == 0])
                 if not hits.empty:
-                    hits.plot(ax=ax, marker='x', markersize=0.25, color='red',
+                    hits.plot(ax=ax, marker='x', markersize=0.25, color='lime',
                               label="Hits")
                 if not misses.empty:
                     misses.plot(ax=ax, marker='x', markersize=0.25,
-                                color='blue',
+                                color='red',
                                 label="Misses")
             else:
                 for i in range(1, c.size + 2):
@@ -2181,7 +2181,7 @@ class ProMap:
 
             if c is None:
                 self.y['captured'] = 1
-                self.plot_geopdf(dallas, ax, kwargs['colors'][0],
+                self.plot_geopdf(dallas, ax, color='lime',
                                  label="Hits", level=1)
 
             if type(c) == float or type(c) == np.float64:
@@ -2197,9 +2197,9 @@ class ProMap:
                     else:
                         break
                 if c != 0.0:
-                    self.plot_geopdf(dallas, ax, kwargs['colors'][0],
+                    self.plot_geopdf(dallas, ax, color='red',
                                      label="Misses", level=0)
-                self.plot_geopdf(dallas, ax, kwargs['colors'][1],
+                self.plot_geopdf(dallas, ax, color='lime',
                                  label="Hits", level=1)
 
             elif type(c) == list or type(c) == np.ndarray:
@@ -2283,10 +2283,10 @@ class ProMap:
 
         hp_area = min(hp_area, self.cells_in_map)
 
-        total_incidents = np.sum(self.testing_matrix)
+        self.total_incidents = np.sum(self.testing_matrix)
         self.d_incidents = int(hits)
         self.h_area = hp_area * self.hx * self.hy * 10 ** -6
-        self.hr_validated = self.d_incidents / total_incidents
+        self.hr_validated = self.d_incidents / self.total_incidents
         self.pai_validated = self.hr_validated / (hp_area / self.cells_in_map)
 
     def calculate_ap_c(self):
@@ -2549,7 +2549,7 @@ class Model:
 
     def hr_validated(self):
         for m in self.models:
-            print(f"{m.name}: {m.hr_validated} incidents")
+            print(f"{m.name}: {m.hr_validated}")
 
     def pai_validated(self):
         for m in self.models:
