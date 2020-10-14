@@ -188,8 +188,9 @@ class STKDE:
                   ]
 
         # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
-        f_nodos = stkde.pdf(
-            np.array([x.flatten(), y.flatten(), t.flatten()]))
+        f_nodos = stkde.pdf(af.checked_points(
+            np.array([x.flatten(), y.flatten(), t.flatten()]),
+            self.shps['councils']))
 
         x, y, t = \
             np.array(self.X_test['x']), \
