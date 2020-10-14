@@ -84,7 +84,7 @@ class STKDE:
         self.shps = shps
         self.start_prediction = start_prediction
         self.lp = length_prediction
-        self.verbose = verbose
+
 
         self.hr, self.ap, self.pai = None, None, None
         self.f_delitos, self.f_nodos = None, None
@@ -188,9 +188,8 @@ class STKDE:
                   ]
 
         # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
-        f_nodos = stkde.pdf(af.checked_points(
-            np.array([x.flatten(), y.flatten(), t.flatten()]),
-            self.shps['councils']))
+        f_nodos = stkde.pdf(
+            np.array([x.flatten(), y.flatten(), t.flatten()]))
 
         x, y, t = \
             np.array(self.X_test['x']), \
@@ -522,7 +521,7 @@ class STKDE:
         # elif ap is None:
         self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
         self.d_incidents = np.sum(hits)
-        print("Total: ", len(self.f_delitos))
+        print("Total: ", len(self.f_delitos)) if verbose else None
         print("Hotspot area area:", self.h_area) if verbose else None
         print("Incidents detected:", self.d_incidents) if verbose else None
         print("Hit rate validated: :", self.hr_validated) if verbose else None
@@ -893,7 +892,7 @@ class RForestRegressor(object):
 
         if type(ap) in {float, np.float64}:
             c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
-            print('valor de C encontrado', c)
+            print('valor de C encontrado', c) if verbose else None
 
         elif type(ap) == list or type(ap) == np.ndarray:
             c = [af.find_c(self.ap, np.linspace(0, 1, 100), i) for i in ap]
@@ -1786,7 +1785,7 @@ class ProMap:
         self.lp = length_prediction
 
         self.hr, self.pai, self.ap = None, None, None
-        self.verbose = verbose
+
 
     def set_parameters(self, bw=None, hx=None, hy=None, read_density=False,
                        verbose=False):
@@ -1808,7 +1807,7 @@ class ProMap:
         if hx and hy:
             self.hx, self.hy = hx, hy
         self.read_density = read_density
-        self.verbose = verbose
+
 
     def print_parameters(self):
         """
@@ -1833,7 +1832,7 @@ class ProMap:
         """
 
         print("\nGenerating grid...\n") \
-            if (verbose or self.verbose) else None
+            if verbose  else None
 
         delta_x = self.hx / 2
         delta_y = self.hy / 2
@@ -1865,7 +1864,7 @@ class ProMap:
 
         points = np.array([self.xx.flatten(), self.yy.flatten()])
         print("\tFitting ProMap...\n") \
-            if (verbose or self.verbose) else None
+            if verbose else None
         # self.cells_in_map = af.checked_points_pm(points, self.shps[
         # 'councils'])  #
         self.cells_in_map = 141337
@@ -1887,7 +1886,7 @@ class ProMap:
 
         else:
             print("\tPredicting...\n") \
-                if (verbose or self.verbose) else None
+                if verbose else None
             self.prediction = np.zeros((self.bins_x, self.bins_y))
             # print('\nEstimando densidades...')
             # print(
@@ -1984,7 +1983,7 @@ class ProMap:
         """
 
         print("\tCalculando HR...\n") \
-            if (verbose or self.verbose) else None
+            if verbose else None
 
         self.load_train_matrix()
         self.load_test_matrix()
@@ -2043,7 +2042,7 @@ class ProMap:
         """
 
         print("\tCalculando PAI...\n") \
-            if (verbose or self.verbose) else None
+            if verbose else None
 
         if c is None:
             self.c_vector = np.linspace(0, 1, 100)
@@ -2293,7 +2292,7 @@ class Model:
         self.models = [] if not models else models
         self.data = data
         self.shps = shps
-        self.verbose = verbose
+
 
         self.set_parameters()
 
@@ -2450,14 +2449,14 @@ class Model:
                 dict_['RForestRegressor'] = self.prepare_rfr()
         return dict_
 
-    def add_model(self, m):
+    def add_model(self, m,verbose=False):
         """Añade el modelo a self.models
 
         Parameters
         ----------
         m : {STKDE, RForestRegressor, ProMap}
         """
-        print(f"\t{m.name} model added") if (self.verbose) else None
+        print(f"\t{m.name} model added") if verbose else None
         self.models.append(m)
 
     def set_parameters(self, m_name='', **kwargs):
