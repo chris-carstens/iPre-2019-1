@@ -526,7 +526,8 @@ class STKDE:
         # print("total delitos:", len(self.f_delitos))
         # print("hits", np.sum(hits))
         # print("hr", self.hr_validated)
-        print("H area:", self.h_area) if verbose else None
+        print("Hotspot area area:", self.h_area) if verbose else None
+        print("Incidents detected:", self.d_incidents) if verbose else None
         print("Hit rate validated: :", self.hr_validated) if verbose else None
         print("PAI validated:", self.pai_validated) if verbose else None
 
@@ -2505,7 +2506,7 @@ class Model:
                 continue
             m.predict(verbose=verbose)
 
-    def validate(self, c=None, ap=None):
+    def validate(self, c=None, ap=None, verbose=False):
         """
         Calcula la cantidad de incidentes detectados para los hotspots
         afines.
@@ -2519,10 +2520,10 @@ class Model:
         """
         if ap is not None:
             for m in self.models:
-                m.validate(ap=ap)
+                m.validate(ap=ap, verbose=verbose)
         elif c is not None:
             for m in self.models:
-                m.validate(c=c)
+                m.validate(c=c, verbose=verbose)
         # for m in self.models:
         #   m.validate(c=c, ap=ap)
 
