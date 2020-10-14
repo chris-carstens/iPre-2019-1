@@ -22,9 +22,9 @@ m.predict()
 # stkde.heatmap(incidences=True, c=0.1)
 
 # %% Plotter
-#pltr = Plotter(m)
+pltr = Plotter(m)
 #pltr.hr()
 #pltr.pai()
-# stkde.heatmap()
-#pltr.heatmap(ap=[0.1, 0.5], incidences=True)
-m.validate(ap=0.02)
+#stkde.heatmap()
+pltr.heatmap(c=0.0, incidences=True)
+m.validate(ap=0.2, verbose=True)
