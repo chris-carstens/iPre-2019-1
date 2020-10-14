@@ -2324,7 +2324,7 @@ class Model:
         X_train = data[data["date"] < stkde.start_prediction]
         X_test = data[data["date"] >= stkde.start_prediction]
         X_test = X_test[
-            X_test["date"] <= stkde.start_prediction
+            X_test["date"] < stkde.start_prediction
             + timedelta(days=stkde.lp)]
         return X_train, X_test
 
@@ -2374,6 +2374,7 @@ class Model:
         # de celdas en las capas [o distancia])
         # [('Incidents_i', self.model.weeks[-2])] for i in range(8)
         rfr = [m for m in self.models if m.name == 'RForestRegressor'][0]
+
         if 'geometry' not in rfr.data.columns:
             rfr.generate_data()
         if rfr.X is None:  # Sin las labels generadas
@@ -2586,8 +2587,7 @@ def create_model(data=None, shps=None,
     -------
     Model
     """
-    m = Model()
-    m.data = data
+    m = Model(data=data.copy(deep=True))
     m.shps = shps
 
     if use_promap:
@@ -2595,7 +2595,7 @@ def create_model(data=None, shps=None,
                         length_prediction=length_prediction)
         m.add_model(promap)
     if use_rfr:
-        rfr = RForestRegressor(data_0=data, shps=shps,
+        rfr = RForestRegressor(data_0=data.copy(deep=True), shps=shps,
                                start_prediction=start_prediction)
         m.add_model(rfr)
     if use_stkde:
