@@ -356,7 +356,7 @@ class STKDE:
             dallas.plot(ax=ax, alpha=.2, color="gray", zorder=1)
             plt.pcolormesh(x, y, z_plot.reshape(x.shape),
                            shading='gouraud',
-                           alpha=.4,
+                           alpha=.2,
                            zorder=2,
                            cmap="jet",
                            vmin=0,
@@ -877,7 +877,7 @@ class RForestRegressor(object):
         # print(f"{'Precision:':<10s}{precision:1.5f}")
         # print(f"{'Recall:':<10s}{recall:1.5f}")
 
-    def validate(self, c=0, ap=None):
+    def validate(self, c=0, ap=None,verbose=False):
         """
 
         Parameters
@@ -939,7 +939,7 @@ class RForestRegressor(object):
         self.hr_validated = self.d_incidents / data_nov.shape[0]
         self.pai_validated = self.hr_validated / (a / A)
 
-    def calculate_hr(self, c=None):
+    def calculate_hr(self, c=None,verbose=False):
         """
         Parameters
         ----------
@@ -983,7 +983,7 @@ class RForestRegressor(object):
                 self.hr = np.array(hr_l)
                 self.ap = np.array(ap_l)
 
-    def calculate_pai(self, c=None):
+    def calculate_pai(self, c=None,verbose=False):
         """
         Calcula el Predictive Accuracy Index (PAI)
 
@@ -2160,7 +2160,7 @@ class ProMap:
                        extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                        cmap='jet',
                        # vmin=0, vmax=1
-                       alpha=0.4, interpolation=None,
+                       alpha=0.3, interpolation=None,
                        vmin=0, vmax=1)
 
             dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
@@ -2204,8 +2204,8 @@ class ProMap:
                             break
 
                 for index in range(len(c) + 1):
-                    self.plot_geopdf(dallas, ax, kwargs['colors'][index],
-                                     label=f'nivel {index+1}',
+                    self.plot_geopdf(dallas, ax, kwargs['colors'][index+1],
+                                     label=f'Level {index+1}',
                                      level=index)
 
 
@@ -2234,7 +2234,7 @@ class ProMap:
         """
         return self.prediction
 
-    def validate(self, c=0, ap=None):
+    def validate(self, c=0, ap=None, verbose=False):
 
         self.load_test_matrix()
 
