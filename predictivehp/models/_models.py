@@ -233,20 +233,21 @@ class STKDE:
         return score_pdf
 
     def plot_geopdf(self, x_t, y_t, X_filtered, dallas, ax, color, label):
+        if X_filtered.size > 0:
 
-        geometry = [Point(xy) for xy in zip(x_t, y_t)]
-        geo_df = gpd.GeoDataFrame(X_filtered,
-                                  crs=dallas.crs,
-                                  geometry=geometry)
+            geometry = [Point(xy) for xy in zip(x_t, y_t)]
+            geo_df = gpd.GeoDataFrame(X_filtered,
+                                      crs=dallas.crs,
+                                      geometry=geometry)
 
-        geo_df.plot(ax=ax,
-                    markersize=3,
-                    color=color,
-                    marker='o',
-                    zorder=3,
-                    label=label,
-                    )
-        plt.legend()
+            geo_df.plot(ax=ax,
+                        markersize=3,
+                        color=color,
+                        marker='o',
+                        zorder=3,
+                        label=label,
+                        )
+            plt.legend()
 
     def heatmap(self, c=None, show_score=True, incidences=False,
                 savefig=False, fname='STKDE_heatmap.png', ap=None, verbose=False, **kwargs):
@@ -523,9 +524,6 @@ class STKDE:
         self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
         self.d_incidents = np.sum(hits)
 
-        # print("total delitos:", len(self.f_delitos))
-        # print("hits", np.sum(hits))
-        # print("hr", self.hr_validated)
         print("Hotspot area area:", self.h_area) if verbose else None
         print("Incidents detected:", self.d_incidents) if verbose else None
         print("Hit rate validated: :", self.hr_validated) if verbose else None
