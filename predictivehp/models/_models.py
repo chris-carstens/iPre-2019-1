@@ -197,9 +197,8 @@ class STKDE:
             np.array(self.X_test['y']), \
             np.array(self.X_test['y_day'])
         ti = np.repeat(max(t_training), x.size)
-        f_delitos = stkde.pdf(af.checked_points(
-            np.array([x.flatten(), y.flatten(), ti.flatten()]),
-            self.shps["councils"]))
+        f_delitos = stkde.pdf(
+            np.array([x.flatten(), y.flatten(), ti.flatten()]))
 
         f_max = max([f_nodos.max(), f_delitos.max()])
 
@@ -523,7 +522,7 @@ class STKDE:
         # elif ap is None:
         self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
         self.d_incidents = np.sum(hits)
-
+        print("Total: ", len(self.f_delitos))
         print("Hotspot area area:", self.h_area) if verbose else None
         print("Incidents detected:", self.d_incidents) if verbose else None
         print("Hit rate validated: :", self.hr_validated) if verbose else None
@@ -2316,15 +2315,15 @@ class Model:
         data['x'] = data['geometry'].apply(lambda x: x.x)
         data['y'] = data['geometry'].apply(lambda x: x.y)
 
-        data = data.sample(n=stkde.sn, replace=False, random_state=0)
-        data.sort_values(by=['date'], inplace=True)
-        data.reset_index(drop=True, inplace=True)
+        #data = data.sample(n=stkde.sn, replace=False, random_state=0)
+        #data.sort_values(by=['date'], inplace=True)
+        #data.reset_index(drop=True, inplace=True)
 
         # División en training data (X_train) y testing data (y)
         X_train = data[data["date"] < stkde.start_prediction]
         X_test = data[data["date"] >= stkde.start_prediction]
         X_test = X_test[
-            X_test["date"] <= stkde.start_prediction
+            X_test["date"] < stkde.start_prediction
             + timedelta(days=stkde.lp)]
         return X_train, X_test
 
