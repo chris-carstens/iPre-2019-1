@@ -101,7 +101,7 @@ class STKDE:
 
         # print('-' * 30)
 
-    def set_parameters(self, bw, verbose=False):
+    def set_parameters(self, bw):
         """
 
         Parameters
@@ -117,7 +117,6 @@ class STKDE:
         # Reentrenamos el modelo con nuevo bw
         if self.df is not None:
             self.fit(self.X_train, self.X_test)
-        self.verbose = verbose
 
     def print_parameters(self):
         """
@@ -145,7 +144,7 @@ class STKDE:
         X_t : pd.DataFrame
           Test data.
         """
-        print("\tFitting Model...") if (verbose or self.verbose) else None
+        print("\tFitting Model...") if verbose else None
         self.X_train, self.X_test = X, X_t
 
         self.kde = MyKDEMultivariate(
@@ -168,7 +167,7 @@ class STKDE:
           la malla original con llave el grupo
         """
 
-        print("\tMaking predictions...") if (verbose or self.verbose) else None
+        print("\tMaking predictions...") if verbose else None
         if self.f_delitos is not None:
             return self.f_delitos, self.f_nodos
 
@@ -260,7 +259,7 @@ class STKDE:
           Tiempo fijo para evaluar densidad en la predicción
         """
 
-        print('\tPlotting Heatmap...') if (verbose or self.verbose) else None
+        print('\tPlotting Heatmap...') if verbose else None
         dallas = self.shps['streets']
         fig, ax = plt.subplots(figsize=[6.75] * 2)  # Sacar de _config.py
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
@@ -306,7 +305,7 @@ class STKDE:
                 c_array.size)]
             area_percentaje = [i / len(z_filtered) for i in area_h]
             c = float(af.find_c(area_percentaje, c_array, ap))
-            print('c value: ', c) if (verbose or self.verbose) else None
+            print('c value: ', c) if verbose else None
 
 
 
@@ -318,7 +317,7 @@ class STKDE:
             c = [af.find_c(area_percentaje, c_array, i) for i in ap]
             c = sorted(list(set(c)))
 
-            print('c values: ', c) if (verbose or self.verbose) else None
+            print('c values: ', c) if verbose else None
 
             if len(c) == 1:
                 c = c[0]
@@ -496,25 +495,12 @@ class STKDE:
             self.calculate_pai()
 
         if ap is not None:
-            c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
-
-        # if type(ap) == float or type(ap) == np.float64:
-
-        #    print('PAI: ', af.find_hr_pai(self.pai, self.ap, ap)) if (verbose or self.verbose) else None
-        #   self.pai_validated = af.find_hr_pai(self.pai, self.ap, ap)
-        #  print('HR: ', af.find_hr_pai(self.hr, self.ap, ap)) if (verbose or self.verbose) else None
-        #
-        #           self.hr_validated = af.find_hr_pai(self.hr, self.ap, ap)
-
-        #      elif type(ap) == list or type(ap) == np.ndarray:
-        #         pais = [af.find_hr_pai(self.pai, self.ap, i) for i in ap]
-        #        for index, value in enumerate(pais):
-        #           print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
-        #      self.pai_validated = pais
-        #     hrs = [af.find_hr_pai(self.hr, self.ap, i) for i in ap]
-        #    for index, value in enumerate(hrs):
-        #       print(f'AP: {ap[index]} PAI: {value}') if (verbose or self.verbose) else None
-        #  self.hr_validated = hrs
+            if type(ap) == list or type(ap) == np.ndarray:
+                c = []
+                for ap_i in ap:
+                    c.append(af.find_c(self.ap, np.linspace(0, 1, 100), ap_i))
+            elif type(ap) == float or type(ap) == np.float64:
+                c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
         if type(c) == float or type(c) == np.float64:
             hits = self.f_delitos >= c
             h_nodos = self.f_nodos >= c
@@ -536,12 +522,13 @@ class STKDE:
         # elif ap is None:
         self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
         self.d_incidents = np.sum(hits)
-        print(self.d_incidents)
 
         # print("total delitos:", len(self.f_delitos))
         # print("hits", np.sum(hits))
         # print("hr", self.hr_validated)
-        print("H area:", self.h_area) if (verbose or self.verbose) else None
+        print("H area:", self.h_area) if verbose else None
+        print("Hit rate validated: :", self.hr_validated) if verbose else None
+        print("PAI validated:", self.pai_validated) if verbose else None
 
 
 class RForestRegressor(object):
