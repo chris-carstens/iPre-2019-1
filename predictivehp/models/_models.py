@@ -439,7 +439,7 @@ class STKDE:
                     Area Percentage para cada grupo
         """
         if c is None:
-            c = np.linspace(0, 1, 100)
+            c = np.linspace(0, 1, 1000)
         if self.f_delitos is None:
             self.predict()
         f_delitos, f_nodos = self.f_delitos, self.f_nodos
@@ -470,7 +470,7 @@ class STKDE:
                     Area Percentage para cada grupo
         """
         if c is None:
-            c = np.linspace(0, 1, 100)
+            c = np.linspace(0, 1, 1000)
 
         if not self.hr:
             self.calculate_hr(c)
@@ -491,16 +491,15 @@ class STKDE:
         -------
 
         """
-        if self.pai is None:
-            self.calculate_pai()
+        self.calculate_pai()
 
         if ap is not None:
             if type(ap) == list or type(ap) == np.ndarray:
                 c = []
                 for ap_i in ap:
-                    c.append(af.find_c(self.ap, np.linspace(0, 1, 100), ap_i))
+                    c.append(af.find_c(self.ap, np.linspace(0, 1, 1000), ap_i))
             elif type(ap) == float or type(ap) == np.float64:
-                c = af.find_c(self.ap, np.linspace(0, 1, 100), ap)
+                c = af.find_c(self.ap, np.linspace(0, 1, 1000), ap)
         if type(c) == float or type(c) == np.float64:
             hits = self.f_delitos >= c
             h_nodos = self.f_nodos >= c
@@ -520,7 +519,10 @@ class STKDE:
         #     self.h_area = (self.hr_validated / self.pai_validated) * area
 
         # elif ap is None:
-        self.h_area = np.sum(h_nodos) * area / len(self.f_nodos)
+        dx = (self.x_max - self.x_min) / 100
+        dy = (self.y_max - self.y_min) / 100
+        v = self.f_nodos > c
+        self.h_area = np.sum(v)*dx*dy/(10**6)
         self.d_incidents = np.sum(hits)
         print("Total: ", len(self.f_delitos)) if verbose else None
         print("Hotspot area area:", self.h_area) if verbose else None
@@ -766,8 +768,7 @@ class RForestRegressor(object):
 
         OBS.
 
-        >>> self.data  # es guardado en self.generate_X()
-        >>> self.X  # es guardado en self.generate_X()
+
 
         luego, si self.read_X = True, no es necesario realizar un
         self.fit() o self.predict()
