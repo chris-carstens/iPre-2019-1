@@ -300,7 +300,7 @@ class STKDE:
         z_filtered = z_filtered / max_pdf
 
         if type(ap) == float or type(ap) == np.float64:
-            c_array = np.linspace(0, 1, 1000)
+            c_array = self.c_vector
             area_h = [np.sum(z_filtered >= c_array[i]) for i in range(
                 c_array.size)]
             area_percentaje = [i / len(z_filtered) for i in area_h]
@@ -310,7 +310,7 @@ class STKDE:
 
 
         elif type(ap) == list or type(ap) == np.ndarray:
-            c_array = np.linspace(0, 1, 1000)
+            c_array = self.c_vector
             area_h = [np.sum(z_filtered >= c_array[i]) for i in range(
                 c_array.size)]
             area_percentaje = [i / len(z_filtered) for i in area_h]
@@ -440,6 +440,7 @@ class STKDE:
         """
         if c is None:
             c = np.linspace(0, 1, 1000)
+        self.c_vector = c
         if self.f_delitos is None:
             self.predict()
         f_delitos, f_nodos = self.f_delitos, self.f_nodos
@@ -472,6 +473,8 @@ class STKDE:
         if c is None:
             c = np.linspace(0, 1, 1000)
 
+        self.c_vector = c
+
         if not self.hr:
             self.calculate_hr(c)
         PAI = [float(self.hr[i]) / float(self.ap[i]) if
@@ -497,9 +500,9 @@ class STKDE:
             if type(ap) == list or type(ap) == np.ndarray:
                 c = []
                 for ap_i in ap:
-                    c.append(af.find_c(self.ap, np.linspace(0, 1, 1000), ap_i))
+                    c.append(af.find_c(self.ap, self.c_vector, ap_i))
             elif type(ap) == float or type(ap) == np.float64:
-                c = af.find_c(self.ap, np.linspace(0, 1, 1000), ap)
+                c = af.find_c(self.ap, self.c_vector, ap)
         if type(c) == float or type(c) == np.float64:
             hits = self.f_delitos >= c
             h_nodos = self.f_nodos >= c
@@ -893,11 +896,11 @@ class RForestRegressor(object):
                 self.calculate_pai(np.linspace(0, 1, 1000))
 
         if type(ap) in {float, np.float64}:
-            c = af.find_c(self.ap, np.linspace(0, 1, 1000), ap)
+            c = af.find_c(self.ap, self.c_vector, ap)
             print('valor de C encontrado', c) if verbose else None
 
         elif type(ap) == list or type(ap) == np.ndarray:
-            c = [af.find_c(self.ap, np.linspace(0, 1, 1000), i) for i in ap]
+            c = [af.find_c(self.ap, self.c_vector, i) for i in ap]
             c = sorted(list(set(c)))
             if len(c) == 1:
                 c = c[0]
@@ -974,6 +977,7 @@ class RForestRegressor(object):
                     return X[X[('Dangerous_pred', '')] >= c].shape[0]
 
                 c_arr = c
+                self.c_vector = c_arr
                 hr_l = []
                 ap_l = []
                 for c in c_arr:
@@ -1005,6 +1009,7 @@ class RForestRegressor(object):
             return hr / ap
         else:
             c_arr = c
+            self.c_vector = c_arr
             hr_l = []
             ap_l = []
             pai_l = []
@@ -1042,11 +1047,11 @@ class RForestRegressor(object):
         if self.ap is None:
             self.calculate_pai(np.linspace(0, 1, 1000))
         if type(ap) == float or type(ap) == np.float64:
-            c = af.find_c(self.ap, np.linspace(0, 1, 1000), ap)
+            c = af.find_c(self.ap, self.c_vector, ap)
 
         elif type(ap) == list or type(ap) == np.ndarray:
             c = sorted([
-                af.find_c(self.ap, np.linspace(0, 1, 1000), i) for i in ap
+                af.find_c(self.ap, self.c_vector, i) for i in ap
             ])
 
         cells = self.X[[('geometry', ''), ('Dangerous_pred', '')]]
@@ -2002,8 +2007,8 @@ class ProMap:
 
         if c is None:
             self.c_vector = np.linspace(0, 1, 1000)
-        else:
-            self.c_vector = c
+
+        self.c_vector = c
 
         hits_n = []
 
@@ -2048,8 +2053,8 @@ class ProMap:
 
         if c is None:
             self.c_vector = np.linspace(0, 1, 1000)
-        else:
-            self.c_vector = c
+
+        self.c_vector = c
 
         if not self.hr:
             self.calculate_hr(c)
@@ -2110,11 +2115,11 @@ class ProMap:
         fig, ax = plt.subplots(figsize=[6.75] * 2)
 
         if type(ap) == float or type(ap) == np.float64:
-            c = af.find_c(self.ap, np.linspace(0, 1, 1000), ap)
+            c = af.find_c(self.ap, self.c_vector, ap)
 
 
         elif type(ap) == list or type(ap) == np.ndarray:
-            c = [af.find_c(self.ap, np.linspace(0, 1, 1000), i) for i in ap]
+            c = [af.find_c(self.ap, self.c_vector, i) for i in ap]
             c = sorted(list(set(c)))
             if len(c) == 1:
                 c = c[0]
@@ -2243,11 +2248,11 @@ class ProMap:
                 self.calculate_ap_c()
 
         if type(ap) == float or type(ap) == np.float64:
-            c = af.find_c(self.ap, np.linspace(0, 1, 1000), ap)
+            c = af.find_c(self.ap, self.c_vector, ap)
 
 
         elif type(ap) == list or type(ap) == np.ndarray:
-            c = [af.find_c(self.ap, np.linspace(0, 1, 1000), i) for i in ap]
+            c = [af.find_c(self.ap, self.c_vector, i) for i in ap]
             c = sorted(list(set(c)))
             if len(c) == 1:
                 c = c[0]
@@ -2276,13 +2281,12 @@ class ProMap:
         self.pai_validated = self.hr_validated / (hp_area / self.cells_in_map)
 
     def calculate_ap_c(self):
-        c = np.linspace(0, 1, 1000)
-        self.c_vector = c
+
         area_hits = []
 
-        for i in range(c.size):
+        for i in range(self.c_vector.size):
             area_hits.append(
-                np.count_nonzero(self.prediction >= c[i]))
+                np.count_nonzero(self.prediction >= self.c_vector[i]))
 
         self.ap = [1 if j > 1 else j for j in [i / self.cells_in_map for
                                                i in area_hits]]
