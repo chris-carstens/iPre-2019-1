@@ -1,16 +1,15 @@
+from datetime import datetime
 from math import floor, sqrt, ceil
 from time import time
-from datetime import datetime
 
 import geopandas as gpd
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.signal import convolve2d
 from shapely.geometry import Point
-
 from sodapy import Socrata
+
 import predictivehp._credentials as cre
 
 
@@ -25,7 +24,7 @@ def timer(fn):
     return inner
 
 
-def get_data(year=2017, n=150000, city='Dallas'):
+def get_data(year=2017, n=150000):
     # print("\nRequesting data...")
     with Socrata(cre.socrata_domain,
                  cre.API_KEY_S,
@@ -38,14 +37,12 @@ def get_data(year=2017, n=150000, city='Dallas'):
                     year1,
                     date1,
                     month1,
-                    time1,
                     x_coordinate,
                     y_cordinate,
                     offincident
                 where
                     year1 = {year}
                     and date1 is not null
-                    and time1 is not null
                     and x_coordinate is not null
                     and y_cordinate is not null
                     and offincident = 'BURGLARY OF HABITATION - FORCED ENTRY'
@@ -90,6 +87,104 @@ def get_data(year=2017, n=150000, city='Dallas'):
         df.reset_index(drop=True, inplace=True)
 
         return df
+
+
+def get_Socrata_data(domain=cre.socrata_domain, app_token=cre.API_KEY_S,
+                     username=cre.USERNAME_S, password=cre.PASSWORD_S,
+                     year=2017,
+                     offincident="'BURGLARY OF HABITATION - FORCED ENTRY'",
+                     n=150000,
+                     ds_identifier=cre.socrata_dataset_identifier,
+                     content_type='json',
+                     save=False,
+                     path='../predictivehp/data/SOCRATA_DATA_Dallas.xlsx'):
+    """
+
+    Parameters
+    ----------
+    domain : str
+      domain you wish you to access
+    app_token : str
+      Socrata application token
+    username : str
+      Socrata username
+    password : str
+      Socrata password
+    year : int
+      Año a filtrar de la database
+    offincident : str
+      Tipo de incidentes
+    n : int
+      Nº máximo de registros a extraer
+    ds_identifier : str
+      Socrata Dataset identifier
+    content_type : str
+    save : bool
+    path : str
+      Path donde guarda el archivo excel generado
+
+    Returns
+    -------
+    pd.DataFrame
+    """
+    with Socrata(domain, app_token,
+                 username=username, password=password) as client:
+        query = \
+            f"""
+                select
+                    incidentnum,
+                    year1,
+                    date1,
+                    x_coordinate,
+                    y_cordinate,
+                    offincident
+                where
+                    year1 = {year}
+                    and date1 is not null
+                    and x_coordinate is not null
+                    and y_cordinate is not null
+                    and offincident = {offincident}
+                order by date1
+                limit
+                    {n}
+                """
+
+        results = client.get(ds_identifier,
+                             query=query, content_type=content_type)
+        df = pd.DataFrame.from_records(results)
+
+        # DB Cleaning & Formatting
+        for col in ['x_coordinate', 'y_cordinate']:
+            df.loc[:, col] = df[col].apply(
+                lambda x: float(x))
+        df.loc[:, 'x_coordinate'] = df['x_coordinate'].apply(
+            lambda x: float(x))
+        df.loc[:, 'y_cordinate'] = df['y_cordinate'].apply(
+            lambda x: float(x))
+        df.loc[:, 'date1'] = df['date1'].apply(  # OJO AL SEPARADOR ' '
+            lambda x: datetime.strptime(
+                x.split(' ')[0], '%Y-%m-%d')
+        )
+
+        df = df[['x_coordinate', 'y_cordinate', 'date1']]
+        df.rename(columns={'x_coordinate': 'x',
+                           'y_cordinate': 'y',
+                           'date1': 'date'},
+                  inplace=True)
+
+        df.sort_values(by=['date'], inplace=True)
+        df.reset_index(drop=True, inplace=True)
+
+        if save:
+            if city != 'Dallas':
+                df.to_excel(f'../predictivehp/data/SOCRATA_DATA_{city}.xlsx')
+            else:
+                df.to_excel(path)
+        return df
+
+
+def get_stored_data(path='../predictivehp/data/SOCRATA_DATA_Dallas.xlsx'):
+    return pd.read_excel(path, index_col=0)
 
 
 def shps_processing(s_shp='', c_shp='', cl_shp=''):
@@ -279,7 +374,7 @@ def to_df_col(D):
     return D.flatten()
 
 
-def filter_cells(df, shp):
+def filter_cells(df, shp, verbose=False):
     """Completa la columna "in_dallas" del dataframe, explicitando cuales
     de las celdas se encuentran dentro de Dallas.
 
@@ -296,22 +391,22 @@ def filter_cells(df, shp):
     """
     aux_df = df
 
-    print('\tFiltering cells...')
-    print('\t\tLoading shapefile...')
+    print('\tFiltering cells...') if verbose else None
+    print('\t\tLoading shapefile...') if verbose else None
     dallas_shp = shp
-    print('\t\tCreating GeoDataframe...')
+    print('\t\tCreating GeoDataframe...') if verbose else None
     geo_pd = gpd.GeoDataFrame(aux_df[[('geometry', ''), ('in_dallas', '')]],
                               crs=3857)
 
     # Borramos el segundo nivel ''
     geo_pd = geo_pd.T.reset_index(level=1, drop=True).T
     geo_pd.crs = dallas_shp.crs
-    print('\t\tFiltering...')
+    print('\t\tFiltering...') if verbose else None
     geo_pd = gpd.tools.sjoin(geo_pd, dallas_shp,
                              how='left',
                              op='intersects')[['in_dallas', 'index_right']]
 
-    print('\t\tUpdating dataframe... ', end='')
+    print('\t\tUpdating dataframe... ', end='') if verbose else None
     geo_pd.fillna(value={'index_right': 14}, inplace=True)  # para filtrar
     geo_pd.loc[geo_pd['index_right'] < 14, 'in_dallas'] = 1
 
@@ -320,7 +415,7 @@ def filter_cells(df, shp):
     # Filtramos el data inicial con la columna añadida
     aux_df = aux_df[aux_df[('in_dallas', '')] == 1]
 
-    print(f'finished!', end=" ")
+    print(f'finished!', end=" ") if verbose else None
     return aux_df
 
 
@@ -598,6 +693,6 @@ if __name__ == '__main__':
     hr = [1, 2, 3, 4, 5, 6, 7]
     pai = [8, 9, 10, 11, 12, 13, 14]
 
-    print(find_c(area_array, np.array(c), ap = 0.2))
+    print(find_c(area_array, np.array(c), ap=0.2))
     print(find_hr_pai(hr, area_array, ap=0.2))
     print(find_hr_pai(pai, area_array, ap=0.2))

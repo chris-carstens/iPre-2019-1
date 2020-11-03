@@ -21,6 +21,8 @@ from ._aux_functions import print_mes
 from ._aux_functions import checked_points_pm
 
 from ._aux_functions import get_data
+from ._aux_functions import get_Socrata_data
+from ._aux_functions import get_stored_data
 from ._aux_functions import shps_processing
 
 from ._cmaps import truncate_cmap
@@ -50,6 +52,8 @@ __all__ = [
     'checked_points_pm',
 
     'get_data',
+    'get_Socrata_data',
+    'get_stored_data',
     'shps_processing',
 
     'truncate_cmap'

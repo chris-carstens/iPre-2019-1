@@ -756,7 +756,7 @@ class RForestRegressor(object):
         X[('in_dallas', '')] = 0
 
         # Filtrado de celdas (llenado de la columna 'in_dallas')
-        X = af.filter_cells(df=X, shp=self.shps['councils'])
+        X = af.filter_cells(df=X, shp=self.shps['councils'], verbose=verbose)
         X.drop(columns=[('in_dallas', '')], inplace=True)
 
         self.X = X
@@ -877,7 +877,7 @@ class RForestRegressor(object):
         # print(f"{'Precision:':<10s}{precision:1.5f}")
         # print(f"{'Recall:':<10s}{recall:1.5f}")
 
-    def validate(self, c=0, ap=None,verbose=False):
+    def validate(self, c=0, ap=None, verbose=False):
         """
 
         Parameters
@@ -2352,7 +2352,7 @@ class Model:
 
         return X, y
 
-    def prepare_rfr(self, mode='train', label='default'):
+    def prepare_rfr(self, mode='train', label='default', verbose=False):
         """Prepara el set de datos correspondiente para entrenar RFR y
         predecir para un set dado
 
@@ -2378,7 +2378,7 @@ class Model:
         if 'geometry' not in rfr.data.columns:
             rfr.generate_data()
         if rfr.X is None:  # Sin las labels generadas
-            rfr.generate_X()
+            rfr.generate_X(verbose)
 
         if mode == 'train':
             # print("\nPreparing Training Data for RFR...")
@@ -2436,7 +2436,7 @@ class Model:
             y = y[('Dangerous', '')]
         return X, y
 
-    def prepare_data(self):
+    def prepare_data(self, verbose=False):
         dict_ = {}
         for m in self.models:
             m.verbose = True
@@ -2446,9 +2446,8 @@ class Model:
                 dict_['ProMap'] = self.prepare_promap()
             else:  # RFR
                 if m.read_X:
-                    print('Reading X dataframe...') if m.verbose else None
                     m.X = pd.read_pickle('predictivehp/data/X.pkl')
-                dict_['RForestRegressor'] = self.prepare_rfr()
+                dict_['RForestRegressor'] = self.prepare_rfr(verbose=verbose)
         return dict_
 
     def add_model(self, m,verbose=False):
@@ -2493,7 +2492,7 @@ class Model:
 
     def fit(self, data_p=None, verbose=False, **kwargs):
         if data_p is None:
-            data_p = self.prepare_data()
+            data_p = self.prepare_data(verbose=verbose)
         for m in self.models:
             m.fit(*data_p[m.name], verbose=verbose, **kwargs)
 
