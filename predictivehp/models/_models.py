@@ -424,7 +424,8 @@ class STKDE:
                                      f"Level {i}")
 
         else:
-            dallas.plot(ax=ax, alpha=.2, color="gray", zorder=2)
+            if dallas is not None:
+                dallas.plot(ax=ax, alpha=.2, color="gray", zorder=2)
             plt.pcolormesh(x, y, z_plot.reshape(x.shape),
                            shading='gouraud',
                            zorder=1,
