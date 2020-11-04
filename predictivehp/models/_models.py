@@ -2391,6 +2391,9 @@ class Model:
 
         data['x'] = data['geometry'].apply(lambda x: x.x)
         data['y'] = data['geometry'].apply(lambda x: x.y)
+        data.loc[:, 'y_day'] = data["date"].apply(
+            lambda x: x.timetuple().tm_yday
+        )
 
         #data = data.sample(n=stkde.sn, replace=False, random_state=0)
         #data.sort_values(by=['date'], inplace=True)
