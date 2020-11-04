@@ -1105,11 +1105,11 @@ class RForestRegressor(object):
             d_streets.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
         if c is None:
-            d_cells = cells[cells[('Dangerous_pred', '')] >= 0]
+            d_cells = cells[cells[('Dangerous_pred', '')] >= 0.0]
             d_cells.plot(ax=ax, column=('Dangerous_pred', ''), cmap='jet',
                          marker=',', markersize=0.2)  # Heatmap con rango
             cells['Hit'] = np.where(
-                cells[('Dangerous_pred', '')] >= 0, 1, 0
+                cells[('Dangerous_pred', '')] >= 0.0, 1, 0
             )
 
             # La colorbar se muestra solo cuando es necesario
@@ -1126,8 +1126,8 @@ class RForestRegressor(object):
             c_bar.ax.set_ylabel('Danger Score')
         elif type(c) in {float, int, np.float64}:
             d_cells = cells[cells[('Dangerous_pred', '')] >= c]
-            d_cells.plot(ax=ax, marker='.', markersize=1, color='darkred',
-                         alpha=0.3)  # Heatmap binario
+            d_cells.plot(ax=ax, marker='o', markersize=10, color='darkred',
+                         alpha=0.5)  # Heatmap binario
             cells['Hit'] = np.where(
                 cells[('Dangerous_pred', '')] >= c, 1, 0
             )
@@ -1191,23 +1191,24 @@ class RForestRegressor(object):
             # )
 
         if incidences:  # Se plotean los incidentes
-            data_nov = pd.DataFrame(
-                self.data[(date(2017, 11, 1) <= self.data.date) &
-                          (self.data.date <= date(2017, 11, 7))])
-            data_nov.columns = pd.MultiIndex.from_product(
-                [data_nov.columns, ['']]
+            f_data = pd.DataFrame(
+                self.data[(self.start_prediction <= self.data.date) &
+                          (self.data.date <= self.start_prediction + timedelta(self.length_pred))])
+            f_data.columns = pd.MultiIndex.from_product(
+                [f_data.columns, ['']]
             )
             cells.drop(columns='geometry', inplace=True)
-            join_ = data_nov.join(cells)
+            join_ = f_data.join(cells)
 
             if c is None or type(c) in {float, int, np.float64}:
                 hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
                 misses = gpd.GeoDataFrame(join_[join_['Hit'] == 0])
                 if not hits.empty:
-                    hits.plot(ax=ax, marker='x', markersize=0.25, color='lime',
+                    hits.plot(ax=ax, marker='x', markersize=1,
+                              color='lime',
                               label="Hits")
                 if not misses.empty:
-                    misses.plot(ax=ax, marker='x', markersize=0.25,
+                    misses.plot(ax=ax, marker='x', markersize=1,
                                 color='red',
                                 label="Misses")
             else:
@@ -1215,7 +1216,7 @@ class RForestRegressor(object):
                     d = gpd.GeoDataFrame(join_[join_[f'D{i}'] == 1])
                     if not d.empty:
                         d.plot(
-                            ax=ax, marker='x', markersize=0.25,
+                            ax=ax, marker='x', markersize=1,
                             color=kwargs['colors'][i], label=f'Level {i}'
                         )
 
