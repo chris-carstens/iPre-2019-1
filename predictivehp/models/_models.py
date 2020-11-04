@@ -1756,7 +1756,7 @@ class RForestRegressor(object):
 
 
 class ProMap:
-    def __init__(self, n_datos=3600, read_density=False,
+    def __init__(self,data=None, n_datos=3600, read_density=False,
                  hx=100, hy=100,
                  bw_x=400, bw_y=400, bw_t=7, length_prediction=7,
                  tiempo_entrenamiento=None,
@@ -1794,6 +1794,7 @@ class ProMap:
             GeoDataFrame que contiene información sobre la ciudad de Dallas
         """
         # DATA
+        self.data = data
         self.n = n_datos
         self.start_prediction = start_prediction
         self.X, self.y = None, None
@@ -1803,8 +1804,20 @@ class ProMap:
         # MAP
         self.hx, self.hy, self.km2 = hx, hy, km2
         self.bw_x, self.bw_y, self.bw_t = bw_x, bw_y, bw_t
-        self.x_min, self.y_min, self.x_max, self.y_max = self.shps[
-            'streets'].total_bounds
+
+        if self.shps is not None:
+            self.x_min, self.y_min, self.x_max, self.y_max = self.shps[
+                'streets'].total_bounds
+        else:
+            delta_x = 0.1 * self.data.x.mean()
+            delta_y = 0.1 * self.data.y.mean()
+            self.x_min = self.data.x.min() - delta_x
+            self.x_max = self.data.x.max() + delta_x
+            self.y_min = self.data.y.min() - delta_y
+            self.y_max = self.data.y.max() + delta_y
+
+
+
         self.bins_x = int(round(abs(self.x_max - self.x_min) / self.hx))
         self.bins_y = int(round(abs(self.y_max - self.y_min) / self.hy))
 
@@ -1893,9 +1906,16 @@ class ProMap:
         points = np.array([self.xx.flatten(), self.yy.flatten()])
         print("\tFitting ProMap...\n") \
             if verbose else None
-        # self.cells_in_map = af.checked_points_pm(points, self.shps[
-        # 'councils'])  #
-        self.cells_in_map = 141337
+
+        if self.shps is not None:
+            # self.cells_in_map = af.checked_points_pm(points, self.shps[
+            # 'councils'])  #
+            self.cells_in_map = 141337
+        else:
+            cells_x = abs(self.x_min - self.x_max)//self.hx
+            cells_y = abs(self.y_min - self.y_max)//self.hy
+            self.cells_in_map = cells_x*cells_y
+
         self.load_test_matrix()
 
     def predict(self, verbose=False):
@@ -2099,10 +2119,16 @@ class ProMap:
             np.array(self.y[self.y['captured'] == level][['x_point']]),
             np.array(self.y[self.y['captured'] == level][['y_point']]))
                     ]
-        geo_df = gpd.GeoDataFrame(self.y[self.y['captured'] ==
-                                         level],
-                                  crs=dallas.crs,
-                                  geometry=geometry)
+
+        if self.shps is not None:
+            geo_df = gpd.GeoDataFrame(self.y[self.y['captured'] ==
+                                             level],
+                                      crs=dallas.crs,
+                                      geometry=geometry)
+        else:
+            geo_df = gpd.GeoDataFrame(self.y[self.y['captured'] ==
+                                             level],
+                                      geometry=geometry)
 
         geo_df.plot(ax=ax,
                     markersize=3,
@@ -2129,7 +2155,10 @@ class ProMap:
         -------
 
         """
-        dallas = self.shps['streets']
+        if self.shps is not None:
+            dallas = self.shps['streets']
+        else:
+            dallas = None
         # dallas.crs = 2276
         # dallas.to_crs(epsg=3857, inplace=True)
 
@@ -2189,7 +2218,8 @@ class ProMap:
                        alpha=0.3, interpolation=None,
                        vmin=0, vmax=1)
 
-            dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
+            if self.shps is not None:
+                dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
             if c is None:
                 self.y['captured'] = 1
@@ -2240,7 +2270,8 @@ class ProMap:
                        extent=[self.x_min, self.x_max, self.y_min, self.y_max],
                        cmap='jet',
                        interpolation=None)
-            dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
+            if self.shps is not None:
+                dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
         plt.title('ProMap')
 
