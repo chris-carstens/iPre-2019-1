@@ -13,7 +13,7 @@ pd.set_option('display.width', 1000)
 
 rc = {
     'figure.facecolor': 'black',
-    'figure.figsize': (6.75, 4),  # (6.0, 4.0) defaults
+    'figure.figsize': (8, 4),  # (6.0, 4.0) defaults
 
     'xtick.color': 'white',
     'xtick.major.size': 3,
