@@ -58,10 +58,10 @@ class MyKDEMultivariate(kd.KDEMultivariate):
 
 
 class STKDE:
-    def __init__(self,
+    def __init__(self, data,
                  shps=None, bw=None, sample_number=3600,
                  start_prediction=date(2017, 11, 1),
-                 length_prediction=7, name="STKDE", verbose=False):
+                 length_prediction=7, name="STKDE"):
         """
         Parameters
         ----------
@@ -90,9 +90,16 @@ class STKDE:
         self.f_delitos, self.f_nodos = None, None
         self.df = None
         self.f_max = None
-
-        self.x_min, self.y_min, self.x_max, self.y_max = self.shps[
-            'streets'].total_bounds
+        self.data = data
+        if self.shps is not None:
+            x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
+        else:
+            delta_x = 0.1 * self.data.x.mean()
+            delta_y = 0.1 * self.data.y.mean()
+            x_min = self.data.x.min() - delta_x
+            x_max = self.data.x.max() + delta_x
+            y_min = self.data.y.min() - delta_y
+            y_max = self.data.y.max() + delta_y
         # training data 3000
         # testing data  600
         # print('-' * 30)
@@ -173,10 +180,9 @@ class STKDE:
 
         stkde = self.kde
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
-
-        self.predicted_sim = stkde.resample(len(pd.Series(
-            self.X_test["x"]).tolist()), self.shps["councils"])
-
+        if self.shps is not None:
+            self.predicted_sim = stkde.resample(len(pd.Series(
+                self.X_test["x"]).tolist()), self.shps["councils"])
         # noinspection PyArgumentList
         x, y, t = np.mgrid[
                   self.x_min:
@@ -188,9 +194,12 @@ class STKDE:
                   ]
 
         # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
-        f_nodos = stkde.pdf(af.checked_points(
-            np.array([x.flatten(), y.flatten(), t.flatten()]),
-            self.shps['councils']))
+        if self.shps is not None:
+            f_nodos = stkde.pdf(af.checked_points(
+                np.array([x.flatten(), y.flatten(), t.flatten()]),
+                self.shps['councils']))
+        else:
+            f_nodos = stkde.pdf(np.array([x.flatten(), y.flatten(), t.flatten()]))
 
         x, y, t = \
             np.array(self.X_test['x']), \
@@ -235,10 +244,13 @@ class STKDE:
         if X_filtered.size > 0:
 
             geometry = [Point(xy) for xy in zip(x_t, y_t)]
-            geo_df = gpd.GeoDataFrame(X_filtered,
-                                      crs=dallas.crs,
-                                      geometry=geometry)
-
+            if dallas:
+                geo_df = gpd.GeoDataFrame(X_filtered,
+                                          crs=dallas.crs,
+                                          geometry=geometry)
+            else:
+                geo_df = gpd.GeoDataFrame(X_filtered,
+                                          geometry=geometry)
             geo_df.plot(ax=ax,
                         markersize=3,
                         color=color,
@@ -260,7 +272,10 @@ class STKDE:
         """
 
         print('\tPlotting Heatmap...') if verbose else None
-        dallas = self.shps['streets']
+        if self.shps is not None:
+            dallas = self.shps['streets']
+        else:
+            dallas = None
         fig, ax = plt.subplots(figsize=[6.75] * 2)  # Sacar de _config.py
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
 
@@ -352,7 +367,8 @@ class STKDE:
             c_bar.ax.set_ylabel('Danger Score')
 
         if incidences:
-            dallas.plot(ax=ax, alpha=.2, color="gray", zorder=1)
+            if dallas is not None:
+                dallas.plot(ax=ax, alpha=.2, color="gray", zorder=1)
             plt.pcolormesh(x, y, z_plot.reshape(x.shape),
                            shading='gouraud',
                            alpha=.2,
@@ -2657,7 +2673,7 @@ def create_model(data=None, shps=None,
                                start_prediction=start_prediction)
         m.add_model(rfr)
     if use_stkde:
-        stkde = STKDE(shps=shps, start_prediction=start_prediction,
+        stkde = STKDE(data=data.copy(deep=True), shps=shps, start_prediction=start_prediction,
                       length_prediction=length_prediction)
         m.add_model(stkde)
     return m
