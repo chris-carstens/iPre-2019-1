@@ -6,4 +6,4 @@
 # - Asegurarse primero de subir .gitattributes modificado y luego los lf
 #
 *.pkl filter=lfs diff=lfs merge=lfs -text
-git lfs track "predictivehp/data/Police_Incidents.csv"
+predictivehp/data/Police_Incidents.csv filter=lfs diff=lfs merge=lfs -text
