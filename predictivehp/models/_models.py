@@ -293,10 +293,12 @@ class STKDE:
 
         z = self.kde.pdf(
             np.array([x.flatten(), y.flatten(), t.flatten()]))
-
-        z_filtered = self.kde.pdf(af.checked_points(
-            np.array([x.flatten(), y.flatten(), t.flatten()]),
-            self.shps['councils']))
+        if self.shps is not None:
+            z_filtered = self.kde.pdf(af.checked_points(
+                np.array([x.flatten(), y.flatten(), t.flatten()]),
+                self.shps['councils']))
+        else:
+            z_filtered = self.kde.pdf(np.array([x.flatten(), y.flatten(), t.flatten()]))
 
         x_t, y_t, t_t = \
             np.array(self.X_test['x']), \
