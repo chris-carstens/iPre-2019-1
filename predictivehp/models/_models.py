@@ -2424,6 +2424,11 @@ class Model:
         df['x_point'] = geo_data['geometry'].x
         df['y_point'] = geo_data['geometry'].y
 
+        df.loc[:, 'y_day'] = df["date"].apply(
+            lambda x: x.timetuple().tm_yday
+        )
+
+
         # División en training y testing data
 
         X = df[df["date"] < promap.start_prediction]
