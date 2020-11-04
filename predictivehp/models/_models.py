@@ -1148,7 +1148,7 @@ class RForestRegressor(object):
                 d_cells = cells[lvl]
                 d_cells.plot(ax=ax, marker='.', markersize=1,
                              color=kwargs['colors'][idx + 1],
-                             alpha=0.1)
+                             alpha=0.5)
                 cells[f'D{idx + 1}'] = np.where(lvl, 1, 0)
 
             lvl = c[-1] < cells[('Dangerous_pred', '')]
@@ -1156,7 +1156,7 @@ class RForestRegressor(object):
             d_cells = cells[lvl]
             d_cells.plot(ax=ax, marker='.', markersize=1,
                          color=kwargs['colors'][c.size + 1],
-                         alpha=0.1)
+                         alpha=0.5)
             cells[f'D{c.size + 1}'] = np.where(lvl, 1, 0)
 
             # d1_cells = cells[
