@@ -92,14 +92,14 @@ class STKDE:
         self.f_max = None
         self.data = data
         if self.shps is not None:
-            x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
+            self.x_min, self.y_min, self.x_max, self.y_max = self.shps['streets'].total_bounds
         else:
             delta_x = 0.1 * self.data.x.mean()
             delta_y = 0.1 * self.data.y.mean()
-            x_min = self.data.x.min() - delta_x
-            x_max = self.data.x.max() + delta_x
-            y_min = self.data.y.min() - delta_y
-            y_max = self.data.y.max() + delta_y
+            self.x_min = self.data.x.min() - delta_x
+            self.x_max = self.data.x.max() + delta_x
+            self.y_min = self.data.y.min() - delta_y
+            self.y_max = self.data.y.max() + delta_y
         # training data 3000
         # testing data  600
         # print('-' * 30)
