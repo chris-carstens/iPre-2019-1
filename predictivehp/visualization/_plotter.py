@@ -53,7 +53,7 @@ class Plotter:
             m.heatmap(c=c, ap=ap, show_score=show_score, incidences=incidences,
                       savefig=savefig, verbose=verbose, colors=self.colors, **kwargs)
 
-    def hr(self, c=None):
+    def hr(self):
         """Plotea la curva Hit Rate para el c o ap dado.
 
         Parameters
@@ -78,7 +78,7 @@ class Plotter:
         plt.legend()
         plt.show()
 
-    def pai(self, c=None):
+    def pai(self):
         """Plotea la curva de PAI para el c o ap dado.
 
         Parameters
