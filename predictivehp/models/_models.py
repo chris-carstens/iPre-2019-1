@@ -2386,6 +2386,8 @@ class Model:
         if self.shps is not None:
             data = gpd.GeoDataFrame(data, crs=2276, geometry=geometry)
             data.to_crs(epsg=3857, inplace=True)
+        else:
+            data = gpd.GeoDataFrame(data, geometry=geometry)
 
         data['x'] = data['geometry'].apply(lambda x: x.x)
         data['y'] = data['geometry'].apply(lambda x: x.y)
