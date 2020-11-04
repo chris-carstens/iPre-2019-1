@@ -58,7 +58,7 @@ class MyKDEMultivariate(kd.KDEMultivariate):
 
 
 class STKDE:
-    def __init__(self, data,
+    def __init__(self, data=None,
                  shps=None, bw=None, sample_number=3600,
                  start_prediction=date(2017, 11, 1),
                  length_prediction=7, name="STKDE"):
