@@ -244,10 +244,13 @@ class STKDE:
         if X_filtered.size > 0:
 
             geometry = [Point(xy) for xy in zip(x_t, y_t)]
-            geo_df = gpd.GeoDataFrame(X_filtered,
-                                      crs=dallas.crs,
-                                      geometry=geometry)
-
+            if dallas:
+                geo_df = gpd.GeoDataFrame(X_filtered,
+                                          crs=dallas.crs,
+                                          geometry=geometry)
+            else:
+                geo_df = gpd.GeoDataFrame(X_filtered,
+                                          geometry=geometry)
             geo_df.plot(ax=ax,
                         markersize=3,
                         color=color,
@@ -269,7 +272,10 @@ class STKDE:
         """
 
         print('\tPlotting Heatmap...') if verbose else None
-        dallas = self.shps['streets']
+        if self.shps is not None:
+            dallas = self.shps['streets']
+        else:
+            dallas = None
         fig, ax = plt.subplots(figsize=[6.75] * 2)  # Sacar de _config.py
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
 
@@ -361,7 +367,8 @@ class STKDE:
             c_bar.ax.set_ylabel('Danger Score')
 
         if incidences:
-            dallas.plot(ax=ax, alpha=.2, color="gray", zorder=1)
+            if self.shps is not None:
+                dallas.plot(ax=ax, alpha=.2, color="gray", zorder=1)
             plt.pcolormesh(x, y, z_plot.reshape(x.shape),
                            shading='gouraud',
                            alpha=.2,
