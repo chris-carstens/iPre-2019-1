@@ -92,14 +92,14 @@ class STKDE:
         self.f_max = None
         self.data = data
         if self.shps is not None:
-            x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
+            self.x_min, self.y_min, self.x_max, self.y_max = self.shps['streets'].total_bounds
         else:
             delta_x = 0.1 * self.data.x.mean()
             delta_y = 0.1 * self.data.y.mean()
-            x_min = self.data.x.min() - delta_x
-            x_max = self.data.x.max() + delta_x
-            y_min = self.data.y.min() - delta_y
-            y_max = self.data.y.max() + delta_y
+            self.x_min = self.data.x.min() - delta_x
+            self.x_max = self.data.x.max() + delta_x
+            self.y_min = self.data.y.min() - delta_y
+            self.y_max = self.data.y.max() + delta_y
         # training data 3000
         # testing data  600
         # print('-' * 30)
@@ -293,10 +293,12 @@ class STKDE:
 
         z = self.kde.pdf(
             np.array([x.flatten(), y.flatten(), t.flatten()]))
-
-        z_filtered = self.kde.pdf(af.checked_points(
-            np.array([x.flatten(), y.flatten(), t.flatten()]),
-            self.shps['councils']))
+        if self.shps is not None:
+            z_filtered = self.kde.pdf(af.checked_points(
+                np.array([x.flatten(), y.flatten(), t.flatten()]),
+                self.shps['councils']))
+        else:
+            z_filtered = self.kde.pdf(np.array([x.flatten(), y.flatten(), t.flatten()]))
 
         x_t, y_t, t_t = \
             np.array(self.X_test['x']), \
@@ -422,7 +424,8 @@ class STKDE:
                                      f"Level {i}")
 
         else:
-            dallas.plot(ax=ax, alpha=.2, color="gray", zorder=2)
+            if dallas is not None:
+                dallas.plot(ax=ax, alpha=.2, color="gray", zorder=2)
             plt.pcolormesh(x, y, z_plot.reshape(x.shape),
                            shading='gouraud',
                            zorder=1,
@@ -2388,6 +2391,9 @@ class Model:
 
         data['x'] = data['geometry'].apply(lambda x: x.x)
         data['y'] = data['geometry'].apply(lambda x: x.y)
+        data.loc[:, 'y_day'] = data["date"].apply(
+            lambda x: x.timetuple().tm_yday
+        )
 
         #data = data.sample(n=stkde.sn, replace=False, random_state=0)
         #data.sort_values(by=['date'], inplace=True)
