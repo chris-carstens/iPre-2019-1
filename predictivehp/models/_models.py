@@ -2414,7 +2414,9 @@ class Model:
 
         if self.shps is not None:
             geo_data = gpd.GeoDataFrame(df, crs=2276, geometry=geometry)
-            geo_data.to_crs(epsg=3857, inplace=True)
+        else:
+            geo_data = gpd.GeoDataFrame(df, geometry=geometry)
+        geo_data.to_crs(epsg=3857, inplace=True)
 
         df['x_point'] = geo_data['geometry'].x
         df['y_point'] = geo_data['geometry'].y
