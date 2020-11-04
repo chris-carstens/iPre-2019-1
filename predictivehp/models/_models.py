@@ -557,6 +557,7 @@ class RForestRegressor(object):
     def __init__(self, data_0=None, shps=None,
                  xc_size=100, yc_size=100, n_layers=7,
                  t_history=4, start_prediction=date(2017, 11, 1),
+                 length_prediction=7,
                  read_data=False, w_data=False, read_X=False, w_X=False,
                  verbose=False,
                  name='RForestRegressor'):
@@ -605,6 +606,7 @@ class RForestRegressor(object):
         self.nx, self.ny, self.hx, self.hy = [None] * 4
         self.t_history = t_history
         self.start_prediction = start_prediction
+        self.length_pred = length_prediction
         self.weeks = []
         self.l_weights = None
 
@@ -690,9 +692,12 @@ class RForestRegressor(object):
         """
         geometry = [Point(xy) for xy in zip(np.array(self.data[['x']]),
                                             np.array(self.data[['y']]))]
-        self.data = gpd.GeoDataFrame(self.data, crs=2276,
-                                     geometry=geometry)
-        self.data.to_crs(epsg=3857, inplace=True)
+        if self.shps is not None:
+            self.data = gpd.GeoDataFrame(self.data, crs=2276,
+                                         geometry=geometry)
+            self.data.to_crs(epsg=3857, inplace=True)
+        else:
+            self.data = gpd.GeoDataFrame(self.data, geometry=geometry)
         self.data['Cell'] = None
         self.assign_cells()
 
@@ -959,13 +964,13 @@ class RForestRegressor(object):
             )
         if self.read_data:
             self.data = pd.read_pickle('predictivehp/data/data.pkl')
-        data_nov = pd.DataFrame(self.data[
-                                    (date(2017, 11, 1) <= self.data.date) &
-                                    (self.data.date <= date(2017, 11, 7))
-                                    ])
-        data_nov.columns = pd.MultiIndex.from_product([data_nov.columns, ['']])
+        f_data = pd.DataFrame(
+            self.data[(self.start_prediction <= self.data.date) &
+                      (self.data.date <= self.start_prediction + timedelta(
+                          self.length_pred))])
+        f_data.columns = pd.MultiIndex.from_product([f_data.columns, ['']])
         cells.drop(columns='geometry', inplace=True)
-        join_ = data_nov.join(cells)
+        join_ = f_data.join(cells)
 
         hits = gpd.GeoDataFrame(join_[join_['Hit'] == 1])
 
@@ -976,7 +981,7 @@ class RForestRegressor(object):
 
         self.d_incidents = d_incidents
         self.h_area = h_area
-        self.hr_validated = self.d_incidents / data_nov.shape[0]
+        self.hr_validated = self.d_incidents / f_data.shape[0]
         self.pai_validated = self.hr_validated / (a / A)
 
     def calculate_hr(self, c=None,verbose=False):
@@ -994,18 +999,18 @@ class RForestRegressor(object):
             if type(c) in {float, np.float64} or \
                     (type(c) == np.ndarray and c.size == 1):
                 # hr = self.calculate_hr_onelvl(c)
-                data_nov = pd.DataFrame(
-                    self.data[(date(2017, 11, 1) <= self.data.date) &
-                              (self.data.date <= date(2017, 11, 7))]
+                f_data = pd.DataFrame(
+                    self.data[(self.start_prediction <= self.data.date) &
+                              (self.data.date <= self.start_prediction + timedelta(self.length_pred))]
                 )  # 62 Incidentes
-                if 'geometry' in set(data_nov.columns):
-                    data_nov.drop(columns='geometry', inplace=True)
-                data_nov.columns = pd.MultiIndex.from_product(
-                    [data_nov.columns, ['']]
+                if 'geometry' in set(f_data.columns):
+                    f_data.drop(columns='geometry', inplace=True)
+                f_data.columns = pd.MultiIndex.from_product(
+                    [f_data.columns, ['']]
                 )
-                ans = data_nov.join(self.X)
+                ans = f_data.join(self.X)
                 incidentsh = ans[ans[('Dangerous_pred', '')] >= c[0]]
-                hr = incidentsh.shape[0] / data_nov.shape[0]
+                hr = incidentsh.shape[0] / f_data.shape[0]
                 return hr
             else:
                 A = self.X.shape[0]
@@ -1087,9 +1092,7 @@ class RForestRegressor(object):
             c = af.find_c(self.ap, self.c_vector, ap)
 
         elif type(ap) == list or type(ap) == np.ndarray:
-            c = sorted([
-                af.find_c(self.ap, self.c_vector, i) for i in ap
-            ])
+            c = sorted([af.find_c(self.ap, self.c_vector, i) for i in ap])
 
         cells = self.X[[('geometry', ''), ('Dangerous_pred', '')]]
         cells = gpd.GeoDataFrame(cells)
@@ -2684,7 +2687,9 @@ def create_model(data=None, shps=None,
         m.add_model(promap)
     if use_rfr:
         rfr = RForestRegressor(data_0=data.copy(deep=True), shps=shps,
-                               start_prediction=start_prediction)
+                               start_prediction=start_prediction,
+                               length_prediction=length_prediction
+                               )
         m.add_model(rfr)
     if use_stkde:
         stkde = STKDE(data=data.copy(deep=True), shps=shps, start_prediction=start_prediction,
