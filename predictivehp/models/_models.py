@@ -58,10 +58,10 @@ class MyKDEMultivariate(kd.KDEMultivariate):
 
 
 class STKDE:
-    def __init__(self,
+    def __init__(self, data,
                  shps=None, bw=None, sample_number=3600,
                  start_prediction=date(2017, 11, 1),
-                 length_prediction=7, name="STKDE", verbose=False):
+                 length_prediction=7, name="STKDE"):
         """
         Parameters
         ----------
@@ -90,9 +90,16 @@ class STKDE:
         self.f_delitos, self.f_nodos = None, None
         self.df = None
         self.f_max = None
-
-        self.x_min, self.y_min, self.x_max, self.y_max = self.shps[
-            'streets'].total_bounds
+        self.data = data
+        if self.shps is not None:
+            x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
+        else:
+            delta_x = 0.1 * self.data.x.mean()
+            delta_y = 0.1 * self.data.y.mean()
+            x_min = self.data.x.min() - delta_x
+            x_max = self.data.x.max() + delta_x
+            y_min = self.data.y.min() - delta_y
+            y_max = self.data.y.max() + delta_y
         # training data 3000
         # testing data  600
         # print('-' * 30)
@@ -173,10 +180,9 @@ class STKDE:
 
         stkde = self.kde
         t_training = pd.Series(self.X_train["y_day"]).to_numpy()
-
-        self.predicted_sim = stkde.resample(len(pd.Series(
-            self.X_test["x"]).tolist()), self.shps["councils"])
-
+        if self.shps is not None:
+            self.predicted_sim = stkde.resample(len(pd.Series(
+                self.X_test["x"]).tolist()), self.shps["councils"])
         # noinspection PyArgumentList
         x, y, t = np.mgrid[
                   self.x_min:
@@ -188,9 +194,12 @@ class STKDE:
                   ]
 
         # pdf para nodos. checked_points filtra que los puntos estén dentro del área de dallas
-        f_nodos = stkde.pdf(af.checked_points(
-            np.array([x.flatten(), y.flatten(), t.flatten()]),
-            self.shps['councils']))
+        if self.shps is not None:
+            f_nodos = stkde.pdf(af.checked_points(
+                np.array([x.flatten(), y.flatten(), t.flatten()]),
+                self.shps['councils']))
+        else:
+            f_nodos = stkde.pdf(np.array([x.flatten(), y.flatten(), t.flatten()]))
 
         x, y, t = \
             np.array(self.X_test['x']), \
@@ -2602,7 +2611,7 @@ def create_model(data=None, shps=None,
                                start_prediction=start_prediction)
         m.add_model(rfr)
     if use_stkde:
-        stkde = STKDE(shps=shps, start_prediction=start_prediction,
+        stkde = STKDE(data=data.copy(deep=True), shps=shps, start_prediction=start_prediction,
                       length_prediction=length_prediction)
         m.add_model(stkde)
     return m
