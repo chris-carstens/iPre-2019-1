@@ -708,7 +708,16 @@ class RForestRegressor(object):
 
         # Creación de la malla
         print("\tCreating mgrid...") if verbose else None
-        x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
+        if self.shps is not None:
+            x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
+        else:
+            delta_x = 0.1 * self.data.x.mean()
+            delta_y = 0.1 * self.data.y.mean()
+            x_min = self.data.x.min() - delta_x
+            x_max = self.data.x.max() + delta_x
+            y_min = self.data.y.min() - delta_y
+            y_max = self.data.y.max() + delta_y
+
         x_bins = abs(x_max - x_min) / self.xc_size
         y_bins = abs(y_max - y_min) / self.yc_size
         x, y = np.mgrid[x_min: x_max: x_bins * 1j, y_min: y_max: y_bins * 1j, ]
@@ -759,8 +768,9 @@ class RForestRegressor(object):
         X[('in_dallas', '')] = 0
 
         # Filtrado de celdas (llenado de la columna 'in_dallas')
-        X = af.filter_cells(df=X, shp=self.shps['councils'], verbose=verbose)
-        X.drop(columns=[('in_dallas', '')], inplace=True)
+        if self.shps is not None:
+            X = af.filter_cells(df=X, shp=self.shps['councils'], verbose=verbose)
+            X.drop(columns=[('in_dallas', '')], inplace=True)
 
         self.X = X
         self.to_pickle('X.pkl')
@@ -799,7 +809,15 @@ class RForestRegressor(object):
           default False
         """
         print("\tAssigning cells...") if verbose else None
-        x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
+        if self.shps is not None:
+            x_min, y_min, x_max, y_max = self.shps['streets'].total_bounds
+        else:
+            delta_x = 0.1 * self.data.x.mean()
+            delta_y = 0.1 * self.data.y.mean()
+            x_min = self.data.x.min() - delta_x
+            x_max = self.data.x.max() + delta_x
+            y_min = self.data.y.min() - delta_y
+            y_max = self.data.y.max() + delta_y
 
         x_bins = abs(x_max - x_min) / self.xc_size
         y_bins = abs(y_max - y_min) / self.yc_size
@@ -1056,10 +1074,13 @@ class RForestRegressor(object):
 
         cells = self.X[[('geometry', ''), ('Dangerous_pred', '')]]
         cells = gpd.GeoDataFrame(cells)
-        d_streets = self.shps['streets']
+
+        if self.shps is not None:
+            d_streets = self.shps['streets']
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)
-        d_streets.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
+        if self.shps is not None:
+            d_streets.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
         if c is None:
             d_cells = cells[cells[('Dangerous_pred', '')] >= 0]

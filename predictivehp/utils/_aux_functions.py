@@ -61,6 +61,7 @@ def get_data(year=2017, n=150000):
         #       f"\t{data.shape[0]} incidents successfully retrieved!")
 
         # DB Cleaning & Formatting
+        print(df)
         for col in ['x_coordinate', 'y_cordinate']:
             df.loc[:, col] = df[col].apply(
                 lambda x: float(x))
@@ -176,10 +177,7 @@ def get_Socrata_data(domain=cre.socrata_domain, app_token=cre.API_KEY_S,
         df.reset_index(drop=True, inplace=True)
 
         if save:
-            if city != 'Dallas':
-                df.to_excel(f'../predictivehp/data/SOCRATA_DATA_{city}.xlsx')
-            else:
-                df.to_excel(path)
+            df.to_excel(path)
         return df
 
 
