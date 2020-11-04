@@ -1772,8 +1772,7 @@ class RForestRegressor(object):
 
 
 class ProMap:
-    def __init__(self,data=None, n_datos=3600, read_density=False,
-                 hx=100, hy=100,
+    def __init__(self,data=None, read_density=False,
                  bw_x=400, bw_y=400, bw_t=7, length_prediction=7,
                  tiempo_entrenamiento=None,
                  start_prediction=date(2017, 11, 1),
@@ -1811,14 +1810,12 @@ class ProMap:
         """
         # DATA
         self.data = data
-        self.n = n_datos
         self.start_prediction = start_prediction
         self.X, self.y = None, None
         self.shps = shps
         self.read_density = read_density
 
         # MAP
-        self.hx, self.hy, self.km2 = hx, hy, km2
         self.bw_x, self.bw_y, self.bw_t = bw_x, bw_y, bw_t
 
         if self.shps is not None:
@@ -1834,8 +1831,7 @@ class ProMap:
 
 
 
-        self.bins_x = int(round(abs(self.x_max - self.x_min) / self.hx))
-        self.bins_y = int(round(abs(self.y_max - self.y_min) / self.hy))
+
 
         # MODEL
         self.name = name
@@ -1863,6 +1859,8 @@ class ProMap:
             self.bw_x, self.bw_y, self.bw_t = bw
         if hx and hy:
             self.hx, self.hy = hx, hy
+            self.bins_x = int(round(abs(self.x_max - self.x_min) / self.hx))
+            self.bins_y = int(round(abs(self.y_max - self.y_min) / self.hy))
         self.read_density = read_density
 
 
@@ -1972,7 +1970,7 @@ class ProMap:
                 x_left, x_right = af.limites_x(ancho_x, x_in_matrix, self.xx)
                 y_abajo, y_up = af.limites_y(ancho_y, y_in_matrix, self.yy)
 
-                for i in range(x_left, x_right + 1):
+                for i in range(x_left, x_right):
                     for j in range(y_abajo, y_up):
                         elem_x = self.xx[i][0]
                         elem_y = self.yy[0][j]
@@ -2110,11 +2108,11 @@ class ProMap:
 
         if c is None:
             self.c_vector = np.linspace(0, 1, 1000)
-
-        self.c_vector = c
+        else:
+            self.c_vector = c
 
         if not self.hr:
-            self.calculate_hr(c)
+            self.calculate_hr(self.c_vector)
 
         self.pai = [
             0 if float(self.ap[i]) == 0
@@ -2310,10 +2308,7 @@ class ProMap:
     def validate(self, c=0, ap=None, verbose=False):
 
         self.load_test_matrix()
-
-        if ap is not None:
-            if self.ap is None:
-                self.calculate_ap_c()
+        self.calculate_pai()
 
         if type(ap) == float or type(ap) == np.float64:
             c = af.find_c(self.ap, self.c_vector, ap)
@@ -2349,6 +2344,8 @@ class ProMap:
         self.pai_validated = self.hr_validated / (hp_area / self.cells_in_map)
 
     def calculate_ap_c(self):
+
+        self.c_vector = np.linspace(0,1,1000)
 
         area_hits = []
 
@@ -2675,7 +2672,8 @@ def create_model(data=None, shps=None,
     m.shps = shps
 
     if use_promap:
-        promap = ProMap(shps=shps, start_prediction=start_prediction,
+        promap = ProMap(data=data.copy(deep=True),shps=shps,
+                        start_prediction=start_prediction,
                         length_prediction=length_prediction)
         m.add_model(promap)
     if use_rfr:
