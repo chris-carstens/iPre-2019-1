@@ -367,7 +367,7 @@ class STKDE:
             c_bar.ax.set_ylabel('Danger Score')
 
         if incidences:
-            if self.shps is not None:
+            if dallas is not None:
                 dallas.plot(ax=ax, alpha=.2, color="gray", zorder=1)
             plt.pcolormesh(x, y, z_plot.reshape(x.shape),
                            shading='gouraud',
