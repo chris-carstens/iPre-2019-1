@@ -2366,8 +2366,10 @@ class Model:
         data = self.data.copy(deep=True)
         geometry = [Point(xy) for xy in zip(np.array(data[['x']]),
                                             np.array(data[['y']]))]
-        data = gpd.GeoDataFrame(data, crs=2276, geometry=geometry)
-        data.to_crs(epsg=3857, inplace=True)
+
+        if self.shps is not None:
+            data = gpd.GeoDataFrame(data, crs=2276, geometry=geometry)
+            data.to_crs(epsg=3857, inplace=True)
 
         data['x'] = data['geometry'].apply(lambda x: x.x)
         data['y'] = data['geometry'].apply(lambda x: x.y)
@@ -2394,8 +2396,9 @@ class Model:
             np.array(df[['y']]))
                     ]
 
-        geo_data = gpd.GeoDataFrame(df, crs=2276, geometry=geometry)
-        geo_data.to_crs(epsg=3857, inplace=True)
+        if self.shps is not None:
+            geo_data = gpd.GeoDataFrame(df, crs=2276, geometry=geometry)
+            geo_data.to_crs(epsg=3857, inplace=True)
 
         df['x_point'] = geo_data['geometry'].x
         df['y_point'] = geo_data['geometry'].y
