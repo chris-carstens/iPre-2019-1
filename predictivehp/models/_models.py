@@ -58,7 +58,7 @@ class MyKDEMultivariate(kd.KDEMultivariate):
 
 
 class STKDE:
-    def __init__(self, data,
+    def __init__(self, data=None,
                  shps=None, bw=None, sample_number=3600,
                  start_prediction=date(2017, 11, 1),
                  length_prediction=7, name="STKDE"):
@@ -2417,6 +2417,7 @@ class Model:
             geo_data.to_crs(epsg=3857, inplace=True)
         else:
             geo_data = gpd.GeoDataFrame(df, geometry=geometry)
+
 
         df['x_point'] = geo_data['geometry'].x
         df['y_point'] = geo_data['geometry'].y
