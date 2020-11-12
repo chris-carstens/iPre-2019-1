@@ -2389,6 +2389,7 @@ class Model:
 
         if self.shps is not None:
             data = gpd.GeoDataFrame(data, crs=2276, geometry=geometry)
+            #Paso de sistema de pies a metros
             data.to_crs(epsg=3857, inplace=True)
         else:
             data = gpd.GeoDataFrame(data, geometry=geometry)
