@@ -261,7 +261,7 @@ class STKDE:
             plt.legend()
 
     def heatmap(self, c=None, show_score=True, incidences=False,
-                savefig=False, fname='STKDE_heatmap.png', ap=None, verbose=False, **kwargs):
+                savefig=False, fname='STKDE_heatmap.png', ap=None, verbose=False, show_axis=True **kwargs):
         """
         Parameters
         ----------
@@ -435,7 +435,8 @@ class STKDE:
 
         plt.title('STKDE')
 
-        ax.set_axis_off()
+        if not show_axis:
+            ax.set_axis_off()
         plt.tight_layout()
         if savefig:
             plt.savefig(fname, **kwargs)
@@ -1234,7 +1235,8 @@ class RForestRegressor(object):
                 #             label="Level 3")
             plt.legend()
 
-        ax.set_axis_off()
+        if not show_axis:
+            ax.set_axis_off()
         plt.title('RForestRegressor')
 
         plt.tight_layout()
@@ -2161,7 +2163,7 @@ class ProMap:
         plt.legend()
 
     def heatmap(self, c=None, show_score=True, incidences=False,
-                savefig=False, fname=f'Promap_heatmap.png', ap=None, **kwargs):
+                savefig=False, fname=f'Promap_heatmap.png', ap=None, show_axis=True, **kwargs):
         """
         Mostrar un heatmap de una matriz de riesgo.
 
@@ -2296,8 +2298,9 @@ class ProMap:
 
         plt.title('ProMap')
 
-        ax.set_axis_off()
         plt.tight_layout()
+        if not show_axis:
+            ax.set_axis_off()
         if savefig:
             plt.savefig(fname, **kwargs)
         plt.show()
@@ -2365,7 +2368,7 @@ class ProMap:
 
 
 class Model:
-    def __init__(self, models=None, data=None, shps=None, verbose=False):
+    def __init__(self, models=None, data=None, shps=None, verbose=False, show_axis=True):
         """Supraclase Model"""
         self.models = [] if not models else models
         self.data = data
