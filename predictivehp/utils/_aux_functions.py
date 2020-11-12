@@ -61,7 +61,6 @@ def get_data(year=2017, n=150000):
         #       f"\t{data.shape[0]} incidents successfully retrieved!")
 
         # DB Cleaning & Formatting
-        print(df)
         for col in ['x_coordinate', 'y_cordinate']:
             df.loc[:, col] = df[col].apply(
                 lambda x: float(x))
@@ -166,6 +165,7 @@ def get_Socrata_data(domain=cre.socrata_domain, app_token=cre.API_KEY_S,
             lambda x: datetime.strptime(
                 x.split(' ')[0], '%Y-%m-%d')
         )
+        df['date1'] = df['date1'].dt.date
 
         df = df[['x_coordinate', 'y_cordinate', 'date1']]
         df.rename(columns={'x_coordinate': 'x',

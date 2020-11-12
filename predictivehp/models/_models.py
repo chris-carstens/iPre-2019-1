@@ -85,14 +85,14 @@ class STKDE:
         self.start_prediction = start_prediction
         self.lp = length_prediction
 
-
         self.hr, self.ap, self.pai = None, None, None
         self.f_delitos, self.f_nodos = None, None
         self.df = None
         self.f_max = None
         self.data = data
         if self.shps is not None:
-            self.x_min, self.y_min, self.x_max, self.y_max = self.shps['streets'].total_bounds
+            self.x_min, self.y_min, self.x_max, self.y_max = self.shps[
+                'streets'].total_bounds
         else:
             delta_x = 0.1 * self.data.x.mean()
             delta_y = 0.1 * self.data.y.mean()
@@ -199,7 +199,8 @@ class STKDE:
                 np.array([x.flatten(), y.flatten(), t.flatten()]),
                 self.shps['councils']))
         else:
-            f_nodos = stkde.pdf(np.array([x.flatten(), y.flatten(), t.flatten()]))
+            f_nodos = stkde.pdf(
+                np.array([x.flatten(), y.flatten(), t.flatten()]))
 
         x, y, t = \
             np.array(self.X_test['x']), \
@@ -261,7 +262,8 @@ class STKDE:
             plt.legend()
 
     def heatmap(self, c=None, show_score=True, incidences=False,
-                savefig=False, fname='STKDE_heatmap.png', ap=None, verbose=False, **kwargs):
+                savefig=False, fname='STKDE_heatmap.png', ap=None,
+                verbose=False, **kwargs):
         """
         Parameters
         ----------
@@ -298,7 +300,8 @@ class STKDE:
                 np.array([x.flatten(), y.flatten(), t.flatten()]),
                 self.shps['councils']))
         else:
-            z_filtered = self.kde.pdf(np.array([x.flatten(), y.flatten(), t.flatten()]))
+            z_filtered = self.kde.pdf(
+                np.array([x.flatten(), y.flatten(), t.flatten()]))
 
         x_t, y_t, t_t = \
             np.array(self.X_test['x']), \
@@ -323,8 +326,6 @@ class STKDE:
             area_percentaje = [i / len(z_filtered) for i in area_h]
             c = float(af.find_c(area_percentaje, c_array, ap))
             print('c value: ', c) if verbose else None
-
-
 
         elif type(ap) == list or type(ap) == np.ndarray:
             c_array = self.c_vector
@@ -435,7 +436,7 @@ class STKDE:
 
         plt.title('STKDE')
 
-        ax.set_axis_off()
+        # ax.set_axis_off()
         plt.tight_layout()
         if savefig:
             plt.savefig(fname, **kwargs)
@@ -544,7 +545,7 @@ class STKDE:
         dx = (self.x_max - self.x_min) / 100
         dy = (self.y_max - self.y_min) / 100
         v = self.f_nodos > c
-        self.h_area = np.sum(v)*dx*dy/(10**6)
+        self.h_area = np.sum(v) * dx * dy / (10 ** 6)
         self.d_incidents = np.sum(hits)
         print("Total: ", len(self.f_delitos)) if verbose else None
         print("Hotspot area area:", self.h_area) if verbose else None
@@ -793,7 +794,8 @@ class RForestRegressor(object):
 
         # Filtrado de celdas (llenado de la columna 'in_dallas')
         if self.shps is not None:
-            X = af.filter_cells(df=X, shp=self.shps['councils'], verbose=verbose)
+            X = af.filter_cells(df=X, shp=self.shps['councils'],
+                                verbose=verbose)
             X.drop(columns=[('in_dallas', '')], inplace=True)
 
         self.X = X
@@ -984,7 +986,7 @@ class RForestRegressor(object):
         self.hr_validated = self.d_incidents / f_data.shape[0]
         self.pai_validated = self.hr_validated / (a / A)
 
-    def calculate_hr(self, c=None,verbose=False):
+    def calculate_hr(self, c=None, verbose=False):
         """
         Parameters
         ----------
@@ -1001,7 +1003,9 @@ class RForestRegressor(object):
                 # hr = self.calculate_hr_onelvl(c)
                 f_data = pd.DataFrame(
                     self.data[(self.start_prediction <= self.data.date) &
-                              (self.data.date <= self.start_prediction + timedelta(self.length_pred))]
+                              (
+                                      self.data.date <= self.start_prediction + timedelta(
+                                  self.length_pred))]
                 )  # 62 Incidentes
                 if 'geometry' in set(f_data.columns):
                     f_data.drop(columns='geometry', inplace=True)
@@ -1029,7 +1033,7 @@ class RForestRegressor(object):
                 self.hr = np.array(hr_l)
                 self.ap = np.array(ap_l)
 
-    def calculate_pai(self, c=None,verbose=False):
+    def calculate_pai(self, c=None, verbose=False):
         """
         Calcula el Predictive Accuracy Index (PAI)
 
@@ -1146,7 +1150,7 @@ class RForestRegressor(object):
                           (cells[('Dangerous_pred', '')] <= c[idx])
 
                 d_cells = cells[lvl]
-                d_cells.plot(ax=ax, marker='.', markersize=1,
+                d_cells.plot(ax=ax, marker='o', markersize=3,
                              color=kwargs['colors'][idx + 1],
                              alpha=0.5)
                 cells[f'D{idx + 1}'] = np.where(lvl, 1, 0)
@@ -1154,7 +1158,7 @@ class RForestRegressor(object):
             lvl = c[-1] < cells[('Dangerous_pred', '')]
 
             d_cells = cells[lvl]
-            d_cells.plot(ax=ax, marker='.', markersize=1,
+            d_cells.plot(ax=ax, marker='o', markersize=3,
                          color=kwargs['colors'][c.size + 1],
                          alpha=0.5)
             cells[f'D{c.size + 1}'] = np.where(lvl, 1, 0)
@@ -1193,7 +1197,8 @@ class RForestRegressor(object):
         if incidences:  # Se plotean los incidentes
             f_data = pd.DataFrame(
                 self.data[(self.start_prediction <= self.data.date) &
-                          (self.data.date <= self.start_prediction + timedelta(self.length_pred))])
+                          (self.data.date <= self.start_prediction + timedelta(
+                              self.length_pred))])
             f_data.columns = pd.MultiIndex.from_product(
                 [f_data.columns, ['']]
             )
@@ -1234,7 +1239,6 @@ class RForestRegressor(object):
                 #             label="Level 3")
             plt.legend()
 
-        ax.set_axis_off()
         plt.title('RForestRegressor')
 
         plt.tight_layout()
@@ -1779,7 +1783,7 @@ class RForestRegressor(object):
 
 
 class ProMap:
-    def __init__(self,data=None, read_density=False,
+    def __init__(self, data=None, read_density=False,
                  bw_x=400, bw_y=400, bw_t=7, length_prediction=7,
                  tiempo_entrenamiento=None,
                  start_prediction=date(2017, 11, 1),
@@ -1836,16 +1840,11 @@ class ProMap:
             self.y_min = self.data.y.min() - delta_y
             self.y_max = self.data.y.max() + delta_y
 
-
-
-
-
         # MODEL
         self.name = name
         self.lp = length_prediction
 
         self.hr, self.pai, self.ap = None, None, None
-
 
     def set_parameters(self, bw=None, hx=None, hy=None, read_density=False,
                        verbose=False):
@@ -1870,7 +1869,6 @@ class ProMap:
             self.bins_y = int(round(abs(self.y_max - self.y_min) / self.hy))
         self.read_density = read_density
 
-
     def print_parameters(self):
         """
         Imprime los parametros del modelo
@@ -1894,7 +1892,7 @@ class ProMap:
         """
 
         print("\nGenerating grid...\n") \
-            if verbose  else None
+            if verbose else None
 
         delta_x = self.hx / 2
         delta_y = self.hy / 2
@@ -1933,9 +1931,9 @@ class ProMap:
             # 'councils'])  #
             self.cells_in_map = 141337
         else:
-            cells_x = abs(self.x_min - self.x_max)//self.hx
-            cells_y = abs(self.y_min - self.y_max)//self.hy
-            self.cells_in_map = cells_x*cells_y
+            cells_x = abs(self.x_min - self.x_max) // self.hx
+            cells_y = abs(self.y_min - self.y_max) // self.hy
+            self.cells_in_map = cells_x * cells_y
 
         self.load_test_matrix()
 
@@ -2041,7 +2039,6 @@ class ProMap:
             else:
                 break
 
-
     def calculate_hr(self, c=None, verbose=False):
         """
         Calcula el hr (n/N)
@@ -2098,7 +2095,6 @@ class ProMap:
 
         self.ap = [1 if j > 1 else j for j in [i / self.cells_in_map for
                                                i in area_hits]]
-
 
     def calculate_pai(self, c=None, verbose=False):
 
@@ -2281,8 +2277,8 @@ class ProMap:
                             break
 
                 for index in range(len(c) + 1):
-                    self.plot_geopdf(dallas, ax, kwargs['colors'][index+1],
-                                     label=f'Level {index+1}',
+                    self.plot_geopdf(dallas, ax, kwargs['colors'][index + 1],
+                                     label=f'Level {index + 1}',
                                      level=index)
 
 
@@ -2295,8 +2291,6 @@ class ProMap:
                 dallas.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
 
         plt.title('ProMap')
-
-        ax.set_axis_off()
         plt.tight_layout()
         if savefig:
             plt.savefig(fname, **kwargs)
@@ -2352,7 +2346,7 @@ class ProMap:
 
     def calculate_ap_c(self):
 
-        self.c_vector = np.linspace(0,1,1000)
+        self.c_vector = np.linspace(0, 1, 1000)
 
         area_hits = []
 
@@ -2370,7 +2364,6 @@ class Model:
         self.models = [] if not models else models
         self.data = data
         self.shps = shps
-
 
         self.set_parameters()
 
@@ -2400,9 +2393,9 @@ class Model:
             lambda x: x.timetuple().tm_yday
         )
 
-        #data = data.sample(n=stkde.sn, replace=False, random_state=0)
-        #data.sort_values(by=['date'], inplace=True)
-        #data.reset_index(drop=True, inplace=True)
+        # data = data.sample(n=stkde.sn, replace=False, random_state=0)
+        # data.sort_values(by=['date'], inplace=True)
+        # data.reset_index(drop=True, inplace=True)
 
         # División en training data (X_train) y testing data (y)
         X_train = data[data["date"] < stkde.start_prediction]
@@ -2428,14 +2421,12 @@ class Model:
         else:
             geo_data = gpd.GeoDataFrame(df, geometry=geometry)
 
-
         df['x_point'] = geo_data['geometry'].x
         df['y_point'] = geo_data['geometry'].y
 
         df.loc[:, 'y_day'] = df["date"].apply(
             lambda x: x.timetuple().tm_yday
         )
-
 
         # División en training y testing data
 
@@ -2543,7 +2534,7 @@ class Model:
                 dict_['RForestRegressor'] = self.prepare_rfr(verbose=verbose)
         return dict_
 
-    def add_model(self, m,verbose=False):
+    def add_model(self, m, verbose=False):
         """Añade el modelo a self.models
 
         Parameters
@@ -2683,7 +2674,7 @@ def create_model(data=None, shps=None,
     m.shps = shps
 
     if use_promap:
-        promap = ProMap(data=data.copy(deep=True),shps=shps,
+        promap = ProMap(data=data.copy(deep=True), shps=shps,
                         start_prediction=start_prediction,
                         length_prediction=length_prediction)
         m.add_model(promap)
@@ -2694,7 +2685,8 @@ def create_model(data=None, shps=None,
                                )
         m.add_model(rfr)
     if use_stkde:
-        stkde = STKDE(data=data.copy(deep=True), shps=shps, start_prediction=start_prediction,
+        stkde = STKDE(data=data.copy(deep=True), shps=shps,
+                      start_prediction=start_prediction,
                       length_prediction=length_prediction)
         m.add_model(stkde)
     return m
