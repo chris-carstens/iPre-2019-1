@@ -245,7 +245,7 @@ class STKDE:
         if X_filtered.size > 0:
 
             geometry = [Point(xy) for xy in zip(x_t, y_t)]
-            if dallas:
+            if dallas is not None:
                 geo_df = gpd.GeoDataFrame(X_filtered,
                                           crs=dallas.crs,
                                           geometry=geometry)

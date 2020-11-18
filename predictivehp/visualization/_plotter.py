@@ -48,10 +48,10 @@ class Plotter:
         pass
 
     def heatmap(self, c=None, ap=None, show_score=True, incidences=False,
-                savefig=False, verbose=False, **kwargs):
+                savefig=False, verbose=False, show_axis=True, **kwargs):
         for m in self.model.models:
             m.heatmap(c=c, ap=ap, show_score=show_score, incidences=incidences,
-                      savefig=savefig, verbose=verbose, colors=self.colors, **kwargs)
+                      savefig=savefig, verbose=verbose, colors=self.colors, show_axis=show_axis, **kwargs)
 
     def hr(self):
         """Plotea la curva Hit Rate para el c o ap dado.
