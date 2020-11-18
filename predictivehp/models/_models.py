@@ -2074,8 +2074,8 @@ class ProMap:
         for i in range(c.size):
             hits_n.append(
                 np.sum(
-                    (self.prediction >= c[
-                        i]) * self.testing_matrix))
+                    (self.prediction >= c[i]) * self.testing_matrix)
+            )
 
         # 1. Solo considera las celdas que son mayor a un K
         #     Esto me entrega una matriz con True/False (Matriz A)
@@ -2313,7 +2313,6 @@ class ProMap:
 
         if type(ap) == float or type(ap) == np.float64:
             c = af.find_c(self.ap, self.c_vector, ap)
-
 
         elif type(ap) == list or type(ap) == np.ndarray:
             c = [af.find_c(self.ap, self.c_vector, i) for i in ap]
