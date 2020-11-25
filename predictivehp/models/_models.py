@@ -1927,9 +1927,9 @@ class ProMap:
             if verbose else None
 
         if self.shps is not None:
-            # self.cells_in_map = af.checked_points_pm(points, self.shps[
-            # 'councils'])  #
-            self.cells_in_map = 141337
+            self.cells_in_map = af.checked_points_pm(points, self.shps[
+            'councils'])  #
+            #self.cells_in_map = 141337
         else:
             cells_x = abs(self.x_min - self.x_max) // self.hx
             cells_y = abs(self.y_min - self.y_max) // self.hy
