@@ -17,7 +17,7 @@ class Plotter:
           segmento [1, 0].
         """
         self.c_arr = np.linspace(0, 1, n)
-        self.colors = {1: "lime", 2: "red", 3: "yellow", 4 : "green"}
+        self.colors = {1: "blue", 2: "lime", 3: "red", 4 : "green"}
         self.model = model
 
     def add_model(self, model):

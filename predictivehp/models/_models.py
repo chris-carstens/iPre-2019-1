@@ -1106,7 +1106,7 @@ class RForestRegressor(object):
 
         fig, ax = plt.subplots(figsize=[6.75] * 2)
         if self.shps is not None:
-            d_streets.plot(ax=ax, alpha=0.2, lw=0.3, color="w")
+            d_streets.plot(ax=ax, alpha=0.1, lw=0.3, color="w")
 
         if c is None:
             d_cells = cells[cells[('Dangerous_pred', '')] >= 0.0]
@@ -1131,7 +1131,7 @@ class RForestRegressor(object):
         elif type(c) in {float, int, np.float64}:
             d_cells = cells[cells[('Dangerous_pred', '')] >= c]
             d_cells.plot(ax=ax, marker='o', markersize=10, color='darkred',
-                         alpha=0.5)  # Heatmap binario
+                         alpha=0.1)  # Heatmap binario
             cells['Hit'] = np.where(
                 cells[('Dangerous_pred', '')] >= c, 1, 0
             )
@@ -1152,7 +1152,7 @@ class RForestRegressor(object):
                 d_cells = cells[lvl]
                 d_cells.plot(ax=ax, marker='o', markersize=3,
                              color=kwargs['colors'][idx + 1],
-                             alpha=0.5)
+                             alpha=0.1)
                 cells[f'D{idx + 1}'] = np.where(lvl, 1, 0)
 
             lvl = c[-1] < cells[('Dangerous_pred', '')]
@@ -1160,7 +1160,7 @@ class RForestRegressor(object):
             d_cells = cells[lvl]
             d_cells.plot(ax=ax, marker='o', markersize=3,
                          color=kwargs['colors'][c.size + 1],
-                         alpha=0.5)
+                         alpha=0.1)
             cells[f'D{c.size + 1}'] = np.where(lvl, 1, 0)
 
             # d1_cells = cells[
